@@ -61,7 +61,6 @@ const DocsPage = () => {
     { id: "boosters", label: "Booster Stacking" },
     { id: "bosses", label: "Boss Mechanics" },
     { id: "dungeons", label: "Dungeon Factors" },
-    { id: "crafting", label: "Crafting" },
     { id: "territories", label: "Territories" },
     { id: "guilds", label: "Guild System" },
     { id: "guildwars", label: "Guild Wars" },
@@ -168,19 +167,6 @@ FinalTokens = floor(BaseReward + random(0, AdjustedBonus))`}
                 "Daily repeat counter resets at midnight Manila time (UTC+8)",
                 "Mastery counters fatigue — high mastery maintains full bonus rewards",
                 "If Mastery is 0 and Fatigue > 0, bonus is reduced to 0",
-              ]}
-            />
-
-            <FormulaBlock
-              label="Material Drop Calculation"
-              formula={`BaseMaterialCount = mission.materialRolls
-EffectiveBoost = matBoostRaw / (1 + matBoostRaw / 200)
-FinalMaterialCount = round(BaseMaterialCount × (1 + EffectiveBoost / 100) × (1 + guildMatBonus))`}
-              notes={[
-                "Materials are rolled randomly from the dungeon's material pool (2 materials per dungeon)",
-                "Material rolls by mission: Scout 1, Patrol 3, Expedition 6, Siege 12, War Campaign 36",
-                "Material Booster cards amplify drops via the soft-cap formula",
-                "Guild material bonus (up to +50% at max guild level) stacks multiplicatively",
               ]}
             />
           </motion.section>
@@ -303,7 +289,7 @@ BOOSTER_MULTIPLIERS (per card):
 
           {/* ═══ BOSS MECHANICS ═══ */}
           <motion.section {...fadeUp}>
-            <SectionTitle id="bosses" sub="Boss raids are 30-minute missions that contribute to the weekly leaderboard and drop crafting materials.">
+            <SectionTitle id="bosses" sub="Boss raids are 30-minute missions that contribute to the weekly leaderboard.">
               Boss Mechanics
             </SectionTitle>
 
@@ -317,27 +303,6 @@ FinalDamage = max(1, BaseDamage)`}
                 "Boss raids last 30 minutes (1800 seconds) and cost 30 energy",
                 "Each raid earns 45 XP (before XP boosters)",
                 "Damage accumulates toward the weekly leaderboard",
-              ]}
-            />
-
-            <FormulaBlock
-              label="Boss Material Drops"
-              formula={`BOSS_RAID_DURATION = 1800s (30 min)
-Total material drops per raid = 12 (2 per 5 minutes)
-EffectiveBoost = matBoostRaw / (1 + matBoostRaw / 200)
-FinalDropCount = round(12 × (1 + EffectiveBoost / 100))
-
-For each drop:
-  ComponentChance = 0.75 (75%)
-  if (random < 0.75) drop Component from boss.componentPool
-  else drop Catalyst (rarity by boss.catalystDropRate weights)`}
-              notes={[
-                "Each boss raid = 12 material rolls (2 per 5 minutes)",
-                "75% chance per roll = Component (boss-class specific)",
-                "25% chance per roll = Catalyst (rarity scales with boss tier)",
-                "Components are used in crafting recipes by class (melee, range, magic, etc.)",
-                "Catalysts determine the rarity of a craftable card",
-                "Higher-tier bosses drop higher-rarity catalysts",
               ]}
             />
 
@@ -377,7 +342,7 @@ PREMIUM_POOL    = 1,000 Soul Shards (SSHRD)`}
 
           {/* ═══ DUNGEON FACTORS ═══ */}
           <motion.section {...fadeUp}>
-            <SectionTitle id="dungeons" sub="Dungeons provide tokens, materials, and XP. Mission types determine duration and rewards.">
+            <SectionTitle id="dungeons" sub="Dungeons provide tokens and XP. Mission types determine duration and rewards.">
               Dungeon System
             </SectionTitle>
 
@@ -402,12 +367,12 @@ PREMIUM_POOL    = 1,000 Soul Shards (SSHRD)`}
             <div className="rounded-xl border border-border overflow-hidden mb-3" style={{ background: "linear-gradient(145deg, hsl(230 12% 14%), hsl(230 12% 9%))" }}>
               <table className="w-full">
                 <tbody>
-                  <TableRow cells={["Mission", "Duration", "Energy", "Base Tokens", "Material Rolls", "Fatigue"]} header />
-                  <TableRow cells={["Scout", "5 min", "15", "50", "1", "10"]} />
-                  <TableRow cells={["Patrol", "15 min", "25", "100", "3", "20"]} />
-                  <TableRow cells={["Expedition", "30 min", "45", "250", "6", "35"]} />
-                  <TableRow cells={["Siege", "1 hr", "60", "500", "12", "60"]} />
-                  <TableRow cells={["War Campaign", "3 hr", "80", "750", "36", "90"]} />
+                  <TableRow cells={["Mission", "Duration", "Energy", "Base Tokens", "Fatigue"]} header />
+                  <TableRow cells={["Scout", "5 min", "15", "50", "10"]} />
+                  <TableRow cells={["Patrol", "15 min", "25", "100", "20"]} />
+                  <TableRow cells={["Expedition", "30 min", "45", "250", "35"]} />
+                  <TableRow cells={["Siege", "1 hr", "60", "500", "60"]} />
+                  <TableRow cells={["War Campaign", "3 hr", "80", "750", "90"]} />
                 </tbody>
               </table>
             </div>
