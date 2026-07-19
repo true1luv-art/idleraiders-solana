@@ -84,13 +84,16 @@ export const config = {
       decimals:     18,
     },
 
+    // Hive / Hive-Engine constants — hardcoded (no env vars needed)
     hive: {
-      rpcNodes:     (process.env.HIVE_RPC_NODES ?? 'https://api.hive.blog')
-                      .split(',')
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-      engineRpcUrl: process.env.HIVE_ENGINE_RPC_URL ?? 'https://api.hive-engine.com/rpc',
-      engineId:     process.env.HIVE_ENGINE_ID ?? 'ssc-mainnet-hive',
+      rpcNodes:     [
+        'https://api.hive.blog',
+        'https://api.hivekings.com',
+        'https://anyx.io',
+        'https://hived.privex.io',
+      ],
+      engineRpcUrl: 'https://api.hive-engine.com/rpc',
+      engineId:     'ssc-mainnet-hive',
       // Same symbol / address as CONTRACT_ADDRESS on Hive-Engine
       tokenSymbol:  process.env.CONTRACT_ADDRESS ?? '',
       precision:    8,
