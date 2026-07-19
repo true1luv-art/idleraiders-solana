@@ -22,7 +22,7 @@ const BottomNavigation = () => {
           const isActive =
             pathname === tab.path ||
             (tab.path === '/game/inventory' && (pathname === '/game/cards' || pathname === '/game/bag')) ||
-            (tab.path === '/game/explore' && (pathname === '/game/guild' || pathname === '/game/leaderboard' || pathname === '/game/marketplace' || pathname === '/game/trader'))
+            (tab.path === '/game/explore' && (pathname === '/game/guild' || pathname === '/game/marketplace' || pathname === '/game/trader'))
           const Icon = tab.icon
           return (
             <button

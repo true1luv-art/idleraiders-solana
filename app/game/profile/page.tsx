@@ -92,7 +92,7 @@ const ProfilePage = () => {
 		xp: playerState?.xp ?? 0,
 		xpToNextLevel: playerState?.xpToNextLevel ?? 100,
 		coins: playerState?.coins ?? 0,
-		shards: playerState?.shards ?? 0,
+
 		totalMissions: playerState?.totalMissions ?? 0,
 		totalBossDamage: playerState?.totalBossDamage ?? 0,
 		totalMinutesPlayed: playerState?.totalMinutesPlayed ?? 0,
@@ -388,13 +388,7 @@ const ProfilePage = () => {
 						delay={0.1}
 						highlight
 					/>
-					<StatCard
-						icon={<CurrencyIcon type="shard" size={20} />}
-						value={player.shards.toLocaleString()}
-						label="Soul Shards"
-						delay={0.12}
-						highlight
-					/>
+
 					<StatCard
 						icon={<span className="text-lg">🃏</span>}
 						value={`${totalCardCount} (${uniqueCards})`}

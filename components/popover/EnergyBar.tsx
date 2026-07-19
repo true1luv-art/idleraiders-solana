@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { useGame } from '@/context/GameContext'
-import { useItemActions, usePlayerActions } from '@/features/actions'
+import { useItemActions } from '@/features/actions'
 import { useTimer } from '@/hooks/useTimer'
 import { Zap, FlaskConical, Package, Sparkles, Info, Clock, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -47,7 +47,6 @@ const InfoTip = ({ children }: InfoTipProps) => (
 const EnergyBar = () => {
 	const { playerState, apiRequest } = useGame()
 	const { usePotion } = useItemActions()
-	const { upgradeStorageSlots } = usePlayerActions()
 	const [justClaimed, setJustClaimed] = useState(false)
 	const [isUpgrading, setIsUpgrading] = useState(false)
 
@@ -55,16 +54,13 @@ const EnergyBar = () => {
 	const cardMastery = playerState?.stats?.mastery ?? 0
 	const trainingMastery = playerState?.missionStats?.mastery ?? 0
 	const mastery = cardMastery + trainingMastery
-	// Transform potions array into object with counts by type
-	const potionsArray = Array.isArray(playerState?.potions) ? playerState.potions : []
 	const potions = {
-		energy: potionsArray.find((p) => p.id === 'energy_potion')?.quantity ?? 0,
-		exp: potionsArray.find((p) => p.id === 'exp_potion')?.quantity ?? 0,
+		energy: (playerState?.potions as { energy?: number })?.energy ?? 0,
+		exp: (playerState?.potions as { xp?: number })?.xp ?? 0,
 	}
 	const fatigue = playerState?.missionStats?.fatigue ?? 0
 	const expBoostActive = playerState?.expBoostActive ?? playerState?.missionStats?.isExpBoostActive ?? false
 	const storageSlots = playerState?.storageSlots ?? 3
-	const dollars = playerState?.dollars ?? 0
 	const luck = playerState?.luck ?? playerState?.stats?.luck ?? 0
 	const lastCycleUpdate = playerState?.lastCycleUpdate ? new Date(playerState.lastCycleUpdate) : new Date()
 
@@ -315,7 +311,7 @@ const EnergyBar = () => {
 								<InfoTip>
 									<p className="font-semibold mb-1">📦 Potion Storage</p>
 									<p>You can hold up to {storageMax} potions total across all types.</p>
-									<p className="mt-1">Start with 3 slots. Increase for 1 Dollar per slot.</p>
+									<p className="mt-1">Start with 3 slots.</p>
 									<p className="mt-1 text-muted-foreground">
 										If storage is full, potion drops are lost!
 									</p>
@@ -326,21 +322,6 @@ const EnergyBar = () => {
 								<span className="text-muted-foreground font-normal">/{storageMax}</span>
 							</span>
 						</div>
-						<Button
-							variant="outline"
-							className="w-full"
-							size="sm"
-							disabled={dollars < 1}
-							onClick={async () => {
-								if (dollars < 1) {
-									toast.error('Not enough Dollars')
-									return
-								}
-								await upgradeStorageSlots()
-							}}
-						>
-							Increase Storage — 1 Dollar
-						</Button>
 
 						{/* Potions */}
 						<div className="border-t border-border pt-3 space-y-2">

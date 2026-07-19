@@ -1,5 +1,5 @@
 import mongoose, { type Mongoose } from 'mongoose'
-import { MONGO_URI } from './config'
+import { MONGODB_URI } from './config'
 
 interface MongooseCache {
 	conn: Mongoose | null
@@ -19,15 +19,15 @@ if (!globalThis.__idleraidersMongoose) {
 
 export async function connectDB(): Promise<Mongoose> {
 	// Check at runtime, not module load time
-	if (!MONGO_URI) {
-		throw new Error('Missing MongoDB connection string. Set MONGO_URI or MONGO_URI_LOCAL environment variable.')
+	if (!MONGODB_URI) {
+		throw new Error('Missing MongoDB connection string. Set MONGODB_URI environment variable.')
 	}
 
 	if (cached.conn) return cached.conn
 
 	if (!cached.promise) {
 		cached.promise = mongoose
-			.connect(MONGO_URI, {
+			.connect(MONGODB_URI, {
 				bufferCommands: false,
 				maxPoolSize: 10,
 			})

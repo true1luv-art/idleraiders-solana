@@ -1,37 +1,53 @@
 'use client'
 
-import { useState, useEffect, Suspense, FormEvent } from 'react'
+import { useState, useEffect, Suspense, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/context'
-import { Loader2, FileText, ShieldCheck, UserPlus } from 'lucide-react'
+import { isHiveKeychainAvailable } from '@/lib/auth/wallet-adapters/hive'
+import { Loader2, FileText, ShieldCheck, UserPlus, ExternalLink, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import LegalModal from '@/components/modals/Legal'
 import { GAME_UI_IMAGES } from '@/features/images'
+import Link from 'next/link'
 
 interface LoginResult {
 	success: boolean
 	isRegistered?: boolean
 }
 
-const LoginPage = () => {
+// ─── Lore bullets ───────────────────────────────────────────────────────────
+const BULLETS = [
+	{ label: 'Sign in with your Posting key — no tokens are spent' },
+	{ label: 'Requires the Hive Keychain browser extension' },
+	{ label: 'Your progress is saved server-side across all devices' },
+]
+
+function Bullet({ label }: { label: string }) {
+	return (
+		<div className="flex items-center gap-3 text-sm text-muted-foreground">
+			<span className="w-2 h-2 rounded-sm bg-primary rotate-45 shrink-0" />
+			<span>{label}</span>
+		</div>
+	)
+}
+
+// ─── Login Card ──────────────────────────────────────────────────────────────
+const LoginCard = () => {
 	const router = useRouter()
 	const { login, isLoading, error } = useAuth()
-	const [username, setUsername] = useState<string>('')
-	const [referralCode, setReferralCode] = useState<string>('')
-	const [showReferral, setShowReferral] = useState<boolean>(false)
-	const [termsOpen, setTermsOpen] = useState<boolean>(false)
-	const [privacyOpen, setPrivacyOpen] = useState<boolean>(false)
-	const [sessionExpired, setSessionExpired] = useState<boolean>(false)
+	const [username, setUsername] = useState('')
+	const [referralCode, setReferralCode] = useState('')
+	const [showReferral, setShowReferral] = useState(false)
+	const [sessionExpired, setSessionExpired] = useState(false)
+	const [keychainAvailable, setKeychainAvailable] = useState(true)
 
-	// Check for session expired parameter and referral code from URL
 	useEffect(() => {
+		setKeychainAvailable(isHiveKeychainAvailable())
+
 		const params = new URLSearchParams(window.location.search)
-		if (params.get('session_expired') === 'true') {
-			setSessionExpired(true)
-		}
-		// Check for referral code in URL (e.g., /login?ref=someuser)
+		if (params.get('session_expired') === 'true') setSessionExpired(true)
 		const ref = params.get('ref')
 		if (ref) {
 			setReferralCode(ref)
@@ -43,134 +59,252 @@ const LoginPage = () => {
 		e.preventDefault()
 		if (!username.trim()) return
 
-		// Pass referral code to login - it will be saved if this is a new account
 		const result = (await login(username.trim().toLowerCase(), referralCode.trim())) as LoginResult
-
 		if (result?.success) {
-			// Always redirect to /game - the game layout will show registration modal if needed
 			router.push('/game')
 		}
 	}
 
 	return (
-		<div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				className="w-full max-w-sm space-y-6 text-center"
-			>
-				<motion.div className="flex flex-col items-center gap-3">
-					<motion.img
-						src={GAME_UI_IMAGES.logo}
-						alt="IdleRaiders Logo"
-						className="h-12"
-						initial={{ scale: 0.8, opacity: 0 }}
-						animate={{ scale: 1, opacity: 1 }}
-						transition={{ delay: 0.1, duration: 0.6 }}
-					/>
-				</motion.div>
-				<p className="text-sm text-muted-foreground">Sign in with your Hive account</p>
+		<div className="fantasy-card glow-gold w-full space-y-5 p-6">
+			{/* Card header */}
+			<div className="flex items-center justify-between border-b border-border pb-4">
+				<h2 className="font-display text-sm font-bold text-foreground tracking-wide uppercase">
+					Sign In
+				</h2>
+				<div className="flex items-center gap-2">
+					<span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_theme(colors.green.500)]" />
+					<span className="text-[10px] text-green-500 font-mono tracking-widest uppercase">Ready</span>
+				</div>
+			</div>
 
+			{/* Chain badge */}
+			<div>
+				<span className="text-[10px] font-mono tracking-widest text-primary border border-primary/40 px-2.5 py-1 uppercase">
+					Hive Blockchain
+				</span>
+			</div>
+
+			{/* Session expired banner */}
 			{sessionExpired && (
-				<div className="rounded-lg border border-amber-600/50 bg-amber-600/10 p-4 text-sm text-amber-600">
-					<p className="font-semibold">⏱️ Session Expired</p>
-					<p className="mt-1 text-xs text-muted-foreground">
+				<div className="rounded-lg border border-amber-600/50 bg-amber-600/10 p-3 text-sm text-amber-500">
+					<p className="font-semibold text-xs">Session Expired</p>
+					<p className="mt-0.5 text-[11px] text-muted-foreground">
 						Your login session has expired. Please sign in again.
 					</p>
 				</div>
 			)}
 
+			{/* Keychain not installed warning */}
+			{!keychainAvailable && (
+				<div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3">
+					<p className="text-sm text-destructive font-medium">Hive Keychain not installed.</p>
+					<a
+						href="https://hive-keychain.com"
+						target="_blank"
+						rel="noreferrer"
+						className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+					>
+						Get it here <ExternalLink size={10} />
+					</a>
+				</div>
+			)}
+
+			{/* Form */}
 			<form onSubmit={handleLogin} className="space-y-4">
-					<Input
-						placeholder="Hive username"
-						value={username}
-						onChange={(e) => setUsername(e.target.value)}
-						disabled={isLoading}
-						className="text-center font-body"
-						autoFocus
-					/>
-					
-					{/* Referral code section */}
-					{!showReferral ? (
-						<button
-							type="button"
-							onClick={() => setShowReferral(true)}
-							className="text-xs text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 mx-auto"
-						>
-							<UserPlus size={12} />
-							Have a referral code?
-						</button>
-					) : (
-						<div className="space-y-2">
-							<Input
-								placeholder="Referral code (optional)"
-								value={referralCode}
-								onChange={(e) => setReferralCode(e.target.value)}
-								disabled={isLoading}
-								className="text-center font-body text-sm"
-							/>
-							<p className="text-[10px] text-muted-foreground">
-								Enter a friend&apos;s username if they referred you
-							</p>
-						</div>
-					)}
-					
-					{error && (
-						<div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive space-y-2">
-							<p className="font-semibold">Error: {error}</p>
+				{/* @ prefix input */}
+				<div>
+					<label className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase block mb-2">
+						Hive Username
+					</label>
+					<div className="flex">
+						<span className="flex items-center justify-center px-3 border border-r-0 border-input bg-secondary/50 text-primary font-mono text-base">
+							@
+						</span>
+						<Input
+							placeholder="youraccount"
+							value={username}
+							onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())}
+							disabled={isLoading}
+							autoComplete="off"
+							spellCheck={false}
+							autoFocus
+							className="rounded-l-none font-mono"
+						/>
+					</div>
+					<p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+						Hive Keychain will prompt you to sign with your Posting key. No tokens are spent.
+					</p>
+				</div>
+
+				{/* Referral toggle */}
+				{!showReferral ? (
+					<button
+						type="button"
+						onClick={() => setShowReferral(true)}
+						className="text-xs text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5"
+					>
+						<UserPlus size={12} />
+						Have a referral code?
+					</button>
+				) : (
+					<div className="space-y-1.5">
+						<label className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase block">
+							Referral Code
+						</label>
+						<Input
+							placeholder="friend's username (optional)"
+							value={referralCode}
+							onChange={(e) => setReferralCode(e.target.value)}
+							disabled={isLoading}
+							className="font-mono text-sm"
+						/>
+						<p className="text-[10px] text-muted-foreground">
+							Enter a friend&apos;s Hive username if they referred you
+						</p>
+					</div>
+				)}
+
+				{/* Error */}
+				{error && (
+					<div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 flex items-start gap-2">
+						<AlertCircle size={14} className="text-destructive shrink-0 mt-0.5" />
+						<div className="space-y-1">
+							<p className="text-xs text-destructive font-semibold">{error}</p>
 							{error.includes('timed out') && (
-								<div className="text-[11px] space-y-1">
-									<p className="font-semibold text-destructive">Quick fixes:</p>
-									<ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-										<li>Ensure Hive Keychain is enabled (not in private/incognito mode)</li>
-										<li>Refresh the page and try again</li>
-										<li>Check if the keychain extension icon appears in your browser</li>
-										<li>Try a different browser if issue persists</li>
-									</ul>
-								</div>
+								<ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc list-inside">
+									<li>Ensure Keychain is enabled (not in private / incognito mode)</li>
+									<li>Refresh the page and try again</li>
+									<li>Check if the extension icon appears in your browser toolbar</li>
+								</ul>
 							)}
 						</div>
-					)}
+					</div>
+				)}
+
 				<Button
 					type="submit"
-					disabled={isLoading || !username.trim()}
-					className="w-full fantasy-btn"
+					disabled={isLoading || !username.trim() || !keychainAvailable}
+					className="w-full fantasy-btn py-5 text-sm font-mono tracking-wide"
 				>
 					{isLoading ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-							Waiting for Keychain…
+							Waiting for Keychain...
 						</>
 					) : (
-						'Sign In with Keychain'
+						'Sign In with Hive'
 					)}
 				</Button>
-				</form>
+			</form>
+		</div>
+	)
+}
 
+// ─── Page ────────────────────────────────────────────────────────────────────
+const LoginPage = () => {
+	const router = useRouter()
+	const [termsOpen, setTermsOpen] = useState(false)
+	const [privacyOpen, setPrivacyOpen] = useState(false)
+
+	return (
+		<div
+			className="min-h-screen bg-background text-foreground"
+			style={{
+				backgroundImage: `radial-gradient(ellipse at 60% 40%, hsl(43 85% 59% / 0.04) 0%, transparent 60%), url(${GAME_UI_IMAGES.background})`,
+				backgroundSize: 'cover',
+				backgroundPosition: 'center',
+				backgroundBlendMode: 'overlay',
+			}}
+		>
+			{/* Nav */}
+			<nav className="max-w-6xl mx-auto flex items-center justify-between px-6 py-5 border-b border-border/40">
+				<Link href="/" className="flex items-center gap-3">
+					<img src={GAME_UI_IMAGES.logo} alt="IdleRaiders Logo" className="h-8" />
+				</Link>
 				<button
 					onClick={() => router.push('/')}
-					className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+					className="text-[11px] font-mono tracking-widest text-muted-foreground hover:text-foreground transition-colors uppercase"
 				>
-					← Back to home
+					← Back
 				</button>
+			</nav>
 
-				<div className="flex items-center justify-center gap-3 pt-2">
-					<button
-						onClick={() => setTermsOpen(true)}
-						className="text-[10px] text-muted-foreground/50 hover:text-primary transition-colors inline-flex items-center gap-1"
-					>
-						<FileText size={10} /> Terms
-					</button>
-					<span className="text-muted-foreground/20">·</span>
-					<button
-						onClick={() => setPrivacyOpen(true)}
-						className="text-[10px] text-muted-foreground/50 hover:text-primary transition-colors inline-flex items-center gap-1"
-					>
-						<ShieldCheck size={10} /> Privacy
-					</button>
-				</div>
-			</motion.div>
+			{/* Two-column layout */}
+			<section className="max-w-6xl mx-auto px-6 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+				{/* Lore side */}
+				<motion.div
+					initial={{ opacity: 0, x: -20 }}
+					animate={{ opacity: 1, x: 0 }}
+					transition={{ duration: 0.5 }}
+					className="space-y-8"
+				>
+					<div className="space-y-2">
+						<div className="flex items-center gap-3 flex-wrap">
+							<span className="text-[10px] font-mono tracking-widest text-primary border border-primary/40 px-2.5 py-1 uppercase">
+								Hive Blockchain
+							</span>
+							<span className="text-[10px] font-mono tracking-widest text-muted-foreground border border-border px-2.5 py-1 uppercase">
+								Idle RPG
+							</span>
+						</div>
+						<h1 className="font-display text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground leading-tight text-glow-gold mt-4">
+							Enter the<br />Realm
+						</h1>
+						<p className="text-base text-muted-foreground leading-relaxed max-w-md">
+							Connect your Hive account to command your raiders, conquer dungeons,
+							collect rare cards, and climb the global leaderboards.
+						</p>
+					</div>
 
+					<div className="space-y-3">
+						{BULLETS.map((b) => (
+							<Bullet key={b.label} label={b.label} />
+						))}
+					</div>
+
+					<div className="pt-2">
+						<a
+							href="https://hive-keychain.com"
+							target="_blank"
+							rel="noreferrer"
+							className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+						>
+							<ExternalLink size={12} />
+							Don&apos;t have Hive Keychain? Get it here
+						</a>
+					</div>
+				</motion.div>
+
+				{/* Login card side */}
+				<motion.div
+					initial={{ opacity: 0, x: 20 }}
+					animate={{ opacity: 1, x: 0 }}
+					transition={{ duration: 0.5, delay: 0.1 }}
+					className="w-full max-w-md mx-auto lg:mx-0 space-y-4"
+				>
+					<LoginCard />
+
+					{/* Legal links */}
+					<div className="flex items-center justify-center gap-4 pt-1">
+						<button
+							onClick={() => setTermsOpen(true)}
+							className="text-[10px] text-muted-foreground/50 hover:text-primary transition-colors inline-flex items-center gap-1"
+						>
+							<FileText size={10} /> Terms
+						</button>
+						<span className="text-muted-foreground/20 text-xs">·</span>
+						<button
+							onClick={() => setPrivacyOpen(true)}
+							className="text-[10px] text-muted-foreground/50 hover:text-primary transition-colors inline-flex items-center gap-1"
+						>
+							<ShieldCheck size={10} /> Privacy
+						</button>
+					</div>
+				</motion.div>
+			</section>
+
+			{/* Legal modals */}
 			<LegalModal open={termsOpen} onClose={() => setTermsOpen(false)} title="Terms & Conditions">
 				<p>
 					<strong className="text-foreground">Last Updated:</strong> March 8, 2026

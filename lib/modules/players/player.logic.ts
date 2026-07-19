@@ -4,10 +4,7 @@ import type { GameData } from '../../types'
 const SYSTEM = (GAME_DATA as GameData).SYSTEM ?? { PLAYER: { MAX_LEVEL: 150 }, ENERGY: { MAX: 100, REGEN_INTERVAL: 180 }, FATIGUE: { MAX: 100 } }
 const PLAYER = SYSTEM.PLAYER ?? { MAX_LEVEL: 150 }
 
-const LEADERBOARD = (GAME_DATA as GameData).ECONOMY?.leaderboard ?? {
-  EXPECTED_DAMAGE: 1000000,
-  PREMIUM_POOL: 1000,
-}
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Validators
@@ -47,20 +44,6 @@ export function calculateLevel(totalXp: number): { level: number; xp: number } {
     level++
   }
   return { level, xp: remaining }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Leaderboard Calculations
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function calculateRewardPool(totalBossDamage: number): number {
-  const pool = (totalBossDamage / LEADERBOARD.EXPECTED_DAMAGE) * LEADERBOARD.PREMIUM_POOL
-  return Math.min(pool, LEADERBOARD.PREMIUM_POOL)
-}
-
-export function calculatePlayerReward(playerDamage: number, totalBossDamage: number, revisedPool: number): number {
-  if (totalBossDamage === 0) return 0
-  return Math.floor((playerDamage / totalBossDamage) * revisedPool)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

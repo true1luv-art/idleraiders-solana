@@ -10,8 +10,6 @@ export interface CreatePlayerData {
   isRegistered?: boolean;
   referredBy?: string;
   coins?: number;
-  shards?: number;
-  dollars?: number;
   energy?: number;
   level?: number;
   xp?: number;
@@ -210,22 +208,6 @@ export async function getPlayerRank(
 // ═══════════════════════════════════════════════════════════════════════════════
 // Bulk Operations for Reward Distribution
 // ═══════════════════════════════════════════════════════════════════════════════
-
-export async function bulkIncrementShards(
-  updates: Array<{ playerId: string | Types.ObjectId; amount: number }>
-): Promise<{ modifiedCount: number; matchedCount: number }> {
-  if (updates.length === 0) return { modifiedCount: 0, matchedCount: 0 };
-
-  const bulkOps = updates.map(({ playerId, amount }) => ({
-    updateOne: {
-      filter: { _id: playerId },
-      update: { $inc: { shards: amount } },
-    },
-  }));
-
-  const result = await Player.bulkWrite(bulkOps);
-  return { modifiedCount: result.modifiedCount, matchedCount: result.matchedCount };
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Energy Operations

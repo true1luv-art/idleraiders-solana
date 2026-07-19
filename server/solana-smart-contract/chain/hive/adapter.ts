@@ -37,14 +37,14 @@ let _activeKey: PrivateKey | null = null
 function getTreasuryActiveKey(): PrivateKey {
   if (!_activeKey) {
     const raw = hive.activeKey?.trim()
-    if (!raw) throw new Error('HIVE_ACTIVE_KEY is not set')
+    if (!raw) throw new Error('TREASURY_KEY is not set (used as Hive active key)')
     _activeKey = PrivateKey.fromString(raw)
   }
   return _activeKey
 }
 
 function getTokenSymbol(): string {
-  if (!hive.tokenSymbol) throw new Error('HIVE_TOKEN_SYMBOL is not set')
+  if (!hive.tokenSymbol) throw new Error('CONTRACT_ADDRESS is not set (used as Hive-Engine token symbol)')
   return hive.tokenSymbol.toUpperCase()
 }
 

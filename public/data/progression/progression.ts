@@ -22,7 +22,7 @@ export const ACHIEVEMENTS = [
     icon: '🗡️',
     category: 'combat',
     check: (s) => s.totalMissions >= 50,
-    rewards: { coins: 500, shards: 5 },
+    rewards: { coins: 500 },
   },
   {
     id: 'centurion',
@@ -31,7 +31,7 @@ export const ACHIEVEMENTS = [
     icon: '🛡️',
     category: 'combat',
     check: (s) => s.totalMissions >= 100,
-    rewards: { coins: 1000, shards: 10 },
+    rewards: { coins: 1000 },
   },
   {
     id: 'warlord',
@@ -40,7 +40,7 @@ export const ACHIEVEMENTS = [
     icon: '👑',
     category: 'combat',
     check: (s) => s.totalMissions >= 500,
-    rewards: { coins: 5000, shards: 50 },
+    rewards: { coins: 5000 },
   },
   {
     id: 'boss_slayer',
@@ -49,7 +49,7 @@ export const ACHIEVEMENTS = [
     icon: '🐉',
     category: 'combat',
     check: (s) => s.totalBossDamage >= 10000,
-    rewards: { coins: 250, shards: 3 },
+    rewards: { coins: 250 },
   },
   {
     id: 'dragon_killer',
@@ -58,7 +58,7 @@ export const ACHIEVEMENTS = [
     icon: '💀',
     category: 'combat',
     check: (s) => s.totalBossDamage >= 100000,
-    rewards: { coins: 1500, shards: 15 },
+    rewards: { coins: 1500 },
   },
   {
     id: 'godslayer',
@@ -67,7 +67,7 @@ export const ACHIEVEMENTS = [
     icon: '⚡',
     category: 'combat',
     check: (s) => s.totalBossDamage >= 1000000,
-    rewards: { coins: 10000, shards: 100 },
+    rewards: { coins: 10000 },
   },
 
   // ── Collection Achievements ─────────────────────────────────
@@ -87,7 +87,7 @@ export const ACHIEVEMENTS = [
     icon: '📚',
     category: 'collection',
     check: (s) => s.uniqueCards >= 25,
-    rewards: { coins: 750, shards: 8 },
+    rewards: { coins: 750 },
   },
   {
     id: 'collector_50',
@@ -96,7 +96,7 @@ export const ACHIEVEMENTS = [
     icon: '🏛️',
     category: 'collection',
     check: (s) => s.uniqueCards >= 50,
-    rewards: { coins: 2000, shards: 25 },
+    rewards: { coins: 2000 },
   },
 
   // ── Progression Achievements ────────────────────────────────
@@ -134,7 +134,7 @@ export const ACHIEVEMENTS = [
     icon: '⭐',
     category: 'progression',
     check: (s) => s.playerLevel >= 50,
-    rewards: { coins: 3000, shards: 35 },
+    rewards: { coins: 3000 },
   },
   {
     id: 'lvl_100',
@@ -143,7 +143,7 @@ export const ACHIEVEMENTS = [
     icon: '🌟',
     category: 'progression',
     check: (s) => s.playerLevel >= 100,
-    rewards: { coins: 10000, shards: 100 },
+    rewards: { coins: 10000 },
   },
 
   // ── Social Achievements ─────────────────────────────────────
@@ -154,7 +154,7 @@ export const ACHIEVEMENTS = [
     icon: '🏰',
     category: 'social',
     check: (s) => s.inGuild,
-    rewards: { coins: 500, shards: 5 },
+    rewards: { coins: 500 },
   },
 ]
 
@@ -1420,10 +1420,9 @@ export const GUILD_PERK_BRANCHES: IGuildPerkBranch[] = [
 
 export const GUILD_WAR_CONFIG = {
   MATCHMAKING_POWER_VARIANCE: 0.2, // 20% power variance for matchmaking
-  // War duration is bound to the weekly leaderboard cycle:
-  // Monday 00:00 UTC+8 -> Sunday 23:59:59.999 UTC+8 (7 days / 168 hours).
+  // War duration: Monday 00:00 UTC+8 -> Sunday 23:59:59.999 UTC+8 (7 days / 168 hours).
   // The Sunday 16:00 UTC snapshot cron calls finalizeGuildWar(weekNumber).
-  // See lib/modules/leaderboards/leaderboard.logic.ts:getCurrentWeek.
+  // See lib/modules/guildwars/guildwar.logic.ts:getCurrentWeek.
   ATTACK_ENERGY_COST: 10,
   ATTACK_COOLDOWN_MINUTES: 30,
   BASE_FORTRESS_HP: 100000,

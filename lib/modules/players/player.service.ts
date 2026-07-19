@@ -194,25 +194,6 @@ export async function updateCoins(playerId: string | Types.ObjectId, amount: num
 	return player
 }
 
-export async function updateShards(playerId: string | Types.ObjectId, amount: number): Promise<IPlayerDocument> {
-	const player = await getPlayerOrThrow(playerId)
-	player.shards = Math.max(0, (player.shards ?? 0) + amount)
-	await player.save()
-	return player
-}
-
-export async function upgradeStorageSlots(playerId: string | Types.ObjectId): Promise<IPlayerDocument> {
-	const STORAGE_UPGRADE_COST = 1
-	const player = await getPlayerOrThrow(playerId)
-	if ((player.dollars ?? 0) < STORAGE_UPGRADE_COST) {
-		throw new Error('Not enough dollars to upgrade storage')
-	}
-	player.dollars = (player.dollars ?? 0) - STORAGE_UPGRADE_COST
-	player.storageSlots = (player.storageSlots ?? 3) + 1
-	await player.save()
-	return player
-}
-
 export async function getEnergy(playerId: string | Types.ObjectId): Promise<EnergyResult> {
 	const player = await getPlayerOrThrow(playerId)
 	const now = Date.now()

@@ -45,7 +45,7 @@ export function getTreasuryWallet(): Wallet {
 }
 
 export function getTokenContract(): Contract {
-  if (!rh.tokenAddress) throw new Error('ROBINHOOD_TOKEN_ADDRESS is not set')
+  if (!rh.tokenAddress) throw new Error('CONTRACT_ADDRESS is not set (required for Robinhood token contract)')
   return new Contract(rh.tokenAddress, ERC20_ABI, getTreasuryWallet())
 }
 

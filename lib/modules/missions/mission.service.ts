@@ -12,7 +12,6 @@ import {
 import { getRawCardBoostsById, applyBoostCap } from '../players/player.builder'
 import { getManilaDateString } from '@/lib/utils/time'
 import * as itemService from '../items/item.service'
-import * as leaderboardService from '../leaderboards/leaderboard.service'
 import * as playerService from '../players/player.service'
 import { addCard, addCardWithDetails, getPlayerCardsByTerritory, CARDS_BY_ID } from '../cards/card.service'
 import Card from '../cards/card.model'
@@ -833,8 +832,6 @@ export async function completeBossMission(
 	
 	await playerService.addXp(playerId, xp, player)
 
-	await leaderboardService.recordDamageForWeek(player._id, damage, mission.bossId!)
-
 	await logHistorySafe({
 		playerId: player._id,
 		source: 'mission',
@@ -872,8 +869,7 @@ export async function attackBoss(
 	const cardBoosts = await getRawCardBoostsById(playerId)
 	const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
 
-	// Apply tier-based damage multiplier for leaderboard incentive
-	// Higher tier bosses = more leaderboard damage (T1=1.0x, T5=2.0x)
+	// Apply tier-based damage multiplier (T1=1.0x, T5=2.0x)
 	const tierMultiplier = boss.damageMultiplier ?? 1.0
 	const baseDamage = Math.floor(raidPower * (0.8 + Math.random() * 0.4) * tierMultiplier)
 	const damage = Math.max(1, baseDamage)
@@ -892,7 +888,6 @@ export async function attackBoss(
 		player.missionStats.isExpBoostActive = false
 	}
 	await playerService.addXp(playerId, bossXp, player)
-	await leaderboardService.recordDamageForWeek(player._id, damage, bossId)
 
 	await logHistorySafe({
 		playerId: player._id,

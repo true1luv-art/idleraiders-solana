@@ -37,9 +37,7 @@ function resolveChain(): SupportedChain {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const config = {
-  mongoUri: IS_PRODUCTION
-    ? process.env.MONGO_URI!
-    : (process.env.MONGO_URI_LOCAL ?? process.env.MONGO_URI!),
+  mongoUri: process.env.MONGODB_URI!,
 
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret',
 
@@ -69,30 +67,38 @@ export const config = {
     treasuryAddress: process.env.TREASURY_ADDRESS ?? '',
     treasuryKey:     process.env.TREASURY_KEY ?? '',
 
+    // Solana — RPC is hardcoded to mainnet; Helius is still env-based (server-only secret)
     solana: {
-      rpcUrl:      process.env.SOLANA_RPC_URL ?? 'https://api.mainnet-beta.solana.com',
+      rpcUrl:       'https://api.mainnet-beta.solana.com',
       heliusApiKey: process.env.HELIUS_API_KEY ?? '',
-      mint:        process.env.CONTRACT_ADDRESS ?? '',
+      mint:         process.env.CONTRACT_ADDRESS ?? '',
     },
 
+    // Robinhood Chain constants — hardcoded (no env vars needed)
     robinhood: {
-      rpcUrl:       process.env.ROBINHOOD_RPC_URL ?? 'https://rpc.mainnet.chain.robinhood.com/',
-      chainId:      Number(process.env.ROBINHOOD_CHAIN_ID ?? 4663),
-      tokenAddress: process.env.ROBINHOOD_TOKEN_ADDRESS ?? process.env.CONTRACT_ADDRESS ?? '',
-      decimals:     Number(process.env.ROBINHOOD_TOKEN_DECIMALS ?? 18),
+      rpcUrl:       'https://rpc.mainnet.chain.robinhood.com/',
+      chainId:      4663,
+      // Same token contract as the game's primary CONTRACT_ADDRESS
+      tokenAddress: process.env.CONTRACT_ADDRESS ?? '',
+      decimals:     18,
     },
 
+    // Hive / Hive-Engine constants — hardcoded (no env vars needed)
     hive: {
-      rpcNodes:     (process.env.HIVE_RPC_NODES ?? 'https://api.hive.blog')
-                      .split(',')
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-      engineRpcUrl: process.env.HIVE_ENGINE_RPC_URL ?? 'https://api.hive-engine.com/rpc',
-      engineId:     process.env.HIVE_ENGINE_ID ?? 'ssc-mainnet-hive',
-      tokenSymbol:  process.env.HIVE_TOKEN_SYMBOL ?? process.env.CONTRACT_ADDRESS ?? '',
-      precision:    Number(process.env.HIVE_TOKEN_PRECISION ?? 8),
-      activeKey:    process.env.HIVE_ACTIVE_KEY ?? '',
-      account:      process.env.GAME_ACCOUNT_NAME ?? 'idleraiders',
+      rpcNodes:     [
+        'https://api.hive.blog',
+        'https://api.hivekings.com',
+        'https://anyx.io',
+        'https://hived.privex.io',
+      ],
+      engineRpcUrl: 'https://api.hive-engine.com/rpc',
+      engineId:     'ssc-mainnet-hive',
+      // Same symbol / address as CONTRACT_ADDRESS on Hive-Engine
+      tokenSymbol:  process.env.CONTRACT_ADDRESS ?? '',
+      precision:    8,
+      // Hive treasury re-uses the shared TREASURY_KEY and TREASURY_ADDRESS
+      activeKey:    process.env.TREASURY_KEY ?? '',
+      account:      process.env.TREASURY_ADDRESS ?? '',
     },
   },
 } as const
@@ -102,13 +108,10 @@ export const config = {
 // All callers can continue to import these without any changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const MONGO_URI: string | undefined = config.mongoUri
+export const MONGODB_URI: string | undefined = config.mongoUri
 
 export const JWT_SECRET_ENCODED: Uint8Array = new TextEncoder().encode(config.jwtSecret)
 export const JWT_EXPIRY_SECONDS: number = 7 * 24 * 60 * 60 // 7 days
-
-export const GAME_ACCOUNT_NAME: string = config.blockchain.hive.account
-export const HIVE_ACTIVE_KEY: string | undefined = config.blockchain.hive.activeKey || undefined
 
 export const PORT: number = parseInt(process.env.PORT ?? '5000', 10)
 export const CORS_ORIGIN: string = process.env.CORS_ORIGIN ?? 'http://localhost:3000'

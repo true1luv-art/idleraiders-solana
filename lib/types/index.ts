@@ -79,10 +79,8 @@ export interface IPlayer {
 	isRegistered: boolean
 	level: number
 	xp: number
-	coins: number
-	shards: number
-	dollars: number
-	energy: number
+  coins: number
+  energy: number
 	storageSlots: number
 	missionStats?: IMissionStats
 	milestones?: IMilestones
@@ -227,7 +225,7 @@ export interface IMarketListing {
 	itemType?: ItemType
 	quantity: number
 	price: number
-	currency: 'coins' | 'shards'
+	currency: 'coins'
 	status: ListingStatus
 	createdAt: Date
 	updatedAt: Date
@@ -285,26 +283,6 @@ export interface ITransaction {
 }
 
 export interface ITransactionDocument extends ITransaction, Document {
-	_id: Types.ObjectId
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Leaderboard Types
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface ILeaderboardEntry {
-	_id: Types.ObjectId
-	playerId: Types.ObjectId
-	username: string
-	score: number
-	rank?: number
-	period: string
-	category: string
-	createdAt: Date
-	updatedAt: Date
-}
-
-export interface ILeaderboardEntryDocument extends ILeaderboardEntry, Document {
 	_id: Types.ObjectId
 }
 
@@ -378,10 +356,6 @@ export interface GameSystemConfig {
 }
 
 export interface GameEconomyConfig {
-	leaderboard?: {
-		EXPECTED_DAMAGE: number
-		PREMIUM_POOL: number
-	}
 }
 
 export interface GameData {

@@ -11,7 +11,6 @@ const EVENT_COOLDOWNS = {
   get_player_state: 2000,
   get_lands: 1000,
   get_listings: 1000,
-  get_leaderboard: 3000,
   get_user_history: 2000,
   get_balances: 1000,
   check_game_version: 5000,

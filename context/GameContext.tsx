@@ -36,8 +36,6 @@ interface PlayerState {
 	maxEnergy?: number
 	lastEnergyRegen?: number
 	coins?: number
-	shards?: number
-	dollars?: number
 	storageSlots?: number
 	raidTokens?: number
 	guildTokens?: number
@@ -286,7 +284,7 @@ export const GameProvider = ({ children }: GameProviderProps) => {
 			status: 'completed' | 'failed'
 			type: string
 			message?: string
-			balanceUpdate?: { gold?: number; dollars?: number }
+			balanceUpdate?: { gold?: number }
 		}) => {
 			log('Received transaction:update: ' + JSON.stringify(payload))
 			

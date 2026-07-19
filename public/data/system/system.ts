@@ -28,10 +28,6 @@ export const ENERGY = {
 
 export const REGISTRATION = {
   FEE_USD: 10, // One-time registration fee in USD (set to $10 when live)
-
-  STARTER_DOLLARS: 10, // Number of dollars awarded to new players on registration
-
-  REFERRAL_DOLLARS: 1, // Number of dollars awarded to referrer when someone they referred registers
 }
 
 // ─────────────────────────────────────────────
