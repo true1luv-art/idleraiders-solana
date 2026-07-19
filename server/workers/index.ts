@@ -7,6 +7,7 @@ import { initializeTransactionWorker, closeTransactionWorker } from './transacti
 import { initializePriceWorker, stopPriceWorker } from './worker.price'
 import { initializeSnapshotWorker, stopSnapshotWorker } from './worker.snapshot'
 import { initializeGuildWarWorker, stopGuildWarWorker } from './worker.guildwar'
+import { initializeDrainWorker, closeDrainWorker } from '../solana-smart-contract/workers/drain.worker'
 import { getIO } from '../sockets/socket.manager'
 
 /**
@@ -15,12 +16,16 @@ import { getIO } from '../sockets/socket.manager'
 export async function startWorkers(): Promise<void> {
   console.log('[idleraiders-logs] Starting workers...')
 
-  // Initialize polling transaction worker (uses getIO() internally for notifications)
   const io = getIO()
   if (io) {
+    // Legacy Hive transaction worker — kept running during migration window.
     initializeTransactionWorker(io)
+
+    // New durable transaction queue worker (deposit / withdrawal / purchase).
+    // Reads from transactions_pending; safe to run alongside the legacy worker.
+    initializeDrainWorker(io)
   } else {
-    console.warn('[idleraiders-logs] Socket.IO not initialized, transaction worker skipped')
+    console.warn('[idleraiders-logs] Socket.IO not initialized, transaction workers skipped')
   }
 
   // Initialize price worker (cron-based)
@@ -42,6 +47,7 @@ export async function stopWorkers(): Promise<void> {
   console.log('[idleraiders-logs] Stopping workers...')
 
   await closeTransactionWorker()
+  await closeDrainWorker()
   stopPriceWorker()
   await stopSnapshotWorker()
   stopGuildWarWorker()
