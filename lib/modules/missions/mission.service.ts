@@ -5,7 +5,6 @@ import * as missionRepo from './mission.repository'
 import * as playerRepo from '../players/player.repository'
 import {
 	calculateDungeonReward,
-	rollMaterialsFromPool,
 	getDungeonUnlockGate,
 	isMissionUnlocked,
 	isMissionCompletionUnlocked,
@@ -84,7 +83,6 @@ interface MissionResult {
 
 interface DungeonCompletionResult {
 	tokens: number
-	materials: string[]
 	xp: number
 }
 
@@ -201,15 +199,6 @@ const TRAINING_LABELS: Record<TrainingType, string> = {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Helper Functions
 // ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Gets the material pool for a territory (4 materials)
- * Reads from territory data instead of hardcoded map
- */
-function getTerritoryMaterialPool(territoryId: string): string[] {
-	const territory = TERRITORIES_BY_ID[territoryId]
-	return territory?.materialPool ?? []
-}
 
 /**
  * Gets the drop rate distribution for a territory
@@ -547,22 +536,6 @@ export async function completeDungeonMission(
 	const energyCost = missionType?.energyCost ?? 15
 	const rawTokens = calculateDungeonReward(baseReward, raidPower, repeatCount, entryFatigue, effectiveMastery, energyCost)
 
-	// Fixed rate: 1 material per 5-min interval from the dungeon's zone pool
-	// Apply both card boost and guild material bonus
-	const materialPool = dungeon?.materialPool ?? []
-	const baseMatCount = missionType?.materialRolls ?? 1
-	const matBoostPct = applyBoostCap(cardBoosts.matBoost)
-	const guildMatBonus = guildBonuses.materialBonus // Already a decimal (e.g., 0.5 = 50%)
-	const materialCount = Math.round(baseMatCount * (1 + matBoostPct / 100) * (1 + guildMatBonus))
-	const materials = rollMaterialsFromPool(materialPool, materialCount)
-
-	// Persist materials to the item store
-	const materialCounts: Record<string, number> = {}
-	for (const matId of materials) materialCounts[matId] = (materialCounts[matId] ?? 0) + 1
-	await Promise.all(
-		Object.entries(materialCounts).map(([matId, qty]) => itemService.addMaterial(playerId, matId, qty)),
-	)
-
 	if (!player.missionStats) player.missionStats = { fatigue: 0, mastery: 0, isExpBoostActive: false }
 	const tokens = rawTokens
 
@@ -619,7 +592,6 @@ export async function completeDungeonMission(
 			dungeonId: mission.dungeonId,
 			missionTypeId: mission.missionTypeId,
 			tokens,
-			materials,
 			xp,
 			sourceName: mission.sourceName,
 		},
@@ -631,7 +603,7 @@ export async function completeDungeonMission(
 		tags: ['mission', 'dungeon'],
 	})
 
-	return { tokens, materials, xp }
+	return { tokens, xp }
 }
 
 export async function completeStoryQuest(
@@ -641,8 +613,6 @@ export async function completeStoryQuest(
 	const player = await getPlayerOrThrow(playerId)
 	const cardBoosts = await getRawCardBoostsById(playerId)
 	const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
-	const matBoostPct = applyBoostCap(cardBoosts.matBoost)
-	const guildMatBonus = guildBonuses.materialBonus
 	const territory = TERRITORIES_BY_ID[mission.territoryId!]
 	const quest = territory?.quests.find((q) => q.questNumber === mission.questNumber)
 
@@ -654,7 +624,6 @@ export async function completeStoryQuest(
 
 	let cardDropped = false
 	let rewardCard: { cardId: string; rarity: string; type: string } | null = null
-	let materialDropCount = 0
 	let chestItem: StoryCompletionResult['chestItem'] | undefined = undefined
 	let progressAdvanced = false
 
@@ -690,14 +659,13 @@ export async function completeStoryQuest(
 			progressAdvanced = false
 		}
 	} else {
-		// ════════════���════════════════════════════════════════════════════════════
-		// Replay/previous quest: card OR materials based on territory's dropRate
-		// ═══════════════════════════�����═════════════════════════════════════════════
+		// ═════════════════════════════════════════════════════════════════════════
+		// Replay/previous quest: card drop based on territory's dropRate
+		// ═════════════════════════════════════════════════════════════════════════
 		const dropRate = getTerritoryDropRate(mission.territoryId!)
-		const materialPool = getTerritoryMaterialPool(mission.territoryId!)
 		const cardRoll = Math.random() < dropRate.card / 100
 
-		if (cardRoll && materialPool.length > 0) {
+		if (cardRoll) {
 			// Card drop: Get random card from territory's completed story cards
 			// Card IDs use format: story_special_1, story_special_2, etc.
 			const TERRITORY_CARD_RANGES: Record<string, [number, number]> = {
@@ -726,42 +694,27 @@ export async function completeStoryQuest(
 				territoryCardPool.push(`story_special_${i}`)
 			}
 
-if (territoryCardPool.length > 0) {
-					const randomCardId = territoryCardPool[Math.floor(Math.random() * territoryCardPool.length)]
-					const selectedCard = CARDS_BY_ID[randomCardId]
+			if (territoryCardPool.length > 0) {
+				const randomCardId = territoryCardPool[Math.floor(Math.random() * territoryCardPool.length)]
+				const selectedCard = CARDS_BY_ID[randomCardId]
 
-					if (selectedCard) {
-						const cardResult = await addCardWithDetails(
-							playerId,
-							{ id: randomCardId, rarity: selectedCard.rarity, type: selectedCard.type },
-							'story',
-						)
-						rewardCard = { 
-							cardId: randomCardId, 
-							rarity: selectedCard.rarity, 
-							type: selectedCard.type,
-							previousCount: cardResult.previousCount,
-							currentCount: cardResult.currentCount,
-							isNew: cardResult.isNew,
-						}
-						cardDropped = true
+				if (selectedCard) {
+					const cardResult = await addCardWithDetails(
+						playerId,
+						{ id: randomCardId, rarity: selectedCard.rarity, type: selectedCard.type },
+						'story',
+					)
+					rewardCard = { 
+						cardId: randomCardId, 
+						rarity: selectedCard.rarity, 
+						type: selectedCard.type,
+						previousCount: cardResult.previousCount,
+						currentCount: cardResult.currentCount,
+						isNew: cardResult.isNew,
 					}
+					cardDropped = true
 				}
-		} else if (materialPool.length > 0) {
-			// Material drop: 1 material per 5-minute interval of mission duration
-			// Apply both card boost and guild material bonus
-			const intervals = Math.floor(mission.duration / 300) // 5 minutes = 300 seconds
-			const baseDropCount = intervals * 1 // 1 material per 5-minute interval
-			const materialCount = Math.round(baseDropCount * (1 + matBoostPct / 100) * (1 + guildMatBonus))
-			materialDropCount = materialCount
-			const materials = rollMaterialsFromPool(materialPool, materialCount)
-
-			// Persist materials
-			const materialCounts: Record<string, number> = {}
-			for (const matId of materials) materialCounts[matId] = (materialCounts[matId] ?? 0) + 1
-			await Promise.all(
-				Object.entries(materialCounts).map(([matId, qty]) => itemService.addMaterial(playerId, matId, qty)),
-			)
+			}
 		}
 	}
 
@@ -811,7 +764,6 @@ if (territoryCardPool.length > 0) {
 			isFirstCompletion,
 			cardDropped,
 			rewardCard,
-			materialDropCount,
 			progressAdvanced,
 			chestItem,
 			storyProgress: player.milestones!.storyProgress,

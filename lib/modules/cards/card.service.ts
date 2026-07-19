@@ -23,14 +23,6 @@ interface GameCard {
   [key: string]: unknown
 }
 
-interface CraftResult {
-  card: ICardDocument
-  materialCost: Record<string, number>
-  previousCount: number
-  currentCount: number
-  isNew: boolean
-}
-
 interface CollectionStats {
   totalCards: number
   uniqueCards: number
@@ -170,83 +162,6 @@ export async function removeCard(
   }
 
   return cardRepo.decrementQuantity(playerId, cardId, quantity)
-}
-
-export async function craftCard(playerId: string | Types.ObjectId, cardId: string): Promise<CraftResult> {
-  const player = await getPlayerOrThrow(playerId)
-  const cardDef = CARDS_BY_ID[cardId]
-  if (!cardDef) throw new Error('Card not found')
-  if (!cardDef.materials || Object.keys(cardDef.materials).length === 0) {
-    throw new Error('Card cannot be crafted')
-  }
-
-  // Import item repo only when needed to avoid circular deps
-  const itemRepo = await import('../items/item.repository')
-
-  // Check materials
-  const materials = await itemRepo.findByPlayer(playerId, 'material')
-  const materialMap = new Map(materials.map((m) => [m.id, m.quantity]))
-
-  for (const [materialId, required] of Object.entries(cardDef.materials)) {
-    const available = materialMap.get(materialId) ?? 0
-    if (available < required) {
-      throw new Error(`Not enough ${materialId}: need ${required}, have ${available}`)
-    }
-  }
-
-  // Consume materials
-  for (const [materialId, required] of Object.entries(cardDef.materials)) {
-    await itemRepo.decrementQuantity(playerId, materialId, 'material', required)
-  }
-
-// Add the card with detailed tracking
-  const cardResult = await addCardWithDetails(playerId, cardDef, 'crafting')
-
-  // Update milestones
-  const milestones = (player.milestones as Record<string, number>) ?? {}
-  milestones.totalCardsCollected = (milestones.totalCardsCollected ?? 0) + 1
-  milestones.totalCardsCrafted = (milestones.totalCardsCrafted ?? 0) + 1
-  await playerRepo.updateById(player._id.toString(), { milestones })
-
-  await logHistorySafe({
-    playerId: player._id,
-    source: 'crafting',
-    eventType: 'crafting',
-    eventKey: 'crafting.card_crafted',
-    metadata: {
-      cardId,
-      cardName: cardDef.name,
-      rarity: cardDef.rarity,
-      type: cardDef.type,
-      materialsUsed: cardDef.materials,
-      previousCount: cardResult.previousCount,
-      currentCount: cardResult.currentCount,
-      isNew: cardResult.isNew,
-    },
-    target: {
-      entityType: 'card',
-      entityId: cardId,
-      label: cardDef.name ?? cardId,
-    },
-  })
-
-  // Send Discord notification (async, non-blocking)
-  import('@/lib/config/discord').then(({ notifyCrafting }) => {
-    notifyCrafting({
-      playerName: player.username,
-      cardName: cardDef.name ?? cardId,
-      cardRarity: cardDef.rarity ?? 'common',
-      isFirstCraft: cardResult.isNew,
-    }).catch(() => {})
-  }).catch(() => {})
-
-  return { 
-    card: cardResult.card, 
-    materialCost: cardDef.materials,
-    previousCount: cardResult.previousCount,
-    currentCount: cardResult.currentCount,
-    isNew: cardResult.isNew,
-  }
 }
 
 export async function transferCard(

@@ -4,7 +4,6 @@ import * as itemRepo from './item.repository'
 import * as playerRepo from '../players/player.repository'
 import * as cardRepo from '../cards/card.repository'
 import { addCard, addCardWithDetails, type AddCardResult } from '../cards/card.service'
-import { MATERIALS_BY_ID, CATALYSTS_BY_ID } from '@/lib/registries/item.registry'
 import GAME_DATA from '@/public/data'
 import * as historyService from '../histories/history.service'
 
@@ -44,10 +43,6 @@ interface SystemConfig {
   ENERGY?: { MAX: number }
 }
 
-interface EconomyConfig {
-  MATERIAL_CONVERSION?: { ratio?: number; coinCost?: number }
-}
-
 interface OpenPackResult {
   cards: GameCard[]
   packId: string
@@ -66,14 +61,6 @@ interface BuyPacksResult {
   totalCost: number
   currencyType: string
   player: Awaited<ReturnType<typeof playerRepo.findById>>
-}
-
-interface ConvertResult {
-  fromMaterialId: string
-  toMaterialId: string
-  converted: number
-  coinCost: number
-  ratio: number
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -232,17 +219,6 @@ export async function getItems(playerId: string | Types.ObjectId, itemType: Item
   return itemRepo.findByPlayer(playerId, itemType ?? undefined)
 }
 
-export async function getMaterials(playerId: string | Types.ObjectId): Promise<IItemDocument[]> {
-  return itemRepo.getMaterials(playerId)
-}
-
-export async function addMaterial(playerId: string | Types.ObjectId, name: string, quantity: number): Promise<IItemDocument[]> {
-  if (typeof quantity !== 'number' || quantity <= 0) throw new Error('Invalid quantity')
-
-  await itemRepo.upsertItem(playerId, name, 'material', quantity)
-  return itemRepo.getMaterials(playerId)
-}
-
 export async function usePotion(playerId: string | Types.ObjectId, type: string): Promise<{ potion: IItemDocument; energy?: number }> {
   const player = await getPlayerOrThrow(playerId)
   // Type should be the full potion ID (e.g., 'energy_potion', 'exp_potion')
@@ -303,50 +279,6 @@ export async function addPotion(playerId: string | Types.ObjectId, type: string,
 
 export async function addPacks(playerId: string | Types.ObjectId, packId: string, quantity: number = 1): Promise<void> {
   await itemRepo.upsertItem(playerId, packId, 'pack', quantity)
-}
-
-export async function convertMaterials(
-  playerId: string | Types.ObjectId,
-  fromMaterialId: string,
-  toMaterialId: string,
-  quantity: number = 1
-): Promise<ConvertResult> {
-  // Fixed 5:1 ratio
-  const RATIO = 5
-  
-  // Validate quantity (min 1, max 100 conversions at once)
-  const convertCount = Math.max(1, Math.min(100, Math.floor(quantity)))
-  const materialsNeeded = convertCount * RATIO
-  
-  if (fromMaterialId === toMaterialId) throw new Error('Cannot convert a material into itself')
-  
-  const targetDef = MATERIALS_BY_ID[toMaterialId]
-  if (!targetDef) throw new Error('Invalid target material')
-
-  // Calculate coin cost: materialsNeeded × zoneIndex × 25
-  const ZONE_ORDER = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'd10']
-  const targetZoneIndex = ZONE_ORDER.indexOf((targetDef.zone as string)?.toLowerCase() || 'd1')
-  const COIN_COST = materialsNeeded * targetZoneIndex * 25
-
-  const player = await getPlayerOrThrow(playerId)
-  if ((player.coins ?? 0) < COIN_COST) throw new Error(`Need ${COIN_COST} coins to convert`)
-
-  const source = await itemRepo.findMaterial(playerId, fromMaterialId)
-  if (!source || source.quantity < materialsNeeded) {
-    throw new Error(`Need ${materialsNeeded}× ${fromMaterialId} to convert. You have ${source?.quantity ?? 0}.`)
-  }
-
-  source.quantity -= materialsNeeded
-  if (source.quantity <= 0) {
-    await itemRepo.deleteById(source._id.toString())
-  } else {
-    await source.save()
-  }
-
-  await playerRepo.updateById(player._id.toString(), { $inc: { coins: -COIN_COST } })
-  await addMaterial(playerId, toMaterialId, convertCount)
-
-  return { fromMaterialId, toMaterialId, converted: convertCount, coinCost: COIN_COST, ratio: RATIO }
 }
 
 export async function openPacks(

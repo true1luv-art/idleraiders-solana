@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '@/context/GameContext'
 import { Layers, Backpack, ChevronLeft, ChevronRight } from 'lucide-react'
-import { InventoryCardsFilter, InventoryMaterialsFilter } from '@/components/GlobalFilter'
-import { GAME_UI_IMAGES, MATERIAL_IMAGES } from '@/features/images'
+import GlobalFilter, { InventoryCardsFilter } from '@/components/GlobalFilter'
+import { GAME_UI_IMAGES } from '@/features/images'
 import GameCard from '@/components/ui/game-card'
 
 const PAGE_SIZE = 15
@@ -18,7 +18,7 @@ const InventoryPage = () => {
 	const packs = playerState?.packs ?? []
 	const [tab, setTab] = useState('cards')
 	const [cardsFilters, setCardsFilters] = useState({ search: '', rarity: 'all', type: 'all' })
-	const [bagFilters, setBagFilters] = useState({ search: '', materialType: 'all' })
+	const [bagFilters, setBagFilters] = useState({ search: '' })
 	const [cardsPage, setCardsPage] = useState(1)
 	const [bagPage, setBagPage] = useState(1)
 
@@ -61,17 +61,6 @@ const InventoryPage = () => {
 					const metadata = getItemMetadata(item.id)
 					if (bagFilters.search && !metadata?.name?.toLowerCase().includes(bagFilters.search.toLowerCase()))
 						return false
-					// Filter by material type
-					if (bagFilters.materialType !== 'all') {
-						const filterType = bagFilters.materialType
-						// Check if item matches the selected type
-						if (filterType === 'potion' && item.itemType !== 'potion') return false
-						if (filterType === 'pack' && item.itemType !== 'pack') return false
-						// For materials, check the material type (core, component, catalyst)
-						if (['core', 'component', 'catalyst'].includes(filterType)) {
-							if (item.itemType !== 'material' || metadata?.type !== filterType) return false
-						}
-					}
 					return true
 				})
 				.map((item) => {
@@ -85,11 +74,6 @@ const InventoryPage = () => {
 						} else if (item.id === 'standard_pack') {
 							enhancedMetadata.image = GAME_UI_IMAGES.heroesPack
 						}
-					}
-
-					// Add material images
-					if (item.itemType === 'material' && MATERIAL_IMAGES[item.id]) {
-						enhancedMetadata.image = MATERIAL_IMAGES[item.id]
 					}
 
 					return {
@@ -256,8 +240,12 @@ const InventoryPage = () => {
 						transition={{ duration: 0.18 }}
 						className="space-y-3"
 					>
-						{/* Search */}
-						<InventoryMaterialsFilter filters={bagFilters} onChange={setBagFilters} />
+					{/* Search */}
+					<GlobalFilter
+						filters={bagFilters}
+						onChange={setBagFilters}
+						searchPlaceholder="Search items..."
+					/>
 
 						{/* Items grid */}
 						<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
