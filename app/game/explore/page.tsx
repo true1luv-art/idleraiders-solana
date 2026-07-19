@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { Users, ArrowLeftRight, Compass, Store, Flame, ExternalLink } from 'lucide-react'
+import { ArrowLeftRight, Compass, Store, Flame, ExternalLink } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
@@ -23,19 +23,6 @@ import {
 } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
-
-// Main features (internal pages)
-const mainFeatures = [
-	{
-		id: 'guild',
-		path: '/game/guild',
-		title: 'Guild',
-		description: 'Team up and conquer dungeons together',
-		image: '/assets/explore-guild.jpg',
-		icon: Users,
-		borderColor: 'border-sky-500/30',
-	},
-]
 
 // Phoenix Merchant Guild features
 const merchantGuildFeatures = [
@@ -183,14 +170,7 @@ const ExplorePage = () => {
 				</div>
 			</div>
 
-			{/* Guild - Full Width Featured */}
-			<div>
-				<FeatureCard feature={mainFeatures[0]} index={0} size="large" />
-			</div>
-
-
-
-			{/* Phoenix Merchant Guild Section */}
+		{/* Phoenix Merchant Guild Section */}
 			<div className="space-y-3">
 				<div className="flex items-center gap-2">
 					<div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/10 border border-orange-500/20">

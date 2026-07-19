@@ -1,89 +1,60 @@
-import Item, { type IItem, type IItemDocument, type ItemType } from './item.model';
-import type { FilterQuery, UpdateQuery, QueryOptions, Types } from 'mongoose';
+import Item, { type IItem, type IItemDocument } from './item.model'
+import type { FilterQuery, UpdateQuery, QueryOptions, Types } from 'mongoose'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface CreateItemData {
-  playerId: Types.ObjectId | string;
-  id: string;
-  itemType: ItemType;
-  quantity: number;
+  playerId: Types.ObjectId | string
+  id: string
+  itemType: 'material'
+  quantity: number
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Repository Functions
+// Repository Functions — materials only
+// Potions are now embedded on the Player document.
+// Packs are no longer persisted; buying a pack immediately mints cards.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export async function create(data: CreateItemData): Promise<IItemDocument> {
-  return Item.create(data);
+  return Item.create(data)
 }
 
 export async function findById(id: string): Promise<IItemDocument | null> {
-  return Item.findById(id);
+  return Item.findById(id)
 }
 
 export async function findOne(filter: FilterQuery<IItem>): Promise<IItemDocument | null> {
-  return Item.findOne(filter);
+  return Item.findOne(filter)
 }
 
 export async function findMany(
   filter: FilterQuery<IItem> = {},
   options: QueryOptions = {}
 ): Promise<IItemDocument[]> {
-  return Item.find(filter, null, options);
+  return Item.find(filter, null, options)
 }
 
 export async function findByPlayer(
-  playerId: Types.ObjectId | string,
-  itemType?: ItemType
+  playerId: Types.ObjectId | string
 ): Promise<IItemDocument[]> {
-  const query: FilterQuery<IItem> = { playerId };
-  if (itemType) query.itemType = itemType;
-  return Item.find(query);
+  return Item.find({ playerId, itemType: 'material' })
 }
 
 export async function findByPlayerAndId(
   playerId: Types.ObjectId | string,
-  itemId: string,
-  itemType?: ItemType
+  itemId: string
 ): Promise<IItemDocument | null> {
-  const query: FilterQuery<IItem> = { playerId, id: itemId };
-  if (itemType) query.itemType = itemType;
-  return Item.findOne(query);
-}
-
-// Alias for clarity
-export async function findByPlayerAndItemId(
-  playerId: Types.ObjectId | string,
-  itemId: string,
-  itemType?: ItemType
-): Promise<IItemDocument | null> {
-  const query: FilterQuery<IItem> = { playerId, id: itemId };
-  if (itemType) query.itemType = itemType;
-  return Item.findOne(query);
+  return Item.findOne({ playerId, id: itemId, itemType: 'material' })
 }
 
 export async function findMaterial(
   playerId: Types.ObjectId | string,
   materialId: string
 ): Promise<IItemDocument | null> {
-  return Item.findOne({ playerId, id: materialId, itemType: 'material' });
-}
-
-export async function findPotion(
-  playerId: Types.ObjectId | string,
-  potionId: string
-): Promise<IItemDocument | null> {
-  return Item.findOne({ playerId, id: potionId, itemType: 'potion' });
-}
-
-export async function findPack(
-  playerId: Types.ObjectId | string,
-  packId: string
-): Promise<IItemDocument | null> {
-  return Item.findOne({ playerId, id: packId, itemType: 'pack' });
+  return Item.findOne({ playerId, id: materialId, itemType: 'material' })
 }
 
 export async function updateById(
@@ -91,7 +62,7 @@ export async function updateById(
   update: UpdateQuery<IItem>,
   options: QueryOptions = { returnDocument: 'after' }
 ): Promise<IItemDocument | null> {
-  return Item.findByIdAndUpdate(id, update, options);
+  return Item.findByIdAndUpdate(id, update, options)
 }
 
 export async function updateOne(
@@ -99,93 +70,59 @@ export async function updateOne(
   update: UpdateQuery<IItem>,
   options: QueryOptions = { returnDocument: 'after' }
 ): Promise<IItemDocument | null> {
-  return Item.findOneAndUpdate(filter, update, options);
+  return Item.findOneAndUpdate(filter, update, options)
 }
 
 export async function incrementQuantity(
   playerId: Types.ObjectId | string,
   itemId: string,
-  itemType: ItemType,
   amount: number
 ): Promise<IItemDocument | null> {
   return Item.findOneAndUpdate(
-    { playerId, id: itemId, itemType },
+    { playerId, id: itemId, itemType: 'material' },
     { $inc: { quantity: amount } },
     { returnDocument: 'after', upsert: true }
-  );
+  )
 }
 
 export async function upsertItem(
   playerId: Types.ObjectId | string,
   itemId: string,
-  itemType: ItemType,
   quantity: number
 ): Promise<IItemDocument | null> {
   return Item.findOneAndUpdate(
-    { playerId, id: itemId, itemType },
+    { playerId, id: itemId, itemType: 'material' },
     { $inc: { quantity } },
     { returnDocument: 'after', upsert: true }
-  );
+  )
 }
 
 export async function decrementQuantity(
   playerId: Types.ObjectId | string,
   itemId: string,
-  itemType: ItemType,
   amount: number
 ): Promise<IItemDocument | null> {
   return Item.findOneAndUpdate(
-    { playerId, id: itemId, itemType },
+    { playerId, id: itemId, itemType: 'material' },
     { $inc: { quantity: -amount } },
     { returnDocument: 'after' }
-  );
-}
-
-// Decrement quantity by document _id (for guild donations, etc.)
-export async function decrementQuantityById(
-  documentId: Types.ObjectId | string,
-  amount: number
-): Promise<IItemDocument | null> {
-  const item = await Item.findById(documentId);
-  if (!item) return null;
-  
-  item.quantity -= amount;
-  if (item.quantity <= 0) {
-    await Item.findByIdAndDelete(documentId);
-    return null;
-  }
-  return item.save();
+  )
 }
 
 export async function deleteById(id: string): Promise<IItemDocument | null> {
-  return Item.findByIdAndDelete(id);
+  return Item.findByIdAndDelete(id)
 }
 
 export async function deleteOne(filter: FilterQuery<IItem>): Promise<IItemDocument | null> {
-  return Item.findOneAndDelete(filter);
-}
-
-export async function deleteByIdIfEmpty(id: string): Promise<boolean> {
-  const item = await Item.findById(id);
-  if (item && item.quantity <= 0) {
-    await Item.findByIdAndDelete(id);
-    return true;
-  }
-  return false;
+  return Item.findOneAndDelete(filter)
 }
 
 export async function count(filter: FilterQuery<IItem> = {}): Promise<number> {
-  return Item.countDocuments(filter);
+  return Item.countDocuments(filter)
 }
 
-export async function getMaterials(playerId: Types.ObjectId | string): Promise<IItemDocument[]> {
-  return Item.find({ playerId, itemType: 'material' });
-}
-
-export async function getPotions(playerId: Types.ObjectId | string): Promise<IItemDocument[]> {
-  return Item.find({ playerId, itemType: 'potion' });
-}
-
-export async function getPacks(playerId: Types.ObjectId | string): Promise<IItemDocument[]> {
-  return Item.find({ playerId, itemType: 'pack' });
+export async function getMaterials(
+  playerId: Types.ObjectId | string
+): Promise<IItemDocument[]> {
+  return Item.find({ playerId, itemType: 'material' })
 }

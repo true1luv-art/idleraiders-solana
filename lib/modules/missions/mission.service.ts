@@ -11,12 +11,10 @@ import {
 } from './mission.logic'
 import { getRawCardBoostsById, applyBoostCap } from '../players/player.builder'
 import { getManilaDateString } from '@/lib/utils/time'
-import * as itemService from '../items/item.service'
 import * as playerService from '../players/player.service'
 import { addCard, addCardWithDetails, getPlayerCardsByTerritory, CARDS_BY_ID } from '../cards/card.service'
 import Card from '../cards/card.model'
 import * as historyService from '../histories/history.service'
-import * as guildService from '../guilds/guild.service'
 import GAME_DATA from '@/public/data'
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -508,9 +506,6 @@ export async function completeDungeonMission(
 	const missionType = MISSION_TYPES[mission.missionTypeId!]
 
 	const cardBoosts = await getRawCardBoostsById(playerId)
-	
-	// Get guild bonuses (xpBonus, materialBonus, etc.)
-	const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
 
 	// Daily repeat tracking — resets each calendar day (Manila time, UTC+8)
 	const now = new Date()
@@ -564,10 +559,9 @@ export async function completeDungeonMission(
 
 	const baseXp = missionMinutes
 	const xpBoostPct = applyBoostCap(cardBoosts.expBoost)
-	const guildXpBonus = guildBonuses.xpBonus // Already a decimal (e.g., 0.5 = 50%)
 	// Apply EXP potion 2x multiplier if active
 	const expPotionMultiplier = player.missionStats?.isExpBoostActive ? 2 : 1
-	const xp = Math.round(baseXp * (1 + xpBoostPct / 100) * (1 + guildXpBonus) * expPotionMultiplier)
+	const xp = Math.round(baseXp * (1 + xpBoostPct / 100) * expPotionMultiplier)
 	
 	// Consume EXP potion boost after use
 	if (player.missionStats?.isExpBoostActive) {
@@ -611,7 +605,6 @@ export async function completeStoryQuest(
 ): Promise<StoryCompletionResult> {
 	const player = await getPlayerOrThrow(playerId)
 	const cardBoosts = await getRawCardBoostsById(playerId)
-	const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
 	const territory = TERRITORIES_BY_ID[mission.territoryId!]
 	const quest = territory?.quests.find((q) => q.questNumber === mission.questNumber)
 
@@ -734,10 +727,9 @@ export async function completeStoryQuest(
 	player.milestones!.totalMinutesPlayed = (player.milestones!.totalMinutesPlayed || 0) + missionMinutes
 
 	const xpBoostPct = applyBoostCap(cardBoosts.expBoost)
-	const guildXpBonus = guildBonuses.xpBonus
 	// Apply EXP potion 2x multiplier if active
 	const expPotionMultiplier = player.missionStats?.isExpBoostActive ? 2 : 1
-	const xp = Math.round(STORY_QUEST_XP * (1 + xpBoostPct / 100) * (1 + guildXpBonus) * expPotionMultiplier)
+	const xp = Math.round(STORY_QUEST_XP * (1 + xpBoostPct / 100) * expPotionMultiplier)
 	
 	// Consume EXP potion boost after use
 	if (player.missionStats?.isExpBoostActive) {
@@ -799,7 +791,6 @@ export async function completeBossMission(
 	if (!boss) throw new Error('Boss not found')
 
 	const cardBoosts = await getRawCardBoostsById(playerId)
-	const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
 	const raidPower = cardBoosts.raidPower ?? 0
 	const baseDamage = Math.floor(raidPower * (0.8 + Math.random() * 0.4))
 	const damage = Math.max(1, baseDamage)
@@ -817,10 +808,9 @@ export async function completeBossMission(
 	player.milestones!.totalMinutesPlayed = (player.milestones!.totalMinutesPlayed || 0) + missionMinutes
 
 	const xpBoostPct = applyBoostCap(cardBoosts.expBoost)
-	const guildXpBonus = guildBonuses.xpBonus
 	// Apply EXP potion 2x multiplier if active
 	const expPotionMultiplier = player.missionStats?.isExpBoostActive ? 2 : 1
-	const xp = Math.round(BOSS_RAID_XP * (1 + xpBoostPct / 100) * (1 + guildXpBonus) * expPotionMultiplier)
+	const xp = Math.round(BOSS_RAID_XP * (1 + xpBoostPct / 100) * expPotionMultiplier)
 	
 	// Consume EXP potion boost after use
 	if (player.missionStats?.isExpBoostActive) {
@@ -867,7 +857,6 @@ export async function attackBoss(
 	if (!boss) throw new Error('Boss not found')
 
 	const cardBoosts = await getRawCardBoostsById(playerId)
-	const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
 
 	// Apply tier-based damage multiplier (T1=1.0x, T5=2.0x)
 	const tierMultiplier = boss.damageMultiplier ?? 1.0
@@ -878,10 +867,9 @@ export async function attackBoss(
 	player.milestones!.totalBossDamage = (player.milestones!.totalBossDamage || 0) + damage
 
 	const xpBoostPct = applyBoostCap(cardBoosts.expBoost)
-	const guildXpBonus = guildBonuses.xpBonus
 	// Apply EXP potion 2x multiplier if active
 	const expPotionMultiplier = player.missionStats?.isExpBoostActive ? 2 : 1
-	const bossXp = Math.round(BOSS_RAID_XP * (1 + xpBoostPct / 100) * (1 + guildXpBonus) * expPotionMultiplier)
+	const bossXp = Math.round(BOSS_RAID_XP * (1 + xpBoostPct / 100) * expPotionMultiplier)
 	
 	// Consume EXP potion boost after use
 	if (player.missionStats?.isExpBoostActive) {

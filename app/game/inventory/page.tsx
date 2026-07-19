@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '@/context/GameContext'
 import { Layers, Backpack, ChevronLeft, ChevronRight } from 'lucide-react'
 import GlobalFilter, { InventoryCardsFilter } from '@/components/GlobalFilter'
-import { GAME_UI_IMAGES } from '@/features/images'
 import GameCard from '@/components/ui/game-card'
 
 const PAGE_SIZE = 15
@@ -14,8 +13,13 @@ const InventoryPage = () => {
 	const { playerState, gameData } = useGame()
 	const cards = playerState?.cards ?? []
 	const materials = playerState?.materials ?? []
-	const potions = playerState?.potions ?? []
-	const packs = playerState?.packs ?? []
+	// Potions are now embedded on the player doc as { energy, xp } counts
+	const potionCounts = playerState?.potions ?? { energy: 0, xp: 0 }
+	// Flatten potions into item-shaped objects for the bag display
+	const potions = [
+		{ id: 'energy_potion', itemType: 'potion' as const, quantity: potionCounts.energy },
+		{ id: 'exp_potion', itemType: 'potion' as const, quantity: potionCounts.xp },
+	].filter((p) => p.quantity > 0)
 	const [tab, setTab] = useState('cards')
 	const [cardsFilters, setCardsFilters] = useState({ search: '', rarity: 'all', type: 'all' })
 	const [bagFilters, setBagFilters] = useState({ search: '' })
@@ -44,8 +48,8 @@ const InventoryPage = () => {
 		[cards, cardsFilters, CARDS_DATA],
 	)
 
-	// Combine all inventory items
-	const allItems = useMemo(() => [...materials, ...potions, ...packs], [materials, potions, packs])
+	// Combine all inventory items (packs no longer stored — purchase immediately mints cards)
+	const allItems = useMemo(() => [...materials, ...potions], [materials, potions])
 
 	// Get item metadata (name, icon, etc) from gameData
 	const getItemMetadata = (itemId: string) => {
@@ -65,20 +69,9 @@ const InventoryPage = () => {
 				})
 				.map((item) => {
 					const metadata = getItemMetadata(item.id)
-					let enhancedMetadata = { ...metadata }
-
-					// Add pack images for pack items
-					if (item.itemType === 'pack') {
-						if (item.id === 'booster_pack') {
-							enhancedMetadata.image = GAME_UI_IMAGES.boosterPack
-						} else if (item.id === 'standard_pack') {
-							enhancedMetadata.image = GAME_UI_IMAGES.heroesPack
-						}
-					}
-
 					return {
 						...item,
-						...enhancedMetadata,
+						...metadata,
 						_id: `${item.itemType}-${item.id}`, // Unique key for React
 						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					} as Record<string, any>

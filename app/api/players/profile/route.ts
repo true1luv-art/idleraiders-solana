@@ -3,7 +3,6 @@ import { connectDB } from '@/lib/config/database'
 import * as playerRepo from '@/lib/modules/players/player.repository'
 import * as cardRepo from '@/lib/modules/cards/card.repository'
 import * as itemRepo from '@/lib/modules/items/item.repository'
-import * as guildRepo from '@/lib/modules/guilds/guild.repository'
 import { xpToNextLevel } from '@/lib/modules/players/player.logic'
 import { applyBoostCap } from '@/lib/modules/players/player.builder'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
@@ -84,20 +83,6 @@ export async function GET(request: NextRequest) {
     const materials = await itemRepo.getMaterials(playerId)
     const totalMaterials = materials.reduce((a, m) => a + (m.quantity ?? 0), 0)
 
-    // Get guild info if player is in a guild
-    let guildInfo = null
-    if (player.guildId) {
-      const guild = await guildRepo.findById(player.guildId.toString())
-      if (guild) {
-        const member = guild.members.find(m => m.playerId.toString() === playerId.toString())
-        guildInfo = {
-          name: guild.name,
-          level: guild.level,
-          role: member?.role ?? 'member',
-        }
-      }
-    }
-
     // Milestones live on a nested subdoc — pull totals from there
     const milestones = (player.milestones ?? {}) as Record<string, number>
     const level = player.level ?? 1
@@ -127,8 +112,6 @@ export async function GET(request: NextRequest) {
         totalMaterials,
         // Effective (post-cap) boost percentages from booster cards
         boosts,
-        // Guild info (if any)
-        guild: guildInfo,
       },
     })
   } catch (error) {

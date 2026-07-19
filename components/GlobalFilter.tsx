@@ -46,12 +46,6 @@ const filterOptions = {
 		{ value: 'daily', label: 'Daily' },
 		{ value: 'raid', label: 'Raid' },
 	],
-	guildRole: [
-		{ value: 'all', label: 'All Roles' },
-		{ value: 'leader', label: 'Leader' },
-		{ value: 'officer', label: 'Officer' },
-		{ value: 'member', label: 'Member' },
-	],
 	transactionType: [
 		{ value: 'all', label: 'All Transactions' },
 		{ value: 'earn', label: 'Earnings' },
@@ -248,42 +242,6 @@ export const MissionHistoryFilter = ({
 		onChange={onChange}
 		searchPlaceholder="Search missions..."
 		config={[{ key: 'type', optionsKey: 'missionType' }]}
-	/>
-)
-
-export const GuildMembersFilter = ({
-	filters,
-	onChange,
-	button,
-	activeFiltersCount = 0,
-}: {
-	filters: Record<string, string | undefined>
-	onChange: (filters: any) => void
-	button?: React.ReactNode
-	activeFiltersCount?: number
-}) => (
-	<GlobalFilter
-		filters={filters}
-		onChange={onChange}
-		searchPlaceholder="Search members..."
-		button={button}
-		activeFiltersCount={activeFiltersCount}
-		config={[{ key: 'role', optionsKey: 'guildRole' }]}
-	/>
-)
-
-export const GuildWorkshopFilter = ({
-	filters,
-	onChange,
-}: {
-	filters: Record<string, string | undefined>
-	onChange: (filters: any) => void
-}) => (
-	<GlobalFilter
-		filters={filters}
-		onChange={onChange}
-		searchPlaceholder="Search recipes..."
-		config={[{ key: 'type', optionsKey: 'type' }]}
 	/>
 )
 

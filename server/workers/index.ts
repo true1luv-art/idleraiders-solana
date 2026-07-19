@@ -4,8 +4,6 @@
  */
 
 import { initializePriceWorker, stopPriceWorker } from './worker.price'
-import { initializeSnapshotWorker, stopSnapshotWorker } from './worker.snapshot'
-import { initializeGuildWarWorker, stopGuildWarWorker } from './worker.guildwar'
 import { initializeDrainWorker, closeDrainWorker } from '../solana-smart-contract/workers/drain.worker'
 import { getIO } from '../sockets/socket.manager'
 
@@ -26,12 +24,6 @@ export async function startWorkers(): Promise<void> {
   // Initialize price worker (cron-based)
   initializePriceWorker()
 
-  // Initialize snapshot worker (cron-based)
-  initializeSnapshotWorker()
-
-  // Initialize guild war worker (cron-based)
-  initializeGuildWarWorker()
-
   console.log('[idleraiders-logs] All workers initialized')
 }
 
@@ -43,8 +35,6 @@ export async function stopWorkers(): Promise<void> {
 
   await closeDrainWorker()
   stopPriceWorker()
-  await stopSnapshotWorker()
-  stopGuildWarWorker()
 
   console.log('[idleraiders-logs] All workers stopped')
 }

@@ -1,22 +1,15 @@
 import type { Types } from 'mongoose'
-import type { IItemDocument, ItemType } from './item.model'
+import type { IItemDocument } from './item.model'
 import * as itemRepo from './item.repository'
 import * as playerRepo from '../players/player.repository'
 import * as cardRepo from '../cards/card.repository'
-import { addCard, addCardWithDetails, type AddCardResult } from '../cards/card.service'
+import { addCardWithDetails, type AddCardResult } from '../cards/card.service'
 import GAME_DATA from '@/public/data'
 import * as historyService from '../histories/history.service'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════════
-
-interface GameItem {
-  id: string
-  name?: string
-  category?: string
-  catergory?: string // typo in original data
-}
 
 interface GameCard {
   id: string
@@ -43,31 +36,29 @@ interface SystemConfig {
   ENERGY?: { MAX: number }
 }
 
-interface OpenPackResult {
-  cards: GameCard[]
-  packId: string
-  remainingPacks: number
+interface GameItem {
+  id: string
+  name?: string
+  category?: string
+  catergory?: string // typo in original data
 }
 
-interface OpenPacksResult extends OpenPackResult {
-  quantity: number
-}
-
-// Hard cap: backend & UI both limit a single bulk open to 10 packs.
+// Hard cap: a single purchase-and-open is limited to 10 packs.
 const MAX_PACKS_PER_OPEN = 10
 
-interface BuyPacksResult {
+export interface BuyAndOpenPacksResult {
+  cards: GameCard[]
+  packId: string
   quantity: number
   totalCost: number
   currencyType: string
-  player: Awaited<ReturnType<typeof playerRepo.findById>>
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Constants
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const ENERGY = ((GAME_DATA as { SYSTEM?: SystemConfig }).SYSTEM?.ENERGY ?? { MAX: 100 })
+const ENERGY_MAX = ((GAME_DATA as { SYSTEM?: SystemConfig }).SYSTEM?.ENERGY?.MAX ?? 100)
 const ITEMS_ARRAY = ((GAME_DATA as { ITEMS?: GameItem[] }).ITEMS ?? []) as GameItem[]
 const CARDS_ARRAY = ((GAME_DATA as { CARDS?: GameCard[] }).CARDS ?? []) as GameCard[]
 
@@ -124,14 +115,11 @@ async function rollPackCard(rarity: string, supplyMap: Record<string, number> = 
   })
 
   if (availableCards.length === 0) {
-    const allRarities = Object.keys(CARDS_BY_RARITY)
-    for (const otherRarity of allRarities) {
+    for (const otherRarity of Object.keys(CARDS_BY_RARITY)) {
       if (otherRarity === rarity) continue
-      const otherPool = CARDS_BY_RARITY[otherRarity] ?? []
-      const otherAvailable = otherPool.filter((card) => {
+      const otherAvailable = (CARDS_BY_RARITY[otherRarity] ?? []).filter((card) => {
         const maxSupply = card.supply?.max ?? Infinity
-        const currentSupply = supplyMap[card.id] ?? 0
-        return currentSupply < maxSupply
+        return (supplyMap[card.id] ?? 0) < maxSupply
       })
       if (otherAvailable.length > 0) {
         return otherAvailable[Math.floor(Math.random() * otherAvailable.length)]
@@ -143,104 +131,102 @@ async function rollPackCard(rarity: string, supplyMap: Record<string, number> = 
   return availableCards[Math.floor(Math.random() * availableCards.length)]
 }
 
-
-
 // ═══════════════════════════════════════════════════════════════════════════════
-// Public API
+// Potion API — operates on player.potions (embedded on Player doc)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export async function getItems(playerId: string | Types.ObjectId, itemType: ItemType | null = null): Promise<IItemDocument[]> {
-  return itemRepo.findByPlayer(playerId, itemType ?? undefined)
-}
-
-export async function usePotion(playerId: string | Types.ObjectId, type: string): Promise<{ potion: IItemDocument; energy?: number }> {
+export async function usePotion(
+  playerId: string | Types.ObjectId,
+  type: string
+): Promise<{ energy?: number; expBoostActive?: boolean }> {
   const player = await getPlayerOrThrow(playerId)
-  // Type should be the full potion ID (e.g., 'energy_potion', 'exp_potion')
-  const potion = await itemRepo.findPotion(playerId, type)
-  if (!potion || potion.quantity <= 0) {
-    throw new Error(`No ${type.replace('_potion', '')} potions available`)
-  }
 
-  potion.quantity -= 1
-  if (potion.quantity <= 0) {
-    await itemRepo.deleteById(potion._id.toString())
-  } else {
-    await potion.save()
-  }
-
-  let result: { potion: IItemDocument; energy?: number; expBoostActive?: boolean } = { potion }
   if (type === 'energy_potion') {
+    if ((player.potions?.energy ?? 0) <= 0) throw new Error('No energy potions available')
     await playerRepo.updateById(player._id.toString(), {
-      energy: ENERGY.MAX,
+      $inc: { 'potions.energy': -1 },
+      energy: ENERGY_MAX,
       lastCycleUpdate: new Date(),
     })
-    result = { potion, energy: ENERGY.MAX }
-  } else if (type === 'exp_potion') {
-    // Check if EXP boost is already active
-    if (player.missionStats?.isExpBoostActive) {
-      throw new Error('EXP boost is already active')
-    }
-    // Set EXP boost active flag
+    return { energy: ENERGY_MAX }
+  }
+
+  if (type === 'exp_potion') {
+    if ((player.potions?.xp ?? 0) <= 0) throw new Error('No XP potions available')
+    if (player.missionStats?.isExpBoostActive) throw new Error('EXP boost is already active')
     await playerRepo.updateById(player._id.toString(), {
+      $inc: { 'potions.xp': -1 },
       'missionStats.isExpBoostActive': true,
     })
-    result = { potion, expBoostActive: true }
+    return { expBoostActive: true }
   }
 
-  return result
+  throw new Error(`Unknown potion type: ${type}`)
 }
 
-export async function addPotion(playerId: string | Types.ObjectId, type: string, quantity: number = 1): Promise<IItemDocument[]> {
+/**
+ * Add potions directly to the player document.
+ * Enforces storageSlots cap across both potion types combined.
+ */
+export async function addPotion(
+  playerId: string | Types.ObjectId,
+  type: 'energy_potion' | 'exp_potion',
+  quantity: number = 1
+): Promise<void> {
   const player = await getPlayerOrThrow(playerId)
-  
-  // Check storage limit before adding potions
-  const currentPotions = await itemRepo.getPotions(playerId)
-  const totalPotionsOwned = currentPotions.reduce((sum, p) => sum + (p.quantity ?? 0), 0)
   const storageSlots = player.storageSlots ?? 3
-  
-  // Only add potions up to the storage limit
-  const availableSpace = Math.max(0, storageSlots - totalPotionsOwned)
-  const quantityToAdd = Math.min(quantity, availableSpace)
-  
-  if (quantityToAdd <= 0) {
-    // Storage full - don't add any potions
-    return currentPotions
-  }
-  
-  await itemRepo.upsertItem(playerId, type, 'potion', quantityToAdd)
-  return itemRepo.getPotions(playerId)
+  const currentTotal = (player.potions?.energy ?? 0) + (player.potions?.xp ?? 0)
+  const available = Math.max(0, storageSlots - currentTotal)
+  const toAdd = Math.min(quantity, available)
+  if (toAdd <= 0) return
+
+  const field = type === 'energy_potion' ? 'potions.energy' : 'potions.xp'
+  await playerRepo.updateById(player._id.toString(), { $inc: { [field]: toAdd } })
 }
 
-export async function addPacks(playerId: string | Types.ObjectId, packId: string, quantity: number = 1): Promise<void> {
-  await itemRepo.upsertItem(playerId, packId, 'pack', quantity)
-}
+// ═══════════════════════════════════════════════════════════════════════════════
+// Pack API — buy a pack and immediately mint cards (no intermediate storage)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-export async function openPacks(
+/**
+ * Purchase `quantity` (max 10) packs and immediately roll + mint all cards.
+ * Follows the same pattern as boom-miner's hero mint: deduct cost, roll cards,
+ * persist cards, log history, notify Discord.
+ */
+export async function buyAndOpenPacks(
   playerId: string | Types.ObjectId,
   packId: string,
-  quantity: number = 1
-): Promise<OpenPacksResult> {
-  // Validate quantity up-front — UI caps at 10; enforce the same on the server.
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_PACKS_PER_OPEN) {
-    throw new Error(`Quantity must be an integer between 1 and ${MAX_PACKS_PER_OPEN}`)
-  }
+  quantity: number,
+  paymentMethod: string
+): Promise<BuyAndOpenPacksResult> {
+  // Validate quantity — hard cap at MAX_PACKS_PER_OPEN
+  const qty = Math.max(1, Math.min(Math.floor(quantity), MAX_PACKS_PER_OPEN))
 
   const player = await getPlayerOrThrow(playerId)
   const pack = PACKS_BY_ID[packId] as GamePack | undefined
   if (!pack) throw new Error('Pack not found')
-  if (!pack.data) throw new Error('Pack cannot be opened')
+  if (!pack.data) throw new Error('Pack has no card data configured')
 
-  const ownedPack = await itemRepo.findPack(playerId, packId)
-  if (!ownedPack || (ownedPack.quantity ?? 0) < quantity) {
-    throw new Error(
-      quantity > 1
-        ? `Need ${quantity} packs to open — you have ${ownedPack?.quantity ?? 0}`
-        : 'No packs available to open'
-    )
+  // ── Cost validation ────────────────────────────────────────────────────────
+  let totalCost = 0
+  const currencyType = 'token'
+  const updateData: Record<string, number> = {}
+
+  if (paymentMethod === 'coins' || paymentMethod === 'token') {
+    const tokenCost = (pack.buy?.coins ?? 0) * qty
+    if ((player.coins ?? 0) < tokenCost) throw new Error('Not enough Realm Coins')
+    updateData.coins = (player.coins ?? 0) - tokenCost
+    totalCost = tokenCost
+  } else {
+    throw new Error('Invalid payment method — only coins are accepted')
   }
 
-  // Fetch supply aggregation ONCE, then mutate the local map per-roll so supply
-  // caps stay respected across the whole batch (prevents over-minting mid-bulk).
+  // Deduct cost immediately (atomic — before rolling cards to prevent replay abuse)
+  await playerRepo.updateById(player._id.toString(), updateData)
+
+  // ── Roll cards ─────────────────────────────────────────────────────────────
+  // Fetch global supply ONCE, mutate locally per-roll so supply caps stay
+  // respected across the whole batch.
   const supplyData = await cardRepo.getTotalSupplyAggregation()
   const supplyMap: Record<string, number> = {}
   supplyData.forEach((item: { _id: string; supply: number }) => {
@@ -248,7 +234,7 @@ export async function openPacks(
   })
 
   const allCards: GameCard[] = []
-  for (let p = 0; p < quantity; p++) {
+  for (let p = 0; p < qty; p++) {
     const guaranteedRarity = rollCardRarity(pack.data.dropRates, pack.data.guaranteedRarity ?? null)
     const first = await rollPackCard(guaranteedRarity, supplyMap)
     allCards.push(first)
@@ -261,16 +247,7 @@ export async function openPacks(
     }
   }
 
-  // Decrement the whole batch in a single save (or delete if it zeroes out).
-  ownedPack.quantity -= quantity
-  if (ownedPack.quantity <= 0) {
-    await itemRepo.deleteById(ownedPack._id.toString())
-  } else {
-    await ownedPack.save()
-  }
-
-  // Add cards with detailed tracking (previousCount, currentCount).
-  // Per-card try/catch so one failure doesn't stop the rest.
+  // ── Mint cards ─────────────────────────────────────────────────────────────
   const cardResults: (AddCardResult & { error?: string })[] = []
   for (const card of allCards) {
     try {
@@ -288,23 +265,27 @@ export async function openPacks(
     }
   }
 
-  const successfulCards = cardResults.filter(r => !r.error)
+  const successfulCards = cardResults.filter((r) => !r.error)
 
-  // Update player milestones once for the whole batch.
+  // ── Update milestones ──────────────────────────────────────────────────────
   const milestones = (player.milestones as Record<string, number>) ?? {}
-  milestones.totalOpenedPacks = (milestones.totalOpenedPacks ?? 0) + quantity
+  milestones.totalOpenedPacks = (milestones.totalOpenedPacks ?? 0) + qty
   milestones.totalCardsCollected = (milestones.totalCardsCollected ?? 0) + successfulCards.length
   await playerRepo.updateById(player._id.toString(), { milestones })
 
+  // ── History ────────────────────────────────────────────────────────────────
   await logHistorySafe({
     playerId: player._id,
-    source: 'inventory',
-    eventType: 'inventory',
-    eventKey: 'inventory.pack_opened',
+    source: 'packs',
+    eventType: 'packs',
+    eventKey: 'packs.buy_and_open',
     metadata: {
       packId,
       packName: pack.name,
-      quantity,
+      quantity: qty,
+      totalCost,
+      currencyType,
+      paymentMethod,
       cards: cardResults.map((result, i) => ({
         cardId: allCards[i].id,
         name: allCards[i].name,
@@ -317,8 +298,7 @@ export async function openPacks(
       })),
       cardsCount: allCards.length,
       cardsAdded: successfulCards.length,
-      cardsFailed: cardResults.filter(r => r.error).length,
-      remainingPacks: Math.max(ownedPack.quantity ?? 0, 0),
+      cardsFailed: cardResults.filter((r) => r.error).length,
     },
     target: {
       entityType: 'pack',
@@ -327,22 +307,22 @@ export async function openPacks(
     },
   })
 
-  // One Discord notification summarizing the whole batch; one tavern ping per legendary+.
+  // ── Discord notifications ──────────────────────────────────────────────────
   import('@/lib/config/discord').then(({ notifyPackOpening, notifyTavernEvent }) => {
     notifyPackOpening({
       playerName: player.username,
       packName: pack.name ?? packId,
       packId,
-      cardsObtained: allCards.map(card => ({
+      cardsObtained: allCards.map((card) => ({
         name: card.name ?? card.id,
         rarity: card.rarity ?? 'common',
         type: card.type ?? 'unknown',
       })),
-      remainingPacks: Math.max(ownedPack.quantity ?? 0, 0),
+      remainingPacks: 0,
     }).catch(() => {})
 
-    const legendaryCards = allCards.filter(card =>
-      card.rarity?.toLowerCase() === 'legendary' || card.rarity?.toLowerCase() === 'mythic'
+    const legendaryCards = allCards.filter(
+      (card) => card.rarity?.toLowerCase() === 'legendary' || card.rarity?.toLowerCase() === 'mythic'
     )
     for (const card of legendaryCards) {
       notifyTavernEvent({
@@ -355,109 +335,48 @@ export async function openPacks(
     }
   }).catch(() => {})
 
-  return {
-    cards: allCards,
-    packId,
-    quantity,
-    remainingPacks: Math.max(ownedPack.quantity ?? 0, 0),
-  }
+  return { cards: allCards, packId, quantity: qty, totalCost, currencyType }
 }
 
-/**
- * Backwards-compatible single-pack opener. Delegates to `openPacks` with qty=1
- * so any existing callers (scripts, tests, legacy integrations) keep working.
- */
-export async function openPack(
+// ═══════════════════════════════════════════════════════════════════════════════
+// Material API — territory crafting materials (items collection)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function getMaterials(
+  playerId: string | Types.ObjectId
+): Promise<IItemDocument[]> {
+  return itemRepo.getMaterials(playerId)
+}
+
+export async function addMaterial(
   playerId: string | Types.ObjectId,
-  packId: string
-): Promise<OpenPackResult> {
-  const { cards, remainingPacks } = await openPacks(playerId, packId, 1)
-  return { cards, packId, remainingPacks }
-}
-
-export async function buyPacks(
-  playerId: string | Types.ObjectId,
-  packId: string,
-  quantity: number,
-  paymentMethod: string
-): Promise<BuyPacksResult> {
-  const player = await getPlayerOrThrow(playerId)
-  const pack = PACKS_BY_ID[packId] as GamePack | undefined
-  if (!pack) throw new Error('Pack not found')
-
-  let totalCost = 0
-  let currencyType = 'token'
-  const updateData: Record<string, number> = {}
-
-  if (paymentMethod === 'coins' || paymentMethod === 'token') {
-    const tokenCost = (pack.buy?.coins ?? 0) * quantity
-    if ((player.coins ?? 0) < tokenCost) throw new Error('Not enough Realm Coins')
-    updateData.coins = (player.coins ?? 0) - tokenCost
-    totalCost = tokenCost
-  } else {
-    throw new Error('Invalid payment method — only coins are accepted')
-  }
-
-  await playerRepo.updateById(player._id.toString(), updateData)
-  await itemRepo.upsertItem(playerId, packId, 'pack', quantity)
-
-  await logHistorySafe({
-    playerId: player._id,
-    source: 'packs',
-    eventType: 'packs',
-    eventKey: 'packs.purchase',
-    metadata: {
-      packId,
-      packName: pack.name,
-      quantity,
-      totalCost,
-      currencyType,
-      paymentMethod,
-    },
-    target: {
-      entityType: 'pack',
-      entityId: packId,
-      label: pack.name ?? packId,
-    },
-  })
-
-  const updatedPlayer = await playerRepo.findById(player._id.toString())
-  return { quantity, totalCost, currencyType, player: updatedPlayer }
-}
-
-/**
- * Adds a generic item (chest, etc.) to player inventory
- */
-export async function addItem(playerId: string | Types.ObjectId, itemId: string, quantity: number = 1): Promise<IItemDocument[]> {
+  materialId: string,
+  quantity: number = 1
+): Promise<IItemDocument[]> {
   await getPlayerOrThrow(playerId)
-  await itemRepo.upsertItem(playerId, itemId, 'chest', quantity)
-  return itemRepo.findByPlayer(playerId, 'chest')
+  await itemRepo.upsertItem(playerId, materialId, quantity)
+  return itemRepo.getMaterials(playerId)
 }
 
 /**
- * Opens a territory chest and distributes materials to player inventory
+ * Opens a territory chest and distributes materials to player inventory.
  */
 export async function openTerritoryChest(
   playerId: string | Types.ObjectId,
   chestItemId: string,
   materials: string[]
 ): Promise<Record<string, number>> {
-  // Aggregate material counts
   const materialCounts: Record<string, number> = {}
   for (const matId of materials) {
     materialCounts[matId] = (materialCounts[matId] ?? 0) + 1
   }
 
-  // Add materials to inventory
   await Promise.all(
-    Object.entries(materialCounts).map(([matId, qty]) =>
-      addMaterial(playerId, matId, qty)
-    )
+    Object.entries(materialCounts).map(([matId, qty]) => addMaterial(playerId, matId, qty))
   )
 
-  // Remove chest item from inventory
-  const items = await itemRepo.findByPlayer(playerId, 'chest')
-  const chest = items.find(i => i.id === chestItemId)
+  // Remove the chest document from items if it exists (legacy chest items)
+  const chest = await itemRepo.findMaterial(playerId, chestItemId)
   if (chest) {
     chest.quantity = Math.max(0, (chest.quantity ?? 1) - 1)
     if (chest.quantity <= 0) {

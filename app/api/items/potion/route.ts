@@ -3,6 +3,12 @@ import { withAuth } from '@/lib/api/auth'
 import { usePotion } from '@/lib/modules/items/item.service'
 import { buildPlayerStateById } from '@/lib/modules/players/player.builder'
 
+/**
+ * POST /api/items/potion
+ *
+ * Use a potion from the player's embedded potions field.
+ * Body: { type: 'energy_potion' | 'exp_potion' }
+ */
 export async function POST(request: NextRequest) {
   return withAuth(request, async (playerId) => {
     const body = await request.json()

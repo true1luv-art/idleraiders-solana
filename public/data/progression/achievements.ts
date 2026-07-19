@@ -131,13 +131,4 @@ export const ACHIEVEMENTS = [
     check: (s: Record<string, any>) => s.playerLevel >= 100,
   },
 
-  // ── Social Achievements ─────────────────────────────────────
-  {
-    id: 'guild_member',
-    title: 'Guild Member',
-    description: 'Join a guild',
-    icon: '🏰',
-    category: 'social',
-    check: (s: Record<string, any>) => s.inGuild,
-  },
 ] as const

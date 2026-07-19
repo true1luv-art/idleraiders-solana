@@ -1,25 +1,37 @@
 import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
-import { openPacks, buyPacks } from '@/lib/modules/items/item.service'
+import { buyAndOpenPacks } from '@/lib/modules/items/item.service'
 import { buildPlayerStateById } from '@/lib/modules/players/player.builder'
 
-// Open a pack (or multiple packs in one request)
-export async function PUT(request: NextRequest) {
+/**
+ * POST /api/items/packs
+ *
+ * Buy and immediately open packs — no intermediate inventory storage.
+ * Follows the boom-miner direct-mint pattern: coins are deducted and cards
+ * are minted in one atomic flow, max 10 packs per request.
+ *
+ * Body: { packId: string, quantity?: number, paymentMethod?: string }
+ */
+export async function POST(request: NextRequest) {
   return withAuth(request, async (playerId) => {
     const body = await request.json()
-    const { packId, quantity } = body as { packId?: string; quantity?: number }
+    const { packId, quantity, paymentMethod } = body as {
+      packId?: string
+      quantity?: number
+      paymentMethod?: string
+    }
 
     if (!packId) {
       throw new Error('Missing packId')
     }
 
-    // Default to 1 when the client omits quantity (backwards compatible).
+    // Clamp quantity: minimum 1, maximum 10
     const qty =
       typeof quantity === 'number' && Number.isFinite(quantity) && quantity >= 1
         ? Math.min(Math.floor(quantity), 10)
         : 1
 
-    const result = await openPacks(playerId, packId, qty)
+    const result = await buyAndOpenPacks(playerId, packId, qty, paymentMethod ?? 'coins')
     const updatedState = await buildPlayerStateById(playerId)
 
     return {
@@ -27,35 +39,8 @@ export async function PUT(request: NextRequest) {
       message: qty > 1 ? `${qty} packs opened!` : 'Pack opened!',
       delta: {
         cards: updatedState.cards,
-        stats: updatedState.stats,
-        packs: updatedState.packs,
-        achievements: updatedState.achievements,
-      },
-    }
-  })
-}
-
-// Buy packs
-export async function POST(request: NextRequest) {
-  return withAuth(request, async (playerId) => {
-    const body = await request.json()
-    const { packId, quantity, paymentMethod } = body
-
-    if (!packId) {
-      throw new Error('Missing packId')
-    }
-
-    const result = await buyPacks(playerId, packId, quantity || 1, paymentMethod || 'coins')
-    const updatedState = await buildPlayerStateById(playerId)
-
-    return {
-      ...result,
-      message: `Purchased ${quantity || 1} pack${quantity !== 1 ? 's' : ''}!`,
-      delta: {
         coins: updatedState.coins,
-        shards: updatedState.shards,
-        dollars: updatedState.dollars,
-        packs: updatedState.packs,
+        stats: updatedState.stats,
         achievements: updatedState.achievements,
       },
     }

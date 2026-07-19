@@ -22,7 +22,6 @@ function getPageTypeFromPath(pathname: string): PageType {
     'inventory': 'inventory',
     'marketplace': 'marketplace',
     'profile': 'profile',
-    'guild': 'guild',
     'trader': 'trader',
     'training': 'training',
     'wallet': 'wallet',

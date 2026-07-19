@@ -85,7 +85,6 @@ export interface IPlayer {
 	missionStats?: IMissionStats
 	milestones?: IMilestones
 	activeMission: Types.ObjectId | null
-	guildId: Types.ObjectId | null
 	lastCycleUpdate: Date
 	referredBy: string
 	dailyDungeonStats?: IDailyDungeonStats
@@ -148,39 +147,6 @@ export interface IItem {
 }
 
 export interface IItemDocument extends IItem, Document {
-	_id: Types.ObjectId
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Guild Types
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export type GuildRole = 'leader' | 'officer' | 'member'
-
-export interface IGuildMember {
-	playerId: Types.ObjectId
-	username: string
-	role: GuildRole
-	joinedAt: Date
-	totalContributed: number
-}
-
-export interface IGuild {
-	_id: Types.ObjectId
-	name: string
-	tag: string
-	description: string
-	leaderId: Types.ObjectId
-	members: IGuildMember[]
-	treasury: number
-	level: number
-	xp: number
-	maxMembers: number
-	createdAt: Date
-	updatedAt: Date
-}
-
-export interface IGuildDocument extends IGuild, Document {
 	_id: Types.ObjectId
 }
 

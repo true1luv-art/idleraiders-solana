@@ -15,14 +15,6 @@ export interface CreatePlayerData {
   xp?: number;
 }
 
-export interface PlayerLeaderboardEntry {
-  _id: Types.ObjectId;
-  username: string;
-  level: number;
-  xp: number;
-  guildId?: Types.ObjectId | null;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // Repository Functions
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -60,10 +52,6 @@ export async function findMany(
   options: QueryOptions = {}
 ): Promise<IPlayerDocument[]> {
   return Player.find(filter, null, options);
-}
-
-export async function findByGuild(guildId: Types.ObjectId | string): Promise<IPlayerDocument[]> {
-  return Player.find({ guildId });
 }
 
 export async function findRegistered(limit: number = 100): Promise<IPlayerDocument[]> {
@@ -113,40 +101,6 @@ export async function clearActiveMission(playerId: string | Types.ObjectId): Pro
   return setActiveMission(playerId, null);
 }
 
-export async function setGuild(
-  playerId: string | Types.ObjectId,
-  guildId: Types.ObjectId | null
-): Promise<IPlayerDocument | null> {
-  return Player.findByIdAndUpdate(playerId, { guildId }, { returnDocument: 'after' });
-}
-
-// Alias for setGuild for clarity
-export async function setGuildId(
-  playerId: string | Types.ObjectId,
-  guildId: Types.ObjectId | null
-): Promise<IPlayerDocument | null> {
-  return Player.findByIdAndUpdate(playerId, { guildId }, { returnDocument: 'after' });
-}
-
-export async function updateGuildAndCoins(
-  playerId: Types.ObjectId,
-  guildId: Types.ObjectId | null,
-  coinsDelta: number
-): Promise<IPlayerDocument | null> {
-  return Player.findByIdAndUpdate(
-    playerId,
-    { 
-      $set: { guildId },
-      $inc: { coins: coinsDelta }
-    },
-    { returnDocument: 'after' }
-  );
-}
-
-export async function leaveGuild(playerId: string | Types.ObjectId): Promise<IPlayerDocument | null> {
-  return setGuild(playerId, null);
-}
-
 export async function deleteById(id: string | Types.ObjectId): Promise<IPlayerDocument | null> {
   return Player.findByIdAndDelete(id);
 }
@@ -164,52 +118,10 @@ export async function countRegistered(): Promise<number> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Leaderboard Aggregations
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export async function getTopByXp(limit: number = 100): Promise<PlayerLeaderboardEntry[]> {
-  return Player.aggregate([
-    { $match: { isRegistered: true } },
-    { $sort: { xp: -1 } },
-    { $limit: limit },
-    { $project: { username: 1, level: 1, xp: 1, guildId: 1 } },
-  ]);
-}
-
-export async function getTopByLevel(limit: number = 100): Promise<PlayerLeaderboardEntry[]> {
-  return Player.aggregate([
-    { $match: { isRegistered: true } },
-    { $sort: { level: -1, xp: -1 } },
-    { $limit: limit },
-    { $project: { username: 1, level: 1, xp: 1, guildId: 1 } },
-  ]);
-}
-
-export async function getPlayerRank(
-  playerId: string | Types.ObjectId,
-  sortField: 'xp' | 'level' = 'xp'
-): Promise<number> {
-  const player = await Player.findById(playerId);
-  if (!player) return -1;
-
-  const filter: FilterQuery<IPlayer> = { isRegistered: true };
-  if (sortField === 'xp') {
-    filter.xp = { $gt: player.xp };
-  } else {
-    filter.$or = [
-      { level: { $gt: player.level } },
-      { level: player.level, xp: { $gt: player.xp } },
-    ];
-  }
-
-  return (await Player.countDocuments(filter)) + 1;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // Bulk Operations for Reward Distribution
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════���═════════════════════════════════════════════════
 // Energy Operations
 // ═══════════════════════════════════════════════════════════════════════════════
 

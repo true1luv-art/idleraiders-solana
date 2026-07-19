@@ -62,10 +62,7 @@ const DocsPage = () => {
     { id: "bosses", label: "Boss Mechanics" },
     { id: "dungeons", label: "Dungeon Factors" },
     { id: "territories", label: "Territories" },
-    { id: "guilds", label: "Guild System" },
-    { id: "guildwars", label: "Guild Wars" },
     { id: "training", label: "Training System" },
-    { id: "leaderboard", label: "Leaderboard & Rewards" },
     { id: "rarities", label: "Card Rarities" },
     { id: "leveling", label: "XP & Leveling" },
     { id: "marketplace", label: "Marketplace" },
@@ -226,7 +223,6 @@ Max Energy: 100 (fixed)`}
                 "Regeneration is computed on each player state fetch",
                 "Energy Potions instantly refill energy to full (100)",
                 "Full refill from 0 takes 5 hours (300 minutes)",
-                "Guild energy regen bonus (up to +50% at max guild level) accelerates recovery",
               ]}
             />
 
@@ -289,7 +285,7 @@ BOOSTER_MULTIPLIERS (per card):
 
           {/* ═══ BOSS MECHANICS ═══ */}
           <motion.section {...fadeUp}>
-            <SectionTitle id="bosses" sub="Boss raids are 30-minute missions that contribute to the weekly leaderboard.">
+            <SectionTitle id="bosses" sub="Boss raids are 30-minute missions that deal damage and earn XP.">
               Boss Mechanics
             </SectionTitle>
 
@@ -302,22 +298,6 @@ FinalDamage = max(1, BaseDamage)`}
                 "Damage varies from 80% to 120% of Raid Power (random variance)",
                 "Boss raids last 30 minutes (1800 seconds) and cost 30 energy",
                 "Each raid earns 45 XP (before XP boosters)",
-                "Damage accumulates toward the weekly leaderboard",
-              ]}
-            />
-
-            <FormulaBlock
-              label="Weekly Reward Pool"
-              formula={`GlobalPool = min(PREMIUM_POOL, (GlobalDamage / EXPECTED_DAMAGE) × PREMIUM_POOL)
-PlayerReward = floor((PlayerDamage / TotalDamage) × GlobalPool)
-
-EXPECTED_DAMAGE = 1,000,000
-PREMIUM_POOL    = 1,000 Soul Shards (SSHRD)`}
-              notes={[
-                "Pool activates fully when global damage reaches 1,000,000",
-                "PREMIUM_POOL is the maximum weekly payout (1,000 Soul Shards)",
-                "Rewards are proportional to your share of total boss damage",
-                "Weekly reset: Monday 00:00 Manila time (UTC+8)",
               ]}
             />
 
@@ -402,14 +382,13 @@ Final Base Tokens = mission.baseTokenReward × dungeon.dungeonFactor`}
               formula={`MissionMinutes = floor(mission.duration / 60)
 BaseXP = MissionMinutes (1 XP per minute)
 EffectiveXpBoost = xpBoostRaw / (1 + xpBoostRaw / 200)
-FinalXP = round(BaseXP × (1 + EffectiveXpBoost / 100) × (1 + guildXpBonus) × expPotionMultiplier)`}
+FinalXP = round(BaseXP × (1 + EffectiveXpBoost / 100) × expPotionMultiplier)`}
               notes={[
                 "Dungeon XP = 1 XP per minute of mission duration",
                 "Boss raids give a fixed 45 XP (BOSS_RAID_XP constant)",
                 "Story quests give a fixed 90 XP (STORY_QUEST_XP constant)",
                 "Training sessions give 2 XP per minute (120 XP per hour)",
                 "EXP Potion doubles the XP earned on its active mission (×2 multiplier)",
-                "Guild XP bonus (up to +50% at max guild level) stacks multiplicatively",
               ]}
             />
           </motion.section>
@@ -520,143 +499,6 @@ Replay (isFirstCompletion = false):
             />
           </motion.section>
 
-          {/* ═══ GUILDS ═══ */}
-          <motion.section {...fadeUp}>
-            <SectionTitle id="guilds" sub="Guild membership provides passive buffs and cooperative gameplay.">
-              Guild System
-            </SectionTitle>
-
-            <FormulaBlock
-              label="Guild Membership Rules"
-              formula={`Minimum Player Level: 16 (to create or join)
-Guild Creation Cost:  10,000 Realm Coins
-Max Members:          30
-Max Guild Level:      15
-Max Cumulative XP:    1,000,000`}
-              notes={[
-                "Players must reach level 16 before creating or joining a guild",
-                "Guild creation costs 10,000 Realm Coins",
-                "Guilds scale up to level 15 with buff improvements at each level",
-                "Max 30 members per guild regardless of level",
-                "Donations from members fuel guild XP progression",
-              ]}
-            />
-
-            <FormulaBlock
-              label="Guild XP and Donations"
-              formula={`Donation batch size: 5 materials per donation
-Per-batch XP = floor(rate × 5 / 10)
-
-Donation XP per 5 materials donated:
-  D1  Goblin Cave            →  25 XP
-  D2  Spider Den              →  25 XP
-  D3  Graveyard of Souls      →  37 XP
-  D4  Crypt of the Undying    →  37 XP
-  D5  Ice Cavern              →  50 XP
-  D6  Dark Forest             →  62 XP
-  D7  Molten Quarry           →  75 XP
-  D8  Ashen Fortress          →  87 XP
-  D9  Demon's Gate            → 112 XP
-  D10 Dragon's Lair           → 150 XP`}
-              notes={[
-                "Donations are batched in groups of 5 (boss materials donate 1 at a time)",
-                "Higher-tier dungeon materials give significantly more Guild XP",
-                "Donating regularly is the fastest way to level a guild",
-                "All 20 core dungeon materials can be donated",
-              ]}
-            />
-
-            <div className="rounded-xl border border-border overflow-hidden" style={{ background: "linear-gradient(145deg, hsl(230 12% 14%), hsl(230 12% 9%))" }}>
-              <table className="w-full">
-                <tbody>
-                  <TableRow cells={["Level", "Cumulative XP", "XP Bonus", "Mat Bonus", "Energy", "Boss Dmg"]} header />
-                  <TableRow cells={["1", "0", "0%", "0%", "0%", "0%"]} />
-                  <TableRow cells={["2", "5,000", "4%", "0%", "0%", "0%"]} />
-                  <TableRow cells={["3", "15,000", "4%", "4%", "0%", "0%"]} />
-                  <TableRow cells={["4", "30,000", "8%", "4%", "0%", "0%"]} />
-                  <TableRow cells={["5", "50,000", "8%", "4%", "4%", "0%"]} />
-                  <TableRow cells={["6", "80,000", "12%", "12%", "8%", "0%"]} />
-                  <TableRow cells={["7", "120,000", "16%", "12%", "8%", "0%"]} />
-                  <TableRow cells={["8", "170,000", "20%", "16%", "12%", "5%"]} />
-                  <TableRow cells={["9", "230,000", "24%", "20%", "20%", "5%"]} />
-                  <TableRow cells={["10", "300,000", "28%", "24%", "24%", "5%"]} />
-                  <TableRow cells={["11", "380,000", "32%", "28%", "28%", "5%"]} />
-                  <TableRow cells={["12", "480,000", "36%", "32%", "32%", "10%"]} />
-                  <TableRow cells={["13", "600,000", "40%", "36%", "36%", "10%"]} />
-                  <TableRow cells={["14", "750,000", "44%", "44%", "44%", "10%"]} />
-                  <TableRow cells={["15", "1,000,000", "50%", "50%", "50%", "15%"]} />
-                </tbody>
-              </table>
-            </div>
-          </motion.section>
-
-          {/* ═══ GUILD WARS ═══ */}
-          <motion.section {...fadeUp}>
-            <SectionTitle id="guildwars" sub="Short-form PvP battles where guilds compete for valor and rewards.">
-              Guild Wars
-            </SectionTitle>
-
-            <FormulaBlock
-              label="War Configuration"
-              formula={`War Season:            1 week (Mon 00:00 -> Sun 23:59 UTC+8)
-Attack Energy Cost:    10
-Attack Cooldown:       30 minutes
-Base Fortress HP:      100,000
-HP Per Member:         +5,000
-Min Guild Level:       3
-Min Members:           5
-Matchmaking Variance:  ±20% guild power`}
-              notes={[
-                "Wars run on the weekly leaderboard cycle — 7 days per season",
-                "The Sunday 16:00 UTC snapshot finalizes the war and starts the next one",
-                "Guilds joining mid-week have less than a full 7 days of battle time",
-                "Each attack costs only 10 energy with a 30-min cooldown",
-                "Fortress HP scales with the defending guild's member count",
-                "Only guilds level 3+ with 5+ members can participate",
-              ]}
-            />
-
-            <FormulaBlock
-              label="Valor System"
-              formula={`Valor Earnings:
-  VALOR_PER_DAMAGE            = 1 valor per 1000 damage dealt
-  VALOR_PER_DAMAGE_RECEIVED   = 0.3 valor per 1000 damage taken
-  OUTPOST_CAPTURE_BONUS       = +1,500 valor
-  STRONGHOLD_DESTROY_BONUS    = +500 valor
-
-Outpost Tier Valor Multipliers:
-  Tier 1: 1.0×  Tier 2: 1.5×  Tier 3: 2.0×  Tier 4: 2.5×  Tier 5: 3.0×
-
-End-of-war payout:
-  Final Guild Points are distributed by leaderboard rank
-  (see distributeWarRewards) — there is no flat winner/loser
-  valor bonus or title.`}
-              notes={[
-                "Valor is the primary war currency",
-                "Damage dealt and received both earn valor (defense is rewarded)",
-                "Higher-tier outposts yield more valor on capture",
-                "Outpost supplies (per hour): T1 10, T2 25, T3 50, T4 100, T5 200",
-              ]}
-            />
-
-            <FormulaBlock
-              label="War Supplies and Buffs"
-              formula={`Supply Costs:
-  Repair Garrison: 50   (Repair 10% fortress HP)
-  Repair Outpost:  100  (Repair 10% outpost HP)
-  War Cry:         75   (+10% damage, 1 hour)
-  Reinforce:       100  (+15% defense, 2 hours)
-  Rally:           150  (free attacks for 1 hour)
-  Shield Wall:     200  (−25% damage received, 2 hours)`}
-              notes={[
-                "Supplies are generated by holding outposts",
-                "Buffs apply guild-wide for their duration",
-                "Rally removes the energy cost for war attacks temporarily",
-                "Each supply action has its own cooldown",
-              ]}
-            />
-          </motion.section>
-
           {/* ═══ TRAINING ═══ */}
           <motion.section {...fadeUp}>
             <SectionTitle id="training" sub="Alternative progression path to earn XP and mastery without combat.">
@@ -684,40 +526,6 @@ Training Types:
                 "At 1000 luck for that card type: ~60 mastery per session",
                 "Mastery is cumulative and persists across missions",
                 "Training sessions grant 120 XP each (2 XP × 60 min)",
-              ]}
-            />
-          </motion.section>
-
-          {/* ═══ LEADERBOARD ═══ */}
-          <motion.section {...fadeUp}>
-            <SectionTitle id="leaderboard" sub="Weekly leaderboard ranking determines Soul Shard rewards.">
-              Leaderboard and Rewards
-            </SectionTitle>
-
-            <FormulaBlock
-              label="Leaderboard Ranking"
-              formula={`GlobalTotalDamage = Σ entry.totalDamage for all players
-Players ranked by totalDamage (descending)
-Top 100 players displayed on leaderboard`}
-              notes={[
-                "Damage is recorded per player via leaderboardService.recordDamageForWeek()",
-                "Each boss attack adds damage to the player's weekly total",
-                "Guild leaderboard aggregates member damage",
-              ]}
-            />
-
-            <FormulaBlock
-              label="Weekly Reward Distribution"
-              formula={`EXPECTED_DAMAGE = 1,000,000
-PREMIUM_POOL    = 1,000 Soul Shards
-
-GlobalPool   = min(PREMIUM_POOL, (GlobalDamage / EXPECTED_DAMAGE) × PREMIUM_POOL)
-PlayerReward = floor((PlayerDamage / GlobalTotalDamage) × GlobalPool)`}
-              notes={[
-                "Pool scales with global activity (caps at 1,000 Soul Shards)",
-                "Individual rewards are proportional to your share of total damage",
-                "Week boundary: Monday 00:00 Manila time (UTC+8)",
-                "Leaderboard is cleared on weekly reset",
               ]}
             />
           </motion.section>
@@ -871,17 +679,6 @@ DROP RATES (both packs):
               />
 
               <FormulaBlock
-                label="Guild Progression Tips"
-                formula="Join at L16 → Donate daily → Boss raids → Climb guild buffs"
-                notes={[
-                  "Join or create a guild at level 16 — passive buffs are significant",
-                  "Donate higher-tier materials (Iron Citadel gives 6× more guild XP)",
-                  "At max guild level (15): +50% XP, +50% Material, +50% Energy, +15% Boss Damage",
-                  "Guilds must be level 3+ with 5+ members to participate in Guild Wars",
-                ]}
-              />
-
-              <FormulaBlock
                 label="Stat Strategy"
                 formula="Raid Power + Mastery + Luck + GM → Better rewards at every step"
                 notes={[
@@ -901,10 +698,8 @@ DROP RATES (both packs):
                 <div className="space-y-3">
                   {[
                     { q: "What should I spend Realm Coins on first?", a: "Buy Standard Packs to grow your card collection. Each card rolls independently — Common 65%, Uncommon 23%, Rare 10%, Epic 1.9%, Legendary 0.1%." },
-                    { q: "How do I get Soul Shards?", a: "Soul Shards are earned from weekly leaderboard rewards based on your share of global boss damage." },
                     { q: "Is it better to sell or keep duplicate cards?", a: "Keep duplicates early — they stack and multiply stat contributions. Sell only when you need tokens for specific purchases." },
                     { q: "How does the daily repeat penalty work?", a: "Running the same dungeon+mission combo multiple times per day reduces the bonus reward by 15% per repeat (min 10% remaining). Resets at midnight Manila time." },
-                    { q: "When should I join a guild?", a: "As soon as you reach level 16. Guild buffs scale up to +50% XP, Material and Energy Regen, plus +15% boss damage at max level." },
                     { q: "How do I craft cards?", a: "Open the Crafting page, pick a recipe, and make sure you have the matching-rarity catalyst plus the required material and component stacks. No Soul Shards or Realm Coins are spent — all 3 stacks are consumed on craft." },
                     { q: "Why didn't my story quest progress?", a: "First-time completion has a 15% card drop gate. If you don't get the card, you must retry the same quest until it drops." },
                   ].map((faq, i) => (

@@ -13,7 +13,6 @@ import {
 	BookOpen,
 	Package,
 	Zap,
-	Shield,
 	Crosshair,
 	Clover,
 } from 'lucide-react'
@@ -40,7 +39,6 @@ interface ViewedProfile {
 	uniqueCards: number
 	totalMaterials: number
 	boosts?: { expBoost?: number; matBoost?: number; energyBoost?: number }
-	guild?: { name: string; level: number; role: string } | null
 }
 
 interface Props {
@@ -192,19 +190,10 @@ const ViewPlayerProfileModal = ({ open, onClose, username }: Props) => {
 												<h4 className="font-display text-lg font-bold text-primary truncate">
 													{profile.username}
 												</h4>
-												<p className="text-[10px] text-muted-foreground">
-													Level {profile.level} Raider
-												</p>
-												{profile.guild && (
-													<p className="mt-0.5 text-[10px] text-muted-foreground/80 flex items-center gap-1">
-														<Shield size={10} className="text-primary/60" />
-														<span className="text-foreground/80 truncate">
-															{profile.guild.name}
-														</span>
-														<span className="capitalize">· {profile.guild.role}</span>
-													</p>
-												)}
-												<div className="mt-2">
+											<p className="text-[10px] text-muted-foreground">
+												Level {profile.level} Raider
+											</p>
+											<div className="mt-2">
 													<div className="flex items-center justify-between mb-1">
 														<span className="text-[9px] text-muted-foreground/60 uppercase tracking-wider">
 															Experience
