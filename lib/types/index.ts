@@ -104,7 +104,7 @@ export interface IPlayerDocument extends IPlayer, Document {
 // Card Types
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type CardType = 'hero' | 'equipment' | 'mount' | 'artifact' | 'relic' | 'story' | 'booster'
+export type CardType = 'hero' | 'equipment' | 'mount' | 'artifact' | 'relic' | 'story'
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'special'
 
 export interface Card {
@@ -393,7 +393,6 @@ export interface GameData {
 		ARTIFACTS: GameCardConfig[]
 		RELICS: GameCardConfig[]
 		STORIES: GameCardConfig[]
-		BOOSTERS: GameCardConfig[]
 		[key: string]: GameCardConfig[]
 	}
 	ITEMS: {

@@ -124,30 +124,6 @@ export const CARD_IMAGES: Record<string, string> = {
   common_transport_6: '/assets/cards/common_transport_6.png',
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BOOSTERS
-  // ═══════════════════════════════════════════════════════════════════════════
-  // XP Boosters
-  common_booster_xp: '/assets/cards/common_booster_xp.png',
-  uncommon_booster_xp: '/assets/cards/uncommon_booster_xp.png',
-  rare_booster_xp: '/assets/cards/rare_booster_xp.png',
-  epic_booster_xp: '/assets/cards/epic_booster_xp.png',
-  legendary_booster_xp: '/assets/cards/legendary_booster_xp.png',
-
-  // Energy Boosters
-  common_booster_energy: '/assets/cards/common_booster_energy.png',
-  uncommon_booster_energy: '/assets/cards/uncommon_booster_energy.png',
-  rare_booster_energy: '/assets/cards/rare_booster_energy.png',
-  epic_booster_energy: '/assets/cards/epic_booster_energy.png',
-  legendary_booster_energy: '/assets/cards/legendary_booster_energy.png',
-
-  // Material Boosters
-  common_booster_material: '/assets/cards/common_booster_material.png',
-  uncommon_booster_material: '/assets/cards/uncommon_booster_material.png',
-  rare_booster_material: '/assets/cards/rare_booster_material.png',
-  epic_booster_material: '/assets/cards/epic_booster_material.png',
-  legendary_booster_material: '/assets/cards/legendary_booster_material.png',
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // CRAFTED CARDS (images not yet available)
   // ═══════════════════════════════════════════════════════════════════════════
   craft_common_1: '/assets/cards/craft_common_1.png',
@@ -268,13 +244,6 @@ export const FALLBACK_IMAGES: Record<string, Record<string, string>> = {
     rare: '/assets/cards/rare_equipment_1.png',
     uncommon: '/assets/cards/uncommon_equipment_1.png',
     common: '/assets/cards/uncommon_equipment_1.png',
-  },
-  booster: {
-    legendary: '/assets/cards/legendary_booster_xp.png',
-    epic: '/assets/cards/epic_booster_xp.png',
-    rare: '/assets/cards/rare_booster_xp.png',
-    uncommon: '/assets/cards/uncommon_booster_xp.png',
-    common: '/assets/cards/common_booster_xp.png',
   },
   relic: {
     special: '/assets/cards/story_special_4.png',

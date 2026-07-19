@@ -17,57 +17,20 @@ interface RevealedCard {
 
 export const usePackActions = () => {
   const { authPost, authGet, authPut } = useApiActions()
-  const [standardCardSupply, setStandardCardSupply] = useState<CardSupply>({})
-  const [boosterCardSupply, setBoosterCardSupply] = useState<CardSupply>({})
-  const [availableBoosterSupply, setAvailableBoosterSupply] = useState(0)
+  const [cardSupply, setCardSupply] = useState<CardSupply>({})
   const [openedCards, setOpenedCards] = useState<RevealedCard[]>([])
   const [openedPackId, setOpenedPackId] = useState<string | null>(null)
   const [isFetchingSupply, setIsFetchingSupply] = useState(false)
   const [isBuyingPacks, setIsBuyingPacks] = useState(false)
   const [isOpeningPack, setIsOpeningPack] = useState(false)
 
-  const getStandardCardSupply = useCallback(async () => {
+  const getCardSupply = useCallback(async () => {
     try {
-      const data = await authGet('/api/cards/supply?type=standard')
+      const data = await authGet('/api/cards/supply')
       if (data?.supply) {
-        setStandardCardSupply(data.supply)
+        setCardSupply(data.supply)
       }
       return data
-    } catch (error) {
-      const err = error as Error
-      return { success: false, message: err.message }
-    }
-  }, [authGet])
-
-  const getBoosterCardSupply = useCallback(async () => {
-    try {
-      const data = await authGet('/api/cards/supply?type=booster')
-      if (data?.supply) {
-        setBoosterCardSupply(data.supply)
-      }
-      return data
-    } catch (error) {
-      const err = error as Error
-      return { success: false, message: err.message }
-    }
-  }, [authGet])
-
-  const getAvailableBoosterSupply = useCallback(async () => {
-    try {
-      const data = await authGet('/api/cards/supply?type=booster&availableOnly=true')
-      if (typeof data?.totalAvailable === 'number') {
-        setAvailableBoosterSupply(data.totalAvailable)
-      }
-      return data
-    } catch (error) {
-      const err = error as Error
-      return { success: false, message: err.message }
-    }
-  }, [authGet])
-
-  const getSpecialCardSupply = useCallback(async () => {
-    try {
-      return await authGet('/api/cards/supply?type=special')
     } catch (error) {
       const err = error as Error
       return { success: false, message: err.message }
@@ -77,16 +40,11 @@ export const usePackActions = () => {
   const refreshCardSupply = useCallback(async () => {
     setIsFetchingSupply(true)
     try {
-      const [standardRes, boosterRes, availableRes] = await Promise.all([
-        getStandardCardSupply(),
-        getBoosterCardSupply(),
-        getAvailableBoosterSupply(),
-      ])
-      return { standardRes, boosterRes, availableRes }
+      return await getCardSupply()
     } finally {
       setIsFetchingSupply(false)
     }
-  }, [getBoosterCardSupply, getStandardCardSupply, getAvailableBoosterSupply])
+  }, [getCardSupply])
 
   const buyPacks = useCallback(
     async (packId: string, quantity: number, paymentMethod = 'coins') => {
@@ -143,17 +101,13 @@ export const usePackActions = () => {
   }, [])
 
   return {
-    standardCardSupply,
-    boosterCardSupply,
-    availableBoosterSupply,
+    cardSupply,
     openedCards,
     openedPackId,
     isFetchingSupply,
     isBuyingPacks,
     isOpeningPack,
-    getStandardCardSupply,
-    getBoosterCardSupply,
-    getSpecialCardSupply,
+    getCardSupply,
     refreshCardSupply,
     buyPacks,
     openPack,

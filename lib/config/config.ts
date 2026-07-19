@@ -45,13 +45,11 @@ export const config = {
 
   // Pack / mint pricing (whole-token amounts; multiply by decimals before sending)
   // Env vars override; constants/game.ts MINT_COST is the canonical fallback for heroes.
+  // Single heroes pack price — the only pack in the game.
+  // All other card types (equipment, mounts, etc.) drop from this same pack.
   pack: {
-    hero:         Number(process.env.PACK_PRICE_HERO       ?? 500_000),
-    equipment:    Number(process.env.PACK_PRICE_EQUIPMENT  ?? 100_000),
-    relic:        Number(process.env.PACK_PRICE_RELIC      ?? 150_000),
-    mount:        Number(process.env.PACK_PRICE_MOUNT      ?? 200_000),
-    booster:      Number(process.env.PACK_PRICE_BOOSTER    ?? 50_000),
-    registration: Number(process.env.REGISTRATION_FEE     ?? 1_000),
+    heroes:       Number(process.env.PACK_PRICE_HEROES    ?? 500_000),
+    registration: Number(process.env.REGISTRATION_FEE    ?? 1_000),
   },
 
   // Worker tuning

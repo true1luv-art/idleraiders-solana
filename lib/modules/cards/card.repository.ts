@@ -167,16 +167,9 @@ export async function getTotalSupplyAggregation(): Promise<SupplyAggregation[]> 
   ]);
 }
 
-export async function getBoosterSupplyAggregation(): Promise<SupplyAggregation[]> {
-  return Card.aggregate([
-    { $match: { type: 'booster' } },
-    { $group: { _id: '$cardId', minted: { $sum: '$quantity' } } },
-  ]);
-}
-
 /**
  * Calculate total raid power across ALL players in the game.
- * This aggregates card quantities × raidPower stats for non-booster cards.
+ * This aggregates card quantities × raidPower stats across all card types.
  * Used for dynamic expected damage calculation.
  */
 export async function getTotalRaidPowerAggregation(): Promise<number> {
@@ -185,7 +178,6 @@ export async function getTotalRaidPowerAggregation(): Promise<number> {
   
   // Get all cards grouped by cardId with total quantity
   const cardTotals = await Card.aggregate([
-    { $match: { type: { $ne: 'booster' } } }, // Exclude boosters (they don't contribute to raid power)
     { $group: { _id: '$cardId', totalQty: { $sum: '$quantity' } } },
   ])
   

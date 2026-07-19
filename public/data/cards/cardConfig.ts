@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD CONFIGURATION & STAT SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
-// Complete unified system for card stat generation, class modifiers, and booster calculations
+// Complete unified system for card stat generation and class modifiers
 
 export interface CardStats {
   raidPower: number
@@ -14,11 +14,11 @@ export interface Card {
   id: string
   name: string
   description: string
-  type: 'hero' | 'booster' | 'equipment' | 'mount' | 'transport' | 'artifact'
+  type: 'hero' | 'equipment' | 'mount' | 'transport' | 'artifact'
   class: string
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'special'
   supply?: number
-  source?: 'standard_pack' | 'booster_pack' | 'craft' | 'event'
+  source?: 'heroes_pack' | 'craft' | 'event'
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -27,7 +27,6 @@ export interface Card {
 
 export const CARD_BASE_STATS: Record<string, CardStats> = {
   hero: { raidPower: 60, mastery: 30, luck: 0, gm: 1 },
-  booster: { raidPower: 0, mastery: 0, luck: 0, gm: 0 },
   equipment: { raidPower: 35, mastery: 0, luck: 5, gm: 1 },
   mount: { raidPower: 25, mastery: 0, luck: 15, gm: 1 },
   transport: { raidPower: 0, mastery: 0, luck: 30, gm: 1 },
@@ -60,19 +59,6 @@ export const GM_MULTIPLIER: Record<string, number> = {
   epic: 3,
   legendary: 6,
   special: 2,
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// BOOSTER MULTIPLIERS (RARITY → MULTIPLIER)
-// ═══════════════════════════════════════════════════════════════════════════
-// All booster classes (xpBoost, energyBoost, materialBoost) use same multiplier values
-
-export const BOOSTER_MULTIPLIERS: Record<string, number> = {
-  common: 2,
-  uncommon: 5,
-  rare: 10,
-  epic: 15,
-  legendary: 25,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -123,7 +109,7 @@ export const ARTIFACT_CLASS_MODIFIERS: Record<string, Record<string, number>> = 
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Generates stats for any card type (except boosters which don't have stats)
+ * Generates stats for any card type
  * @param type - Card type (hero, equipment, mount, transport, artifact, etc.)
  * @param rarity - Card rarity (common, uncommon, rare, epic, legendary, special)
  * @param cardClass - Optional class for stat modifiers (depends on card type)
@@ -180,32 +166,15 @@ export function generateCardStats(type: string, rarity: string, cardClass?: stri
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BOOSTER MULTIPLIER FUNCTION
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Gets booster multiplier based on rarity
- * All booster classes (xpBoost, energyBoost, materialBoost) use same multiplier values
- * @param rarity - Card rarity
- * @returns Multiplier value for booster effects
- */
-export function getBoosterMultiplier(rarity: string): number {
-  return BOOSTER_MULTIPLIERS[rarity] || 1
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // GET CARD STATS FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Get stats for any card
  * @param card - Card object with type, rarity, and optional class
- * @returns CardStats object or null for boosters (which don't have stats)
+ * @returns CardStats object
  */
 export function getCardStats(card: Card): CardStats | null {
-  if (card.type === 'booster') {
-    return null // Boosters don't have stats, only multipliers
-  }
   return generateCardStats(card.type, card.rarity, card.class)
 }
 

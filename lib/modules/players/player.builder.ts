@@ -9,7 +9,6 @@ import { getManilaDateString } from '@/lib/utils/time'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
 import { MATERIALS_BY_ID } from '@/lib/registries/item.registry'
 import GAME_DATA from '@/public/data'
-import { BOOSTER_MULTIPLIERS } from '@/public/data/cards/cardConfig'
 import type { Types } from 'mongoose'
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -39,15 +38,8 @@ interface GameItem {
 	category?: string
 }
 
-// Boosts come exclusively from booster-type cards (xpBoost, materialBoost, energyBoost)
-interface RawBoosts {
-	expBoost: number
-	matBoost: number
-	energyBoost: number
-}
-
-// Combined card-derived values: boosts from booster cards + stats from hero/equipment/etc.
-export interface RawCardValues extends RawBoosts {
+// Combined card-derived values: stats from hero/equipment/etc.
+export interface RawCardValues {
   raidPower: number
   mastery: number
   luck: number
@@ -162,7 +154,6 @@ function formatMaterialName(materialId: string): string {
 
 export function applyBoostCap(rawPercent: number): number {
 	// Soft cap at 75%, diminishing returns beyond that up to 150% max
-	// This prevents extreme XP/material stacking while keeping booster cards valuable
 	if (rawPercent <= 0) return 0
 	if (rawPercent <= 75) return rawPercent
 	const overflow = rawPercent - 75
@@ -170,23 +161,13 @@ export function applyBoostCap(rawPercent: number): number {
 }
 
 function computeRawCardValues(dbCards: ICardDocument[]): RawCardValues {
-	const raw: RawCardValues = { expBoost: 0, matBoost: 0, energyBoost: 0, raidPower: 0, mastery: 0, luck: 0 }
+	const raw: RawCardValues = { raidPower: 0, mastery: 0, luck: 0 }
 	for (const card of dbCards) {
 		const cardDef = CARDS_BY_ID[card.cardId] ?? {}
 		const qty = card.quantity ?? 1
-		if (cardDef.type === 'booster' && cardDef.class && cardDef.rarity) {
-			// Booster cards: only contribute to the 3 boost types
-			const boostPercent = BOOSTER_MULTIPLIERS[cardDef.rarity] ?? 0
-			const amount = boostPercent * qty
-			if (cardDef.class === 'xpBoost') raw.expBoost += amount
-			else if (cardDef.class === 'materialBoost') raw.matBoost += amount
-			else if (cardDef.class === 'energyBoost') raw.energyBoost += amount
-		} else {
-			// Non-booster cards: contribute to raidPower, mastery, and luck stats
-			raw.raidPower += (cardDef.stats?.raidPower ?? 0) * qty
-			raw.mastery += (cardDef.stats?.mastery ?? 0) * qty
-			raw.luck += (cardDef.stats?.luck ?? 0) * qty
-		}
+		raw.raidPower += (cardDef.stats?.raidPower ?? 0) * qty
+		raw.mastery += (cardDef.stats?.mastery ?? 0) * qty
+		raw.luck += (cardDef.stats?.luck ?? 0) * qty
 	}
 	return raw
 }
@@ -286,29 +267,18 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		}
 	}
 
-	// Separate stat accumulation (hero/equipment/etc.) from boost accumulation (booster cards only)
+	// Accumulate stats from all cards
 	const stats: Stats = { raidPower: 0, mastery: 0, luck: 0, gm: 0 }
-	const rawBoosts: RawBoosts = { expBoost: 0, matBoost: 0, energyBoost: 0 }
 
 	const cards: CardItem[] = (dbCards as ICardDocument[]).map((dbCard) => {
 		const cardDef = CARDS_BY_ID[dbCard.cardId] ?? {}
 		const s = cardDef.stats ?? {}
 		const qty = dbCard.quantity ?? 1
 
-		if (cardDef.type === 'booster' && cardDef.class && cardDef.rarity) {
-			// Booster cards: only contribute to the 3 boost types, no stats
-			const boostPercent = BOOSTER_MULTIPLIERS[cardDef.rarity] ?? 0
-			const amount = boostPercent * qty
-			if (cardDef.class === 'xpBoost') rawBoosts.expBoost += amount
-			else if (cardDef.class === 'materialBoost') rawBoosts.matBoost += amount
-			else if (cardDef.class === 'energyBoost') rawBoosts.energyBoost += amount
-		} else {
-			// Non-booster cards: contribute to stats only
-			stats.raidPower += (s.raidPower || 0) * qty
-			stats.mastery += (s.mastery || 0) * qty
-			stats.luck += (s.luck || 0) * qty
-			stats.gm += (s.gm || 0) * qty
-		}
+		stats.raidPower += (s.raidPower || 0) * qty
+		stats.mastery += (s.mastery || 0) * qty
+		stats.luck += (s.luck || 0) * qty
+		stats.gm += (s.gm || 0) * qty
 
 		return {
 			id: dbCard.cardId,
@@ -324,9 +294,9 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 	})
 
 	const boosts: Boosts = {
-		expBoost: applyBoostCap(rawBoosts.expBoost),
-		matBoost: applyBoostCap(rawBoosts.matBoost),
-		energyBoost: applyBoostCap(rawBoosts.energyBoost),
+		expBoost: 0,
+		matBoost: 0,
+		energyBoost: 0,
 	}
 
 	// Derive guild bonuses from the populated guild doc (set up via

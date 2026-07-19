@@ -1,14 +1,15 @@
-// Booster/Pack images are in public/assets/
-export const BOOSTER_IMAGES = {
-  // Pack card images
-  booster_pack: '/assets/idle_raiders_booster_pack.png',
+// Pack images are in public/assets/
+export const PACK_IMAGES = {
   heroes_pack: '/assets/idle_raiders_heroes_pack.png',
-  // Card back for display
   card_back: '/assets/card_back.png',
 }
 
-export const getBoosterImage = (boosterId) => {
-  return BOOSTER_IMAGES[boosterId] || null
+export const getPackImage = (packId: string): string | null => {
+  return PACK_IMAGES[packId as keyof typeof PACK_IMAGES] || null
 }
 
-export default BOOSTER_IMAGES
+// Keep legacy aliases so existing callers (BoosterImages) don't break.
+export const BOOSTER_IMAGES = PACK_IMAGES
+export const getBoosterImage = getPackImage
+
+export default PACK_IMAGES
