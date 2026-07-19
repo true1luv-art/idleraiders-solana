@@ -6,7 +6,6 @@ import { connectDB } from '../lib/config/database'
 import { CORS_ORIGIN, PORT } from '../lib/config/config'
 import { startWorkers, stopWorkers } from './workers/index'
 import { initializeSocketServer } from './sockets/socket.manager'
-import { getCurrentHivePrice, isHiveUsdPriceInitialized } from '../lib/modules/price/price.logic'
 
 const app = express()
 const server = http.createServer(app)
@@ -23,29 +22,6 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
   })
 })
-
-// Price endpoint - returns the current HIVE USD price.
-// Responds 503 until the price worker has reported its first successful fetch.
-app.get('/api/price', async (req, res) => {
-  if (!(await isHiveUsdPriceInitialized())) {
-    res.status(503).json({
-      success: false,
-      error: 'Price service unavailable, please try again shortly',
-      timestamp: new Date().toISOString(),
-    })
-    return
-  }
-
-  const price = await getCurrentHivePrice()
-  res.json({
-    success: true,
-    hiveUsd: price,
-    hivePerDollar: 1 / price,
-    timestamp: new Date().toISOString(),
-  })
-})
-
-
 
 // Start
 let io: ReturnType<typeof initializeSocketServer> | null = null
