@@ -21,7 +21,7 @@ import {
 	BookOpen,
 } from 'lucide-react'
 
-import { GAME_UI_IMAGES, CARD_IMAGES } from '@/features/images'
+import { GAME_UI_IMAGES } from '@/features/images'
 import LegalModal from '@/components/modals/Legal'
 
 /* ─── Data ─── */
@@ -29,7 +29,6 @@ import LegalModal from '@/components/modals/Legal'
 const navLinks = [
 	{ label: 'Features', href: '#features' },
 	{ label: 'How to Play', href: '#how' },
-	{ label: 'Heroes', href: '#heroes' },
 	{ label: 'Docs', href: '/docs', isRoute: true },
 ]
 
@@ -48,11 +47,6 @@ const steps = [
 	{ n: '03', title: 'Ascend', desc: 'Upgrade gear, evolve heroes, and conquer increasingly deadly territories.' },
 ]
 
-	const heroes = [
-		{ img: CARD_IMAGES.legendary_hero_1, name: 'Aurelion the Dragonlord', class: 'Warrior', rarity: 'Legendary', power: 7200 },
-		{ img: CARD_IMAGES.epic_hero_1, name: 'Nyx Shadowblade', class: 'Rogue', rarity: 'Epic', power: 1425 },
-		{ img: CARD_IMAGES.rare_hero_1, name: 'Evershade Ranger', class: 'Archer', rarity: 'Rare', power: 480 },
-	]
 
 const footerLinks = [
 	{ label: 'Discord', icon: Users, href: 'https://discord.gg/PZzN2DKZxq', external: true },
@@ -318,54 +312,6 @@ export default function LandingPage() {
 									<h3 className="font-display text-xl font-bold text-foreground">{f.title}</h3>
 									<p className="mt-2 text-secondary-foreground leading-relaxed">{f.desc}</p>
 								</div>
-								</motion.div>
-							))}
-						</div>
-					</div>
-				</section>
-
-				{/* ═══ HEROES ═══ */}
-				<section id="heroes" className="relative py-24 sm:py-32">
-					<div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-accent/10 to-transparent" />
-
-					<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-							<div className="text-center max-w-2xl mx-auto">
-								<p className="text-primary text-sm font-bold uppercase tracking-widest">Heroes</p>
-								<h2 className="mt-4 font-display text-4xl sm:text-5xl font-bold text-foreground">
-									Summon <span className="text-primary">legends</span>
-								</h2>
-								<p className="mt-4 text-secondary-foreground">
-									Collect and ascend over 100 unique heroes — each with signature abilities.
-								</p>
-							</div>
-
-						<div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-							{heroes.map((h, i) => (
-								<motion.div
-									key={h.name}
-									initial={{ opacity: 0, y: 30 }}
-									whileInView={{ opacity: 1, y: 0 }}
-									viewport={{ once: true }}
-									transition={{ delay: i * 0.1 }}
-									className="group relative rounded-3xl overflow-hidden border border-primary/20 bg-card shadow-card hover:shadow-gold-lg transition-all duration-500 hover:-translate-y-2"
-									style={{ transform: `rotate(${(i - 1) * 1.5}deg)` }}
-								>
-									<div className="aspect-[2/3] overflow-hidden bg-gradient-to-b from-accent/40 to-background">
-										<img
-											src={h.img}
-											alt={`${h.name} the ${h.class}`}
-											loading="lazy"
-											className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-										/>
-									</div>
-									<div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-background via-background/90 to-transparent">
-										<div className="flex items-center justify-between mb-2">
-											<span className="text-xs font-bold uppercase tracking-wider text-primary">{h.rarity}</span>
-											<span className="text-xs text-muted-foreground">PWR {h.power.toLocaleString()}</span>
-										</div>
-										<h3 className="font-display text-2xl font-bold text-foreground">{h.name}</h3>
-										<p className="text-sm text-muted-foreground">{h.class}</p>
-									</div>
 								</motion.div>
 							))}
 						</div>

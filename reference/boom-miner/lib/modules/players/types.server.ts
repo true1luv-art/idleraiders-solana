@@ -1,0 +1,24 @@
+/**
+ * lib/modules/players/types.server.ts
+ *
+ * Pure TypeScript types for the `players` domain.
+ * No mongoose runtime code — only interfaces live here.
+ */
+
+import type { Document } from "mongoose";
+
+export interface IPlayer extends Document {
+  /** Primary identity — Solana wallet address. Unique + indexed. */
+  wallet: string;
+  username?: string;
+  /** Unix ms at registration time. */
+  registrationTime: number;
+  /** Authoritative $BMCOIN balance. Starts at 0; topped up manually in DB. */
+  coins: number;
+  /** Highest/current stage reached. Defaults to 1. */
+  stage: number;
+  /** Coins withdrawn within the current UTC calendar day (for daily-limit gating). */
+  withdrawnToday: number;
+  /** Unix ms of the player's last successful withdrawal. */
+  lastWithdrawnAt: number;
+}
