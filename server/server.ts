@@ -6,7 +6,7 @@ import { connectDB } from '../lib/config/database'
 import { CORS_ORIGIN, PORT } from '../lib/config/config'
 import { startWorkers, stopWorkers } from './workers/index'
 import { initializeSocketServer } from './sockets/socket.manager'
-import { getCurrentHivePrice, isHiveUsdPriceInitialized } from '../lib/modules/transactions/transaction.logic'
+import { getCurrentHivePrice, isHiveUsdPriceInitialized } from '../lib/modules/price/price.logic'
 
 const app = express()
 const server = http.createServer(app)

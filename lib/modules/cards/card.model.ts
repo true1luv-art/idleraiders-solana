@@ -5,7 +5,15 @@ import mongoose, { Schema, Document, Model, Types } from 'mongoose'
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type CardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'special'
-export type CardType = 'hero' | 'equipment' | 'relic' | 'mount' | 'artifact' | 'booster' | 'transport'
+export type CardType = 'hero' | 'equipment' | 'relic' | 'mount' | 'artifact' | 'transport'
+
+export interface CardMarketDoc {
+  listed: boolean
+  price: number
+  seller: string | null
+  created: number
+  sold: number
+}
 
 export interface ICard {
   owner: Types.ObjectId
@@ -13,6 +21,7 @@ export interface ICard {
   rarity: CardRarity
   type: CardType
   quantity: number
+  market: CardMarketDoc
   createdAt: Date
   updatedAt: Date
 }
@@ -22,7 +31,22 @@ export interface ICardDocument extends ICard, Document {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Schema
+// Market Schema
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CardMarketSchema = new Schema<CardMarketDoc>(
+  {
+    listed: { type: Boolean, default: false },
+    price: { type: Number, default: 0 },
+    seller: { type: String, default: null },
+    created: { type: Number, default: 0 },
+    sold: { type: Number, default: 0 },
+  },
+  { _id: false }
+)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Card Schema
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const CardSchema = new Schema<ICardDocument>(
@@ -31,7 +55,7 @@ const CardSchema = new Schema<ICardDocument>(
     cardId: { type: String, required: true },
     type: {
       type: String,
-      enum: ['hero', 'equipment', 'relic', 'mount', 'artifact', 'booster', 'transport'],
+      enum: ['hero', 'equipment', 'relic', 'mount', 'artifact', 'transport'],
       required: true,
     },
     class: {
@@ -43,10 +67,13 @@ const CardSchema = new Schema<ICardDocument>(
       required: true,
     },
     quantity: { type: Number, default: 1 },
+    market: { type: CardMarketSchema, default: () => ({}) },
   },
   { timestamps: true }
 )
 
+// Index for marketplace queries
+CardSchema.index({ 'market.listed': 1 })
 CardSchema.index({ owner: 1, cardId: 1 }, { unique: true })
 
 // ═══════════════════════════════════════════════════════════════════════════════

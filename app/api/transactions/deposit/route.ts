@@ -1,26 +1,43 @@
+/**
+ * app/api/transactions/deposit/route.ts
+ *
+ * POST /api/transactions/deposit
+ *
+ * Body: { txId: string, amount: number }
+ *
+ * Enqueue-only: validates the request cheaply, then drops a row in
+ * `transactions_pending`. The drain worker verifies the on-chain transfer,
+ * credits coins, and records the ledger row. The client polls
+ * GET /api/transactions to detect settlement.
+ */
+
 import { NextRequest } from 'next/server'
-import { withAuth } from '@/lib/api/auth'
-import { queueDeposit } from '@/lib/modules/transactions/transaction.service'
-import { TOKEN_MAIN, TOKEN_PREMIUM, isTokenSymbol } from '@/lib/config/tokens'
+import { withAuth, errorResponse, successResponse } from '@/lib/api/auth'
+import { enqueueDeposit } from '@/lib/modules/transactions-pending/repository.server'
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (_playerId, username) => {
     const body = await request.json()
-    const { transactionId, quantity, symbol } = body
+    const { txId, amount, walletAddress } = (body ?? {}) as Record<string, unknown>
 
-    if (!transactionId) {
-      throw new Error('Missing blockchain transaction ID')
+    if (typeof txId !== 'string' || !txId.trim()) {
+      throw new Error('txId is required')
     }
-    if (!quantity || quantity <= 0) {
-      throw new Error('Invalid deposit quantity')
-    }
-    if (!isTokenSymbol(symbol)) {
-      throw new Error(`Invalid symbol. Must be ${TOKEN_MAIN} or ${TOKEN_PREMIUM}.`)
+    if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1) {
+      throw new Error('amount must be an integer >= 1')
     }
 
-    // username is JWT-verified; queueDeposit performs its own player/duplicate checks.
-    const result = await queueDeposit(transactionId, username, { quantity, symbol })
+    // walletAddress from body; fall back to username for Hive players.
+    const wallet = (typeof walletAddress === 'string' && walletAddress.trim())
+      ? walletAddress.trim()
+      : username
 
-    return result
+    const result = await enqueueDeposit({ walletAddress: wallet, txId: txId.trim(), amount })
+
+    return {
+      status:    'queued',
+      jobId:     result.jobId,
+      duplicate: result.duplicate,
+    }
   })
 }

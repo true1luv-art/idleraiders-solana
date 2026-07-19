@@ -76,21 +76,13 @@ const PACKS_BY_ID = Object.fromEntries(
 ) as Record<string, GamePack>
 
 const CARDS_BY_RARITY = CARDS_ARRAY.reduce((acc, card) => {
-  if (!card?.rarity || card.type === 'booster' || card.source?.type === 'crafting' || card.source?.type === 'story') return acc
+  if (!card?.rarity) return acc
   if (!acc[card.rarity]) acc[card.rarity] = []
   acc[card.rarity].push(card)
   return acc
 }, {} as Record<string, GameCard[]>)
 
-const BOOSTER_CARDS_BY_RARITY = CARDS_ARRAY.reduce((acc, card) => {
-  if (card?.type !== 'booster' || !card?.rarity) return acc
-  if (!acc[card.rarity]) acc[card.rarity] = []
-  acc[card.rarity].push(card)
-  return acc
-}, {} as Record<string, GameCard[]>)
-
-const PACK_FALLBACK_CARD = CARDS_ARRAY.find((card) => card?.type !== 'booster') ?? CARDS_ARRAY[0]
-const BOOSTER_FALLBACK_CARD = CARDS_ARRAY.find((card) => card?.type === 'booster') ?? CARDS_ARRAY[0]
+const PACK_FALLBACK_CARD = CARDS_ARRAY[0]
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Helper Functions
@@ -151,65 +143,7 @@ async function rollPackCard(rarity: string, supplyMap: Record<string, number> = 
   return availableCards[Math.floor(Math.random() * availableCards.length)]
 }
 
-async function rollBoosterCard(dropRates: Record<string, number>, supplyMap: Record<string, number> = {}): Promise<GameCard> {
-  const r = Math.random()
-  let cumulative = 0
-  let rarity = 'common'
-  for (const [rarityKey, rate] of Object.entries(dropRates)) {
-    cumulative += rate
-    if (r < cumulative) {
-      rarity = rarityKey
-      break
-    }
-  }
-  const pool = BOOSTER_CARDS_BY_RARITY[rarity] ?? []
 
-  const availableCards = pool.filter((card) => {
-    const maxSupply = card.supply?.max ?? Infinity
-    const currentSupply = supplyMap[card.id] ?? 0
-    return currentSupply < maxSupply
-  })
-
-  if (availableCards.length > 0) {
-    return availableCards[Math.floor(Math.random() * availableCards.length)]
-  }
-
-  const allRarities = Object.keys(BOOSTER_CARDS_BY_RARITY)
-  for (const otherRarity of allRarities) {
-    if (otherRarity === rarity) continue
-    const otherPool = BOOSTER_CARDS_BY_RARITY[otherRarity] ?? []
-    const otherAvailable = otherPool.filter((card) => {
-      const maxSupply = card.supply?.max ?? Infinity
-      const currentSupply = supplyMap[card.id] ?? 0
-      return currentSupply < maxSupply
-    })
-    if (otherAvailable.length > 0) {
-      return otherAvailable[Math.floor(Math.random() * otherAvailable.length)]
-    }
-  }
-
-  return BOOSTER_FALLBACK_CARD
-}
-
-async function getAvailableBoosterSupply(): Promise<number> {
-  const boosterCards = CARDS_ARRAY.filter((card) => card.type === 'booster')
-  const supplyData = await cardRepo.getBoosterSupplyAggregation()
-
-  const mintedMap: Record<string, number> = {}
-  supplyData.forEach((item: { _id: string; minted: number }) => {
-    mintedMap[item._id] = item.minted
-  })
-
-  let totalAvailable = 0
-  boosterCards.forEach((card) => {
-    const maxSupply = card.supply?.max ?? 0
-    const currentMinted = mintedMap[card.id] ?? 0
-    const available = Math.max(0, maxSupply - currentMinted)
-    totalAvailable += available
-  })
-
-  return totalAvailable
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Public API
@@ -295,9 +229,6 @@ export async function openPacks(
   const pack = PACKS_BY_ID[packId] as GamePack | undefined
   if (!pack) throw new Error('Pack not found')
   if (!pack.data) throw new Error('Pack cannot be opened')
-  if (packId !== 'standard_pack' && packId !== 'booster_pack') {
-    throw new Error('Pack cannot be opened')
-  }
 
   const ownedPack = await itemRepo.findPack(playerId, packId)
   if (!ownedPack || (ownedPack.quantity ?? 0) < quantity) {
@@ -318,21 +249,15 @@ export async function openPacks(
 
   const allCards: GameCard[] = []
   for (let p = 0; p < quantity; p++) {
-    if (packId === 'standard_pack') {
-      const guaranteedRarity = rollCardRarity(pack.data.dropRates, pack.data.guaranteedRarity ?? null)
-      const first = await rollPackCard(guaranteedRarity, supplyMap)
-      allCards.push(first)
-      supplyMap[first.id] = (supplyMap[first.id] ?? 0) + 1
-      for (let i = 1; i < (pack.data.cardCount ?? 1); i++) {
-        const rarity = rollCardRarity(pack.data.dropRates)
-        const next = await rollPackCard(rarity, supplyMap)
-        allCards.push(next)
-        supplyMap[next.id] = (supplyMap[next.id] ?? 0) + 1
-      }
-    } else {
-      const card = await rollBoosterCard(pack.data.dropRates, supplyMap)
-      allCards.push(card)
-      supplyMap[card.id] = (supplyMap[card.id] ?? 0) + 1
+    const guaranteedRarity = rollCardRarity(pack.data.dropRates, pack.data.guaranteedRarity ?? null)
+    const first = await rollPackCard(guaranteedRarity, supplyMap)
+    allCards.push(first)
+    supplyMap[first.id] = (supplyMap[first.id] ?? 0) + 1
+    for (let i = 1; i < (pack.data.cardCount ?? 1); i++) {
+      const rarity = rollCardRarity(pack.data.dropRates)
+      const next = await rollPackCard(rarity, supplyMap)
+      allCards.push(next)
+      supplyMap[next.id] = (supplyMap[next.id] ?? 0) + 1
     }
   }
 
@@ -459,13 +384,6 @@ export async function buyPacks(
   const player = await getPlayerOrThrow(playerId)
   const pack = PACKS_BY_ID[packId] as GamePack | undefined
   if (!pack) throw new Error('Pack not found')
-
-  if (packId === 'booster_pack') {
-    const availableSupply = await getAvailableBoosterSupply()
-    if (availableSupply <= 0) {
-      throw new Error('Booster packs are sold out - all booster cards have been minted')
-    }
-  }
 
   let totalCost = 0
   let currencyType = 'token'

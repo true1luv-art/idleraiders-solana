@@ -1,5 +1,5 @@
 import cron, { type ScheduledTask } from 'node-cron'
-import { setHiveUsdPrice } from '../../lib/modules/transactions/transaction.logic'
+import { setHiveUsdPrice } from '../../lib/modules/price/price.logic'
 
 let priceTask: ScheduledTask | null = null
 

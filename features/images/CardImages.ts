@@ -124,74 +124,6 @@ export const CARD_IMAGES: Record<string, string> = {
   common_transport_6: '/assets/cards/common_transport_6.png',
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BOOSTERS
-  // ═══════════════════════════════════════════════════════════════════════════
-  // XP Boosters
-  common_booster_xp: '/assets/cards/common_booster_xp.png',
-  uncommon_booster_xp: '/assets/cards/uncommon_booster_xp.png',
-  rare_booster_xp: '/assets/cards/rare_booster_xp.png',
-  epic_booster_xp: '/assets/cards/epic_booster_xp.png',
-  legendary_booster_xp: '/assets/cards/legendary_booster_xp.png',
-
-  // Energy Boosters
-  common_booster_energy: '/assets/cards/common_booster_energy.png',
-  uncommon_booster_energy: '/assets/cards/uncommon_booster_energy.png',
-  rare_booster_energy: '/assets/cards/rare_booster_energy.png',
-  epic_booster_energy: '/assets/cards/epic_booster_energy.png',
-  legendary_booster_energy: '/assets/cards/legendary_booster_energy.png',
-
-  // Material Boosters
-  common_booster_material: '/assets/cards/common_booster_material.png',
-  uncommon_booster_material: '/assets/cards/uncommon_booster_material.png',
-  rare_booster_material: '/assets/cards/rare_booster_material.png',
-  epic_booster_material: '/assets/cards/epic_booster_material.png',
-  legendary_booster_material: '/assets/cards/legendary_booster_material.png',
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CRAFTED CARDS (images not yet available)
-  // ═══════════════════════════════════════════════════════════════════════════
-  craft_common_1: '/assets/cards/craft_common_1.png',
-  craft_uncommon_1: '/assets/cards/craft_uncommon_1.png',
-  craft_rare_1: '/assets/cards/craft_rare_1.png',
-  craft_epic_1: '/assets/cards/craft_epic_1.png',
-  craft_legendary_1: '/assets/cards/craft_legendary_1.png',
-  craft_common_2: '/assets/cards/craft_common_2.png',
-  craft_uncommon_2: '/assets/cards/craft_uncommon_2.png',
-  craft_rare_2: '/assets/cards/craft_rare_2.png',
-  craft_epic_2: '/assets/cards/craft_epic_2.png',
-  craft_legendary_2: '/assets/cards/craft_legendary_2.png',
-  craft_common_3: '/assets/cards/craft_common_3.png',
-  craft_uncommon_3: '/assets/cards/craft_uncommon_3.png',
-  craft_rare_3: '/assets/cards/craft_rare_3.png',
-  craft_epic_3: '/assets/cards/craft_epic_3.png',
-  craft_legendary_3: '/assets/cards/craft_legendary_3.png',
-  craft_common_4: '/assets/cards/craft_common_4.png',
-  craft_uncommon_4: '/assets/cards/craft_uncommon_4.png',
-  craft_rare_4: '/assets/cards/craft_rare_4.png',
-  craft_epic_4: '/assets/cards/craft_epic_4.png',
-  craft_legendary_4: '/assets/cards/craft_legendary_4.png',
-  craft_common_5: '/assets/cards/craft_common_5.png',
-  craft_uncommon_5: '/assets/cards/craft_uncommon_5.png',
-  craft_rare_5: '/assets/cards/craft_rare_5.png',
-  craft_epic_5: '/assets/cards/craft_epic_5.png',
-  craft_legendary_5: '/assets/cards/craft_legendary_5.png',
-  craft_common_6: '/assets/cards/craft_common_6.png',
-  craft_uncommon_6: '/assets/cards/craft_uncommon_6.png',
-  craft_rare_6: '/assets/cards/craft_rare_6.png',
-  craft_epic_6: '/assets/cards/craft_epic_6.png',
-  craft_legendary_6: '/assets/cards/craft_legendary_6.png',
-  craft_common_7: '/assets/cards/craft_common_7.png',
-  craft_uncommon_7: '/assets/cards/craft_uncommon_7.png',
-  craft_rare_7: '/assets/cards/craft_rare_7.png',
-  craft_epic_7: '/assets/cards/craft_epic_7.png',
-  craft_legendary_7: '/assets/cards/craft_legendary_7.png',
-  craft_common_8: '/assets/cards/craft_common_8.png',
-  craft_uncommon_8: '/assets/cards/craft_uncommon_8.png',
-  craft_rare_8: '/assets/cards/craft_rare_8.png',
-  craft_epic_8: '/assets/cards/craft_epic_8.png',
-  craft_legendary_8: '/assets/cards/craft_legendary_8.png',
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // STORY CARDS (Territory 1-4 images available, Territory 5 pending)
   // ═══════════════════════════════════════════════════════════════════════════
   // Territory 1: Evershade
@@ -269,13 +201,6 @@ export const FALLBACK_IMAGES: Record<string, Record<string, string>> = {
     uncommon: '/assets/cards/uncommon_equipment_1.png',
     common: '/assets/cards/uncommon_equipment_1.png',
   },
-  booster: {
-    legendary: '/assets/cards/legendary_booster_xp.png',
-    epic: '/assets/cards/epic_booster_xp.png',
-    rare: '/assets/cards/rare_booster_xp.png',
-    uncommon: '/assets/cards/uncommon_booster_xp.png',
-    common: '/assets/cards/common_booster_xp.png',
-  },
   relic: {
     special: '/assets/cards/story_special_4.png',
   },
@@ -309,13 +234,6 @@ export const getCardImage = (
 
   // Check for exact ID match first
   if (CARD_IMAGES[cardId]) return CARD_IMAGES[cardId]
-
-  // Handle crafted cards with instance IDs (e.g., 'craft_common_1-abc123')
-  if (cardId.includes('-')) {
-    const baseId = cardId.split('-')[0]
-    // Check if base starts with 'craft_' or another known pattern
-    if (CARD_IMAGES[baseId]) return CARD_IMAGES[baseId]
-  }
 
   // Fall back to type + rarity image
   if (type && rarity && FALLBACK_IMAGES[type]?.[rarity]) {

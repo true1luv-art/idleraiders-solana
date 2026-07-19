@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { Users, Trophy, ArrowLeftRight, Wand2, Compass, Store, Flame, ExternalLink } from 'lucide-react'
+import { Users, Trophy, ArrowLeftRight, Compass, Store, Flame, ExternalLink } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
@@ -43,15 +43,6 @@ const mainFeatures = [
 		image: '/assets/explore-rankings.jpg',
 		icon: Trophy,
 		borderColor: 'border-amber-500/30',
-	},
-	{
-		id: 'crafting',
-		path: '/game/crafting',
-		title: 'Crafting',
-		description: 'Forge stronger cards using materials',
-		image: '/assets/explore-crafting.jpg',
-		icon: Wand2,
-		borderColor: 'border-violet-500/30',
 	},
 ]
 

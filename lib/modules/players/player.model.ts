@@ -11,7 +11,6 @@ export interface IMilestones {
   totalMinutesPlayed: number
   totalOpenedPacks: number
   totalCardsCollected: number
-  totalCraftedCards: number
   totalMissionsCompleted: number
   totalTrainingSessions: number
   storyProgress: number
@@ -33,6 +32,12 @@ export interface IDailyDungeonStats {
 
 export interface IPlayer {
   username: string
+  /**
+   * Solana public key (base58) or Robinhood EVM address (0x-prefixed).
+   * Optional for legacy Hive players; required for Solana-native auth flow.
+   * Sparse index allows null without breaking the unique constraint.
+   */
+  walletAddress?: string
   isRegistered: boolean
   // Ban state — set by admin tooling (e.g., for multi-accounting, abuse, RMT).
   // When true, the /game gate blocks the player from playing. Login still works.
@@ -78,7 +83,6 @@ const MilestoneSchema = new Schema<IMilestones>({
   totalMinutesPlayed: { type: Number, default: 0 },
   totalOpenedPacks: { type: Number, default: 0 },
   totalCardsCollected: { type: Number, default: 0 },
-  totalCraftedCards: { type: Number, default: 0 },
   totalMissionsCompleted: { type: Number, default: 0 },
   totalTrainingSessions: { type: Number, default: 0 },
   storyProgress: { type: Number, min: 0, max: 25, default: 0 },
@@ -110,6 +114,7 @@ const DailyDungeonStatsSchema = new Schema<IDailyDungeonStats>(
 const PlayerSchema = new Schema<IPlayerDocument>(
   {
     username: { type: String, unique: true, required: true },
+    walletAddress: { type: String, index: true, sparse: true },
     isRegistered: { type: Boolean, default: false },
     isBanned: { type: Boolean, default: false, index: true },
     banReason: { type: String },
