@@ -116,9 +116,7 @@ function MissionRow({ entry, index }: { entry: Record<string, any>; index: numbe
 		rewardText = rewards.join(' · ')
 	} else if (missionType === 'boss') {
 		const rewards = []
-		if (d.totalMaterialDrops) rewards.push(`${d.totalMaterialDrops} Materials`)
-		if (d.componentDrops) rewards.push(`${d.componentDrops} Components`)
-		if (d.catalystDrops) rewards.push(`${d.catalystDrops} Catalysts`)
+		if (d.damage) rewards.push(`${d.damage} DMG`)
 		if (d.xp) rewards.push(`${d.xp} XP`)
 		rewardText = rewards.join(' · ')
 	}

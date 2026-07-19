@@ -85,7 +85,7 @@ export const processDeposit = async (tx: any, io: Server) => {
     const depositTx = await blockchainService.validateHiveEngineDeposit(tx.transactionId, symbol)
 
     if (!depositTx) {
-      // If we haven't exceeded max attempts, throw to trigger BullMQ retry
+      // If we haven't exceeded max attempts, throw to retry
       if (attemptCount < 5) {
         console.log(`[idleraiders-logs] Deposit tx not found on chain yet, attempt ${attemptCount}/5, will retry...`)
         throw new Error('Transaction not found on blockchain yet, will retry')
@@ -318,7 +318,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
         const newEffective = await logicService.getEffectiveBalance(newBalance, symbol)
         
         if (!confirmed || newEffective < quantity) {
-          // Still insufficient - this job will retry via BullMQ
+          // Still insufficient - will retry
           throw new Error(`Treasury balance still insufficient after waiting for replenish: ${newEffective} < ${quantity}`)
         }
       } else {
@@ -347,7 +347,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
           })
           
           if (newEffective < quantity) {
-            // This can happen if SSC is slow, let BullMQ retry
+            // This can happen if SSC is slow, will retry
             throw new Error(`Treasury balance not confirmed after mint: ${newEffective} < ${quantity}`)
           }
         } finally {
@@ -359,7 +359,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
 
     // 3. Broadcast Hive Engine transfer with withdrawal memo
     // IDEMPOTENCY CHECK: If chainTxId already exists, the transfer was already sent
-    // This prevents duplicate blockchain transfers on BullMQ retries
+    // This prevents duplicate blockchain transfers on retries
     let chainTxId = tx.chainTxId
     
     if (!chainTxId) {
@@ -410,7 +410,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
 
     // CRITICAL: If the on-chain transfer was already broadcast, do NOT refund.
     // The tokens already left the treasury — refunding would create a double-spend.
-    // Leave the tx in 'processing' state and let BullMQ retry to finalize completion.
+    // Leave the tx in 'processing' state to be finalized on the next retry.
     // The chainTxId idempotency guard at the broadcast step will skip the duplicate transfer.
     if (tx.chainTxId) {
       console.error(
@@ -482,7 +482,7 @@ export const processDollarPurchase = async (tx: any, io: Server) => {
     const chainTx = await blockchainService.validateHiveTransaction(tx.transactionId)
 
     if (!chainTx) {
-      // If we haven't exceeded max attempts, throw to trigger BullMQ retry
+      // If we haven't exceeded max attempts, throw to retry
       if (attemptCount < 5) {
         console.log(`[idleraiders-logs] Dollar purchase tx not found on chain yet, attempt ${attemptCount}/5, will retry...`)
         throw new Error('Transaction not found on blockchain yet, will retry')
@@ -614,7 +614,7 @@ export const processRegistration = async (tx: any, io: Server) => {
     const chainTx = await blockchainService.validateHiveTransaction(tx.transactionId)
 
     if (!chainTx) {
-      // If we haven't exceeded max attempts, throw to trigger BullMQ retry
+      // If we haven't exceeded max attempts, throw to retry
       if (attemptCount < 5) {
         console.log(`[idleraiders-logs] Registration tx not found on chain yet, attempt ${attemptCount}/5, will retry...`)
         throw new Error('Transaction not found on blockchain yet, will retry')
@@ -638,7 +638,7 @@ export const processRegistration = async (tx: any, io: Server) => {
     if (chainTx.symbol !== 'HIVE') validationErrors.push('Must be HIVE transfer')
     
     // Validate registration fee amount (USD-based with current HIVE price).
-    // If the price service hasn't reported a rate yet, throw so BullMQ retries
+    // If the price service hasn't reported a rate yet, throw so the caller retries
     // the job rather than failing the tx permanently with a bogus expected amount.
     if (!logicService.isHiveUsdPriceInitialized()) {
       console.log('[idleraiders-logs] HIVE/USD price not initialized yet, deferring registration validation for retry...')
