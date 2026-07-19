@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/config/database'
 import * as playerRepo from '@/lib/modules/players/player.repository'
 import * as cardRepo from '@/lib/modules/cards/card.repository'
-import * as itemRepo from '@/lib/modules/items/item.repository'
 import { xpToNextLevel } from '@/lib/modules/players/player.logic'
 import { applyBoostCap } from '@/lib/modules/players/player.builder'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
@@ -79,10 +78,6 @@ export async function GET(request: NextRequest) {
       energyBoost: applyBoostCap(rawBoosts.energyBoost),
     }
 
-    // Get materials count
-    const materials = await itemRepo.getMaterials(playerId)
-    const totalMaterials = materials.reduce((a, m) => a + (m.quantity ?? 0), 0)
-
     // Milestones live on a nested subdoc — pull totals from there
     const milestones = (player.milestones ?? {}) as Record<string, number>
     const level = player.level ?? 1
@@ -109,7 +104,6 @@ export async function GET(request: NextRequest) {
         gm: totalGM,
         totalCards,
         uniqueCards,
-        totalMaterials,
         // Effective (post-cap) boost percentages from booster cards
         boosts,
       },

@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
         milestones: updatedState.milestones,
         activeMission: updatedState.activeMission,
         cards: updatedState.cards,
-        materials: updatedState.materials,
         potions: updatedState.potions,
         achievements: updatedState.achievements,
         dailyDungeonStats: updatedState.dailyDungeonStats,

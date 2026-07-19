@@ -1,6 +1,4 @@
 import type { Types } from 'mongoose'
-import type { IItemDocument } from './item.model'
-import * as itemRepo from './item.repository'
 import * as playerRepo from '../players/player.repository'
 import * as cardRepo from '../cards/card.repository'
 import { addCardWithDetails, type AddCardResult } from '../cards/card.service'
@@ -338,53 +336,4 @@ export async function buyAndOpenPacks(
   return { cards: allCards, packId, quantity: qty, totalCost, currencyType }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Material API — territory crafting materials (items collection)
-// ═══════════════════════════════════════════════════════════════════════════════
 
-export async function getMaterials(
-  playerId: string | Types.ObjectId
-): Promise<IItemDocument[]> {
-  return itemRepo.getMaterials(playerId)
-}
-
-export async function addMaterial(
-  playerId: string | Types.ObjectId,
-  materialId: string,
-  quantity: number = 1
-): Promise<IItemDocument[]> {
-  await getPlayerOrThrow(playerId)
-  await itemRepo.upsertItem(playerId, materialId, quantity)
-  return itemRepo.getMaterials(playerId)
-}
-
-/**
- * Opens a territory chest and distributes materials to player inventory.
- */
-export async function openTerritoryChest(
-  playerId: string | Types.ObjectId,
-  chestItemId: string,
-  materials: string[]
-): Promise<Record<string, number>> {
-  const materialCounts: Record<string, number> = {}
-  for (const matId of materials) {
-    materialCounts[matId] = (materialCounts[matId] ?? 0) + 1
-  }
-
-  await Promise.all(
-    Object.entries(materialCounts).map(([matId, qty]) => addMaterial(playerId, matId, qty))
-  )
-
-  // Remove the chest document from items if it exists (legacy chest items)
-  const chest = await itemRepo.findMaterial(playerId, chestItemId)
-  if (chest) {
-    chest.quantity = Math.max(0, (chest.quantity ?? 1) - 1)
-    if (chest.quantity <= 0) {
-      await itemRepo.deleteById(chest._id.toString())
-    } else {
-      await chest.save()
-    }
-  }
-
-  return materialCounts
-}

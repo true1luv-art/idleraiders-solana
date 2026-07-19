@@ -20,8 +20,7 @@ export const TERRITORIES_DATA = [
     bossIds: ['b1', 'b2'],
     maxProgress: 5,
     intro: 'Deep within ancient woods lies Evershade, a realm hidden beneath towering canopies where sunlight struggles to reach the forest floor. For centuries it stood untouched by war.\n\nNow the forest trembles.',
-    materialPool: ['material_goblin_iron', 'material_crude_leather', 'material_silk_thread', 'material_chitin_plate'],
-    dropRate: { material: 85, card: 15 },
+    dropRate: { card: 15 },
     quests: [
       {
         questNumber: 1,
@@ -95,8 +94,7 @@ export const TERRITORIES_DATA = [
     bossIds: ['b3', 'b4'],
     maxProgress: 5,
     intro: 'South of the forest, the golden towers of Sunspire watch over the sacred plains.\n\nBeneath those plains lie ancient battlefields where thousands of warriors were buried.\n\nSomething has begun waking them.',
-    materialPool: ['material_soul_ash', 'material_grave_cloth', 'material_necro_dust', 'material_bone_rune'],
-    dropRate: { material: 85, card: 15 },
+    dropRate: { card: 15 },
     quests: [
       {
         questNumber: 1,
@@ -170,8 +168,7 @@ export const TERRITORIES_DATA = [
     bossIds: ['b5', 'b6'],
     maxProgress: 5,
     intro: 'Frosthold stands amid glaciers and frozen cliffs where the wind never stops howling.\n\nYet even the eternal winter is changing.',
-    materialPool: ['material_frostwood', 'material_glacial_shard', 'material_elder_bark', 'material_living_sap'],
-    dropRate: { material: 85, card: 15 },
+    dropRate: { card: 15 },
     quests: [
       {
         questNumber: 1,
@@ -245,8 +242,7 @@ export const TERRITORIES_DATA = [
     bossIds: ['b7', 'b8'],
     maxProgress: 5,
     intro: 'Ember City is built upon rivers of lava where blacksmiths forge the finest weapons in the realm.\n\nBut now the flames have turned hostile.',
-    materialPool: ['material_cinder_stone', 'material_magma_core', 'material_ash_crystal', 'material_charred_bone'],
-    dropRate: { material: 85, card: 15 },
+    dropRate: { card: 15 },
     quests: [
       {
         questNumber: 1,
@@ -320,8 +316,7 @@ export const TERRITORIES_DATA = [
     bossIds: ['b9', 'b10'],
     maxProgress: 5,
     intro: 'The final defense of the world stands at the Iron Citadel.\n\nBeyond its gates lies the abyss.',
-    materialPool: ['material_demon_ichor', 'material_cursed_steel', 'material_dragon_bone', 'material_void_scale'],
-    dropRate: { material: 85, card: 15 },
+    dropRate: { card: 15 },
     quests: [
       {
         questNumber: 1,

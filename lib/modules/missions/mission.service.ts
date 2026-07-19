@@ -24,7 +24,6 @@ import GAME_DATA from '@/public/data'
 interface Dungeon {
 	id: string
 	name: string
-	materialPool?: string[]
 	requiredLevel?: number
 }
 
@@ -32,8 +31,7 @@ interface Territory {
 	id: string
 	name: string
 	requiredLevel: number
-	materialPool: string[]
-	dropRate: { material: number; card: number }
+	dropRate: { card: number }
 	quests: Quest[]
 }
 
@@ -65,7 +63,6 @@ interface MissionType {
 	energyCost: number
 	duration: number
 	baseTokenReward?: number
-	materialRolls?: number
 	fatiguePerMission?: number
 }
 
@@ -92,11 +89,6 @@ interface StoryCompletionResult {
 	territoryId: string
 	questNumber: number
 	isFirstCompletion: boolean
-	chestItem?: {
-		itemId: string
-		materialCount: number
-		materials: string[]
-	}
 }
 
 interface BossCompletionResult {
@@ -198,12 +190,12 @@ const TRAINING_LABELS: Record<TrainingType, string> = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Gets the drop rate distribution for a territory
- * Returns { material: 85%, card: 15% } by default
+ * Gets the card drop rate for a territory.
+ * Returns { card: 15 } by default.
  */
-function getTerritoryDropRate(territoryId: string): { material: number; card: number } {
+function getTerritoryDropRate(territoryId: string): { card: number } {
 	const territory = TERRITORIES_BY_ID[territoryId]
-	return territory?.dropRate ?? { material: 85, card: 15 }
+	return territory?.dropRate ?? { card: 15 }
 }
 
 /**

@@ -1,6 +1,4 @@
 import Card, { type ICardDocument } from '../cards/card.model'
-import Item from '../items/item.model'
-import type { IItemDocument } from '../items/item.model'
 import Mission, { type IMissionDocument } from '../missions/mission.model'
 import Player, { type IPlayerDocument } from './player.model'
 // Import Guild model to ensure schema is registered before populate
@@ -8,7 +6,6 @@ import '../guilds/guild.model'
 import { xpToNextLevel } from './player.logic'
 import { getManilaDateString } from '@/lib/utils/time'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
-import { MATERIALS_BY_ID } from '@/lib/registries/item.registry'
 import GAME_DATA from '@/public/data'
 import type { Types } from 'mongoose'
 
@@ -78,15 +75,6 @@ interface SerializedMission {
 	completedAt: number | null
 }
 
-interface MaterialItem {
-	id: string
-	name: string
-	type: string
-	icon: string
-	quantity: number
-	itemType: 'material'
-}
-
 interface CardItem {
 	id: string
 	cardId: string
@@ -132,7 +120,6 @@ export interface PlayerState {
 	totalMinutesPlayed: number
 	stats: Stats
 	cards: CardItem[]
-	materials: MaterialItem[]
 	potions: { energy: number; xp: number }
 	achievements: Achievement[]
 }
@@ -140,15 +127,6 @@ export interface PlayerState {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Helper Functions
 // ═══════════════════════════════════════════════════════════════════════════════
-
-function formatMaterialName(materialId: string): string {
-	if (!materialId) return 'Unknown'
-	return materialId
-		.replace(/^material_/i, '')
-		.split('_')
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-		.join(' ')
-}
 
 export function applyBoostCap(rawPercent: number): number {
 	// Soft cap at 75%, diminishing returns beyond that up to 150% max
@@ -228,9 +206,8 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 	const activeMissionId = isPopulated ? (rawActiveMission as IMissionDocument)._id : (rawActiveMission ?? null)
 	const shouldLoadActiveMission = !!activeMissionId && !isPopulated
 
-	const [dbCards, dbItems, activeMissionDoc] = await Promise.all([
+	const [dbCards, activeMissionDoc] = await Promise.all([
 		Card.find({ owner: player._id }).lean(),
-		Item.find({ playerId: player._id }).lean(),
 		shouldLoadActiveMission ? Mission.findById(activeMissionId).lean() : null,
 	])
 
@@ -240,26 +217,7 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		: (activeMissionDoc as IMissionDocument | null)
 	const activeMission = serializeActiveMission(missionToSerialize)
 
-	// Build materials list from items collection (potions are now on player doc, packs are no longer stored)
-	const materials: MaterialItem[] = []
-	let totalMaterials = 0
-
-	for (const item of dbItems as IItemDocument[]) {
-		if (item.itemType === 'material') {
-			const materialDef = MATERIALS_BY_ID[item.id] ?? {}
-			materials.push({
-				id: item.id,
-				name: materialDef.name ?? formatMaterialName(item.id),
-				type: materialDef.type ?? 'common',
-				icon: materialDef.icon ?? '📦',
-				quantity: item.quantity ?? 0,
-				itemType: 'material',
-			})
-			totalMaterials += item.quantity ?? 0
-		}
-	}
-
-	// Potions are now embedded directly on the player document
+	// Potions are embedded directly on the player document
 	const potions: { energy: number; xp: number } = {
 		energy: player.potions?.energy ?? 0,
 		xp: player.potions?.xp ?? 0,
@@ -342,7 +300,6 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		totalBossDamage: number
 		raidPower: number
 		uniqueCards: number
-		totalMaterials: number
 		coins: number
 		playerLevel: number
 		territoriesCompleted: number
@@ -356,7 +313,6 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		totalBossDamage: milestones.totalBossDamage ?? 0,
 		raidPower: stats.raidPower,
 		uniqueCards: dbCards.length,
-		totalMaterials,
 		coins: player.coins ?? 0,
 		playerLevel: player.level ?? 1,
 		territoriesCompleted: milestones.storyProgress ?? 0,
@@ -422,7 +378,6 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		totalMinutesPlayed: milestones.totalMinutesPlayed ?? 0,
 		stats,
 		cards,
-		materials,
 		potions,
 		achievements,
 	}

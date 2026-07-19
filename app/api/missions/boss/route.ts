@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
         shards: updatedState.shards,
         missionStats: updatedState.missionStats,
         milestones: updatedState.milestones,
-        materials: updatedState.materials,
         achievements: updatedState.achievements,
       },
     }
