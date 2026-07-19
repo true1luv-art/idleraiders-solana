@@ -5,7 +5,6 @@ import * as itemRepo from '../items/item.repository'
 import * as historyService from '../histories/history.service'
 import { getRawCardBoostsById, applyBoostCap } from './player.builder'
 import { getXPForLevel } from './player.logic'
-import * as guildService from '../guilds/guild.service'
 import GAME_DATA from '@/public/data'
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -162,7 +161,7 @@ export async function getReferrals(playerId: string | Types.ObjectId): Promise<R
 }
 
 export async function getPlayerData(username: string): Promise<IPlayerDocument> {
-	const player = await Player.findOne({ username }).populate('activeMission').populate('guildId')
+	const player = await Player.findOne({ username }).populate('activeMission')
 	if (!player) throw new Error('Player not found')
 	return player
 }
@@ -206,23 +205,13 @@ export async function getEnergy(playerId: string | Types.ObjectId): Promise<Ener
 
 	// Check if at least one cycle tick has passed
 	if (cycleTicks > 0) {
-	// Regenerate energy if not at max, applying energy boost from cards + guild bonus
+	// Regenerate energy if not at max, applying energy boost from cards
 	if (player.energy < ENERGY.MAX) {
 		// Get energy boost from booster cards
 		const cardBoosts = await getRawCardBoostsById(playerId)
 		const energyBoostPct = applyBoostCap(cardBoosts.energyBoost)
 
-		// Get guild energy regen bonus (decimal, e.g., 0.04 = +4%)
-		const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
-		const guildEnergyBonus = guildBonuses.energyRegen
-
-		// Apply both card boost and guild bonus.
-		// IMPORTANT: compute the total gain across all elapsed ticks BEFORE rounding.
-		// Previously we rounded the per-tick rate (e.g. round(5 * 1.04) = 5), which
-		// silently ate any guild bonus below +10%. We now let player.energy accumulate
-		// as a float — it's floored only for display / mission cost checks, so
-		// small bonuses like +4% correctly accumulate across cycles.
-		const multiplier = (1 + energyBoostPct / 100) * (1 + guildEnergyBonus)
+		const multiplier = (1 + energyBoostPct / 100)
 		const regenRaw = cycleTicks * ENERGY.REGEN_RATE * multiplier
 		regeneratedEnergy = Math.min(regenRaw, ENERGY.MAX - player.energy)
 		player.energy = Math.min(ENERGY.MAX, player.energy + regeneratedEnergy)

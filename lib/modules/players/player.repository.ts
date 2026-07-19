@@ -54,10 +54,6 @@ export async function findMany(
   return Player.find(filter, null, options);
 }
 
-export async function findByGuild(guildId: Types.ObjectId | string): Promise<IPlayerDocument[]> {
-  return Player.find({ guildId });
-}
-
 export async function findRegistered(limit: number = 100): Promise<IPlayerDocument[]> {
   return Player.find({ isRegistered: true }).limit(limit);
 }
@@ -103,40 +99,6 @@ export async function setActiveMission(
 
 export async function clearActiveMission(playerId: string | Types.ObjectId): Promise<IPlayerDocument | null> {
   return setActiveMission(playerId, null);
-}
-
-export async function setGuild(
-  playerId: string | Types.ObjectId,
-  guildId: Types.ObjectId | null
-): Promise<IPlayerDocument | null> {
-  return Player.findByIdAndUpdate(playerId, { guildId }, { returnDocument: 'after' });
-}
-
-// Alias for setGuild for clarity
-export async function setGuildId(
-  playerId: string | Types.ObjectId,
-  guildId: Types.ObjectId | null
-): Promise<IPlayerDocument | null> {
-  return Player.findByIdAndUpdate(playerId, { guildId }, { returnDocument: 'after' });
-}
-
-export async function updateGuildAndCoins(
-  playerId: Types.ObjectId,
-  guildId: Types.ObjectId | null,
-  coinsDelta: number
-): Promise<IPlayerDocument | null> {
-  return Player.findByIdAndUpdate(
-    playerId,
-    { 
-      $set: { guildId },
-      $inc: { coins: coinsDelta }
-    },
-    { returnDocument: 'after' }
-  );
-}
-
-export async function leaveGuild(playerId: string | Types.ObjectId): Promise<IPlayerDocument | null> {
-  return setGuild(playerId, null);
 }
 
 export async function deleteById(id: string | Types.ObjectId): Promise<IPlayerDocument | null> {

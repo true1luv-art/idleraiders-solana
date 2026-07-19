@@ -56,7 +56,6 @@ export interface IPlayer {
   missionStats?: IMissionStats
   milestones?: IMilestones
   activeMission: Types.ObjectId | null
-  guildId: Types.ObjectId | null
   lastCycleUpdate: Date
   referredBy: string
   dailyDungeonStats?: IDailyDungeonStats
@@ -131,7 +130,6 @@ const PlayerSchema = new Schema<IPlayerDocument>(
     },
     storageSlots: { type: Number, min: 3, default: 3 },
     activeMission: { type: Schema.Types.ObjectId, ref: 'Mission', default: null },
-    guildId: { type: Schema.Types.ObjectId, ref: 'Guild', default: null },
     missionStats: MissionStatsSchema,
     milestones: MilestoneSchema,
     dailyDungeonStats: DailyDungeonStatsSchema,

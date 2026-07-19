@@ -16,7 +16,6 @@ import {
 import type { LucideIcon } from 'lucide-react'
 
 export type PageType = 
-  | 'guild' 
   | 'packs' 
   | 'world' 
   | 'inventory' 
@@ -35,7 +34,6 @@ interface PageLoaderProps {
 }
 
 const pageConfig: Record<PageType, { icon: LucideIcon; defaultMessage: string; color: string }> = {
-  guild: { icon: Shield, defaultMessage: 'Loading guild data...', color: 'text-purple-400' },
   packs: { icon: Package, defaultMessage: 'Loading pack data...', color: 'text-amber-400' },
   world: { icon: Globe, defaultMessage: 'Loading world data...', color: 'text-emerald-400' },
   inventory: { icon: Backpack, defaultMessage: 'Loading inventory...', color: 'text-blue-400' },

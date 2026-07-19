@@ -38,7 +38,6 @@ interface PlayerState {
 	coins?: number
 	storageSlots?: number
 	raidTokens?: number
-	guildTokens?: number
 	health?: Record<string, unknown>
 	wallet?: Record<string, unknown>
 	stats?: Record<string, unknown>
@@ -56,8 +55,6 @@ interface PlayerState {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	packs?: Record<string, any>[]
 	activeMission?: Record<string, unknown> | null
-	guild?: Record<string, unknown> | null
-	guildId?: string | null
 	lands?: unknown[]
 	[key: string]: unknown
 }

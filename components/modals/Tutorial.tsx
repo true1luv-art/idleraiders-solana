@@ -11,7 +11,6 @@ import {
 	FlaskConical,
 	RotateCcw,
 	Trophy,
-	Users,
 	ChevronLeft,
 	ChevronRight,
 	Sparkles,
@@ -163,33 +162,8 @@ const TUTORIAL_SECTIONS = [
 				points: [
 					'Boss raids are weekly competitive events',
 					'Your damage is based on your Raid Power and card selection',
-					'Boss health pools are massive - coordinate with your guild!',
+					'Boss health pools are massive - coordinate with other raiders!',
 					'Rewards are distributed at the end of each boss cycle',
-				],
-			},
-		],
-	},
-	{
-		id: 'guilds',
-		title: 'Guild Benefits',
-		icon: Users,
-		content: [
-			{
-				heading: 'Why Join a Guild?',
-				points: [
-					'Access to guild-exclusive missions and rewards',
-					'Shared guild treasury for group purchases',
-					'Bonus rewards from guild boss raid rankings',
-					'Social features and coordinated gameplay',
-				],
-			},
-			{
-				heading: 'Guild Progression',
-				points: [
-					'Contribute to your guild to earn guild XP',
-					'Higher guild levels unlock better perks',
-					'Guild officers can manage members and treasury',
-					'Active guilds grow faster - participate daily!',
 				],
 			},
 		],
