@@ -1,84 +1,60 @@
 /**
  * Guild War Worker
- * Cron-based worker for guild war economy tasks
+ * Cron-based worker for guild war economy tasks.
+ * No BullMQ or Redis — uses simple in-process flags to prevent duplicate runs.
  *
  * Handles:
  * - Hourly supply generation for guilds holding outposts
- * - Expired buff cleanup
+ * - Expired buff cleanup every 5 minutes
  */
 
 import cron from 'node-cron'
-import { getRedisConnection } from '../../lib/config/redis'
 import * as guildwarService from '../../lib/modules/guildwars/guildwar.service'
 import * as guildwarRepo from '../../lib/modules/guildwars/guildwar.repository'
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Constants
+// In-process lock flags
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const REDIS_LOCK_KEY = 'idleraiders:guildwar_supply_lock'
-const LOCK_TTL = 60 // 1 minute max processing time
+let supplyRunning = false
+let buffCleanupRunning = false
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Worker Instance
+// Worker Instances
 // ═══════════════════════════════════════════════════════════════════════════════
 
 let supplyGenerationCron: ReturnType<typeof cron.schedule> | null = null
 let buffCleanupCron: ReturnType<typeof cron.schedule> | null = null
 
-/**
- * Acquire a distributed lock to prevent duplicate processing
- */
-async function acquireLock(lockType: string): Promise<boolean> {
-  const redis = getRedisConnection()
-  const lockKey = `${REDIS_LOCK_KEY}:${lockType}`
-  const result = await redis.set(lockKey, Date.now().toString(), 'EX', LOCK_TTL, 'NX')
-  return result === 'OK'
-}
-
-/**
- * Release the distributed lock
- */
-async function releaseLock(lockType: string): Promise<void> {
-  const redis = getRedisConnection()
-  const lockKey = `${REDIS_LOCK_KEY}:${lockType}`
-  await redis.del(lockKey)
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // Supply Generation
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Generate hourly supplies for all guilds holding outposts
- * Only the guild holding an outpost at the time of the tick receives supplies
- */
 async function processHourlySupplyGeneration(): Promise<void> {
-  console.log('[idleraiders-logs] Processing hourly supply generation...')
-
-  // Acquire distributed lock
-  const lockAcquired = await acquireLock('supply-generation')
-  if (!lockAcquired) {
-    console.log('[idleraiders-logs] Could not acquire supply generation lock, another worker is processing')
+  if (supplyRunning) {
+    console.log('[idleraiders-logs] Supply generation already running, skipping')
     return
   }
 
+  supplyRunning = true
+
   try {
-    // Check if there's an active guild war
+    console.log('[idleraiders-logs] Processing hourly supply generation...')
+
     const activeWar = await guildwarRepo.findActive()
     if (!activeWar) {
       console.log('[idleraiders-logs] No active guild war, skipping supply generation')
       return
     }
 
-    // Generate supplies
     const result = await guildwarService.generateHourlySupplies()
-
-    console.log(`[idleraiders-logs] Supply generation complete: ${result.totalSupplies} supplies to ${result.guildsAwarded} guilds`)
+    console.log(
+      `[idleraiders-logs] Supply generation complete: ${result.totalSupplies} supplies to ${result.guildsAwarded} guilds`,
+    )
   } catch (error) {
     console.error('[idleraiders-logs] Error in supply generation:', error)
   } finally {
-    await releaseLock('supply-generation')
+    supplyRunning = false
   }
 }
 
@@ -86,35 +62,29 @@ async function processHourlySupplyGeneration(): Promise<void> {
 // Buff Cleanup
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Remove expired buffs from all guild entries
- */
 async function processBuffCleanup(): Promise<void> {
-  console.log('[idleraiders-logs] Processing buff cleanup...')
-
-  // Acquire distributed lock
-  const lockAcquired = await acquireLock('buff-cleanup')
-  if (!lockAcquired) {
-    console.log('[idleraiders-logs] Could not acquire buff cleanup lock, another worker is processing')
+  if (buffCleanupRunning) {
+    console.log('[idleraiders-logs] Buff cleanup already running, skipping')
     return
   }
 
+  buffCleanupRunning = true
+
   try {
-    // Check if there's an active guild war
+    console.log('[idleraiders-logs] Processing buff cleanup...')
+
     const activeWar = await guildwarRepo.findActive()
     if (!activeWar) {
       console.log('[idleraiders-logs] No active guild war, skipping buff cleanup')
       return
     }
 
-    // Remove expired buffs
     await guildwarRepo.removeExpiredBuffs()
-
     console.log('[idleraiders-logs] Buff cleanup complete')
   } catch (error) {
     console.error('[idleraiders-logs] Error in buff cleanup:', error)
   } finally {
-    await releaseLock('buff-cleanup')
+    buffCleanupRunning = false
   }
 }
 
@@ -122,30 +92,24 @@ async function processBuffCleanup(): Promise<void> {
 // Worker Initialization
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Initialize the guild war worker with cron jobs
- */
 export function initializeGuildWarWorker(): void {
   console.log('[idleraiders-logs] Starting guild war worker...')
 
-  // Hourly supply generation - runs at the start of every hour
-  // "0 * * * *" = minute 0 of every hour
+  // Hourly supply generation — minute 0 of every hour
   supplyGenerationCron = cron.schedule('0 * * * *', async () => {
     await processHourlySupplyGeneration()
   })
 
-  // Buff cleanup - runs every 5 minutes to clean up expired buffs
-  // "*/5 * * * *" = every 5 minutes
+  // Buff cleanup — every 5 minutes
   buffCleanupCron = cron.schedule('*/5 * * * *', async () => {
     await processBuffCleanup()
   })
 
-  console.log('[idleraiders-logs] Guild war worker started (supply generation: hourly, buff cleanup: every 5 min)')
+  console.log(
+    '[idleraiders-logs] Guild war worker started (supply generation: hourly, buff cleanup: every 5 min)',
+  )
 }
 
-/**
- * Stop the guild war worker
- */
 export function stopGuildWarWorker(): void {
   if (supplyGenerationCron) {
     supplyGenerationCron.stop()
@@ -160,9 +124,6 @@ export function stopGuildWarWorker(): void {
   console.log('[idleraiders-logs] Stopped guild war worker')
 }
 
-/**
- * Manually trigger supply generation (for testing or admin action)
- */
 export async function triggerSupplyGenerationManually(): Promise<{
   success: boolean
   guildsAwarded: number
@@ -187,9 +148,6 @@ export async function triggerSupplyGenerationManually(): Promise<{
   }
 }
 
-/**
- * Get guild war worker status
- */
 export function getGuildWarWorkerStatus(): {
   isRunning: boolean
   supplyGenerationActive: boolean

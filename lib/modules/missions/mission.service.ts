@@ -11,9 +11,7 @@ import {
 	isMissionCompletionUnlocked,
 } from './mission.logic'
 import { getRawCardBoostsById, applyBoostCap } from '../players/player.builder'
-import { rollPotionDrop } from '../items/item.logic'
 import { getManilaDateString } from '@/lib/utils/time'
-import { DEFAULT_COMPONENT_POOL, DEFAULT_CATALYST_POOL } from '@/public/data/world/bosses'
 import * as itemService from '../items/item.service'
 import * as leaderboardService from '../leaderboards/leaderboard.service'
 import * as playerService from '../players/player.service'
@@ -26,13 +24,6 @@ import GAME_DATA from '@/public/data'
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════════
-
-interface Potion {
-	id: string
-	category?: string
-	catergory?: string
-	chanceMultiplier?: Record<string, number>
-}
 
 interface Dungeon {
 	id: string
@@ -94,7 +85,6 @@ interface MissionResult {
 interface DungeonCompletionResult {
 	tokens: number
 	materials: string[]
-	potionDrop: string | null
 	xp: number
 }
 
@@ -116,9 +106,6 @@ interface StoryCompletionResult {
 
 interface BossCompletionResult {
 	damage: number
-	materialDrops: string[]
-	componentDrop: string | null
-	catalystDrop: { id: string; rarity: string } | null
 	bossDefeated: boolean
 	xp: number
 }
@@ -168,12 +155,6 @@ export interface TrainingStatus {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Constants
 // ═══════════════════════════════════════════════════════════════════════════════
-
-const POTIONS_BY_ID = Object.fromEntries(
-	((GAME_DATA as { ITEMS?: Potion[] }).ITEMS ?? [])
-		.filter((item) => item?.catergory === 'potion' || item?.category === 'potion')
-		.map((item) => [item.id, item]),
-) as Record<string, Potion>
 
 const DUNGEONS_BY_ID = Object.fromEntries(
 	((GAME_DATA as { WORLD?: { DUNGEONS?: Dungeon[] } }).WORLD?.DUNGEONS ?? []).map((dungeon) => [dungeon.id, dungeon]),
@@ -240,69 +221,6 @@ function getTerritoryDropRate(territoryId: string): { material: number; card: nu
 }
 
 /**
- * Gets a random component from boss's component pool
- * Uses DEFAULT_COMPONENT_POOL if boss pool not specified
- */
-function getBossComponentDrop(bossId: string): string | null {
-	const boss = BOSSES_BY_ID[bossId]
-	if (!boss) return null
-	const pool = boss.componentPool ?? DEFAULT_COMPONENT_POOL
-	if (pool.length === 0) return null
-	return pool[Math.floor(Math.random() * pool.length)]
-}
-
-/**
- * Gets a catalyst with rarity determined by boss's catalystDropRate
- * Uses cumulative probability to select rarity, then random catalyst from pool
- * Uses DEFAULT_CATALYST_POOL if boss pool not specified
- */
-function getBossCatalystDrop(bossId: string): { id: string; rarity: string } | null {
-	const boss = BOSSES_BY_ID[bossId]
-	if (!boss) return null
-	const pool = boss.catalystPool ?? DEFAULT_CATALYST_POOL
-	if (pool.length === 0) return null
-
-	// Roll for rarity using cumulative probabilities
-	const rates = boss.catalystDropRate
-	const roll = Math.random()
-	let cumulative = 0
-	let selectedRarity: string | null = null
-
-	for (const [rarity, weight] of Object.entries(rates) as [string, number][]) {
-		cumulative += weight
-		if (roll < cumulative) {
-			selectedRarity = rarity
-			break
-		}
-	}
-
-	if (!selectedRarity) selectedRarity = 'common' // Fallback
-
-	// Get random catalyst from pool
-	const CATALYSTS_BY_ID = Object.fromEntries(
-		((GAME_DATA as { ITEMS?: Array<{ id: string; rarity?: string }> }).ITEMS ?? [])
-			.filter((item: any) => item?.type === 'catalyst')
-			.map((item: any) => [item.id, item]),
-	) as Record<string, any>
-
-	const catalystsOfRarity = pool.filter((catId) => {
-		const catalyst = CATALYSTS_BY_ID[catId]
-		return catalyst?.rarity === selectedRarity
-	})
-
-	if (catalystsOfRarity.length === 0) {
-		// Fallback: use any catalyst from pool
-		const randomCatId = boss.catalystPool[Math.floor(Math.random() * boss.catalystPool.length)]
-		return { id: randomCatId, rarity: selectedRarity }
-	}
-
-	const randomCatId = catalystsOfRarity[Math.floor(Math.random() * catalystsOfRarity.length)]
-	return { id: randomCatId, rarity: selectedRarity }
-}
-
-/**
- * Determines material count: all difficulties provide 25-50 materials
- */
 async function getPlayerOrThrow(playerId: string | Types.ObjectId): Promise<IPlayerDocument> {
 	const player = await playerRepo.findById(playerId)
 	if (!player) throw new Error('Player not found')
@@ -645,13 +563,6 @@ export async function completeDungeonMission(
 		Object.entries(materialCounts).map(([matId, qty]) => itemService.addMaterial(playerId, matId, qty)),
 	)
 
-	const potionDrop = rollPotionDrop(cardBoosts.luck)
-
-	// Add potion to player inventory if dropped
-	if (potionDrop) {
-		await itemService.addPotion(playerId, potionDrop, 1)
-	}
-
 	if (!player.missionStats) player.missionStats = { fatigue: 0, mastery: 0, isExpBoostActive: false }
 	const tokens = rawTokens
 
@@ -709,7 +620,6 @@ export async function completeDungeonMission(
 			missionTypeId: mission.missionTypeId,
 			tokens,
 			materials,
-			potionDrop,
 			xp,
 			sourceName: mission.sourceName,
 		},
@@ -721,7 +631,7 @@ export async function completeDungeonMission(
 		tags: ['mission', 'dungeon'],
 	})
 
-	return { tokens, materials, potionDrop, xp }
+	return { tokens, materials, xp }
 }
 
 export async function completeStoryQuest(
@@ -939,50 +849,9 @@ export async function completeBossMission(
 
 	const cardBoosts = await getRawCardBoostsById(playerId)
 	const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
-	const matBoostPct = applyBoostCap(cardBoosts.matBoost)
 	const raidPower = cardBoosts.raidPower ?? 0
 	const baseDamage = Math.floor(raidPower * (0.8 + Math.random() * 0.4))
 	const damage = Math.max(1, baseDamage)
-
-	// ════════════════════════════════════════════��══════════════════════════════
-	// Boss raid drops: 2 materials per 5 minutes (12 total in 30 minutes)
-	// Each material rolls for component (75%) or catalyst (25%)
-	// ═════════════════════════════════���═════════════════════════════════════════
-	let totalComponentDrops = 0
-	let totalCatalystDrops = 0
-	const materialDrops: string[] = []
-	const catalystDrops: Array<{ id: string; rarity: string }> = []
-
-	// Calculate material count: 2 materials per 5 minutes
-	// BOSS_RAID_DURATION is 1800 seconds (30 minutes) = 12 materials
-	const materialsPerFiveMinutes = 2
-	const fiveMinutesInSeconds = 300
-	const baseMaterialCount = Math.floor((mission.duration / fiveMinutesInSeconds) * materialsPerFiveMinutes)
-	const materialCount = Math.round(baseMaterialCount * (1 + matBoostPct / 100))
-
-	// Roll for each material: component or catalyst
-	for (let i = 0; i < materialCount; i++) {
-		const dropRoll = Math.random()
-		const componentChance = boss.dropRate.component / 100 // e.g., 0.75 for 75%
-
-		if (dropRoll < componentChance) {
-			// Component drop: random from boss's component pool
-			const componentDrop = getBossComponentDrop(mission.bossId!)
-			if (componentDrop) {
-				materialDrops.push(componentDrop)
-				totalComponentDrops++
-				await itemService.addMaterial(playerId, componentDrop, 1)
-			}
-		} else {
-			// Catalyst drop: weighted rarity selection
-			const catalystDrop = getBossCatalystDrop(mission.bossId!)
-			if (catalystDrop) {
-				catalystDrops.push(catalystDrop)
-				totalCatalystDrops++
-				await itemService.addMaterial(playerId, catalystDrop.id, 1)
-			}
-		}
-	}
 
 	mission.completedAt = new Date()
 	await mission.save()
@@ -1025,9 +894,6 @@ export async function completeBossMission(
 			missionId: mission._id.toString(),
 			bossId: mission.bossId,
 			damage,
-			componentDrops: totalComponentDrops,
-			catalystDrops: totalCatalystDrops,
-			totalMaterialDrops: materialCount,
 			xp,
 			sourceName: mission.sourceName,
 		},
@@ -1039,7 +905,7 @@ export async function completeBossMission(
 		tags: ['mission', 'boss'],
 	})
 
-	return { damage, materialDrops, componentDrop: null, catalystDrop: null, bossDefeated: false, xp }
+	return { damage, bossDefeated: false, xp }
 }
 
 export async function attackBoss(
@@ -1053,43 +919,12 @@ export async function attackBoss(
 
 	const cardBoosts = await getRawCardBoostsById(playerId)
 	const guildBonuses = await guildService.getPlayerGuildBonuses(playerId.toString())
-	
+
 	// Apply tier-based damage multiplier for leaderboard incentive
 	// Higher tier bosses = more leaderboard damage (T1=1.0x, T5=2.0x)
 	const tierMultiplier = boss.damageMultiplier ?? 1.0
 	const baseDamage = Math.floor(raidPower * (0.8 + Math.random() * 0.4) * tierMultiplier)
 	const damage = Math.max(1, baseDamage)
-
-	// ════════════════════════════════���════════════════════════════════════════��═
-	// Boss raid drops: Roll materials for component (75%) or catalyst (25%)
-	// For attackBoss, generate a single material roll (consistent with single attack)
-	// ═══════════════════════════════════════════════════════════════════════════
-	let totalComponentDrops = 0
-	let totalCatalystDrops = 0
-	const materialDrops: string[] = []
-	const catalystDrops: Array<{ id: string; rarity: string }> = []
-
-	// Roll for one material per attack: component or catalyst
-	const dropRoll = Math.random()
-	const componentChance = boss.dropRate.component / 100 // e.g., 0.75 for 75%
-
-	if (dropRoll < componentChance) {
-		// Component drop: random from boss's component pool
-		const componentDrop = getBossComponentDrop(bossId)
-		if (componentDrop) {
-			materialDrops.push(componentDrop)
-			totalComponentDrops++
-			await itemService.addMaterial(playerId, componentDrop, 1)
-		}
-	} else {
-		// Catalyst drop: weighted rarity selection
-		const catalystDrop = getBossCatalystDrop(bossId)
-		if (catalystDrop) {
-			catalystDrops.push(catalystDrop)
-			totalCatalystDrops++
-			await itemService.addMaterial(playerId, catalystDrop.id, 1)
-		}
-	}
 
 	if (!player.milestones) player.milestones = {} as typeof player.milestones
 	player.milestones!.totalBossDamage = (player.milestones!.totalBossDamage || 0) + damage
@@ -1118,8 +953,6 @@ export async function attackBoss(
 			bossId,
 			bossName: boss.name,
 			damage,
-			componentDrops: totalComponentDrops,
-			catalystDrops: totalCatalystDrops,
 			xp: bossXp,
 			sourceName: boss.name,
 		},
@@ -1131,7 +964,7 @@ export async function attackBoss(
 		tags: ['mission', 'boss'],
 	})
 
-	return { damage, materialDrops, componentDrop: null, catalystDrop: null, bossDefeated: false, xp: bossXp }
+	return { damage, bossDefeated: false, xp: bossXp }
 }
 
 // ════════════════════════════════════��══════════════════════════════════════════

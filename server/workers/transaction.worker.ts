@@ -1,132 +1,111 @@
 /**
  * Transaction Worker
- * BullMQ worker for processing transaction jobs
+ * Polls for pending transactions and processes them directly (no BullMQ).
+ * Uses a simple interval-based polling loop to pick up pending/processing
+ * transactions and drive them through the processor.
  */
 
-import { Worker, type Job } from 'bullmq'
 import type { Server } from 'socket.io'
-import { getRedisConnection } from '../../lib/config/redis'
-import { TRANSACTION_QUEUE_NAME, type TransactionJobData } from '../../lib/queues/transaction.queue'
 import Transaction from '../../lib/modules/transactions/transaction.model'
 import * as processor from '../../lib/modules/transactions/transaction.processor'
 import { initializeSocketRefs } from '../../lib/modules/transactions/transaction.processor'
 import { userSockets } from '../sockets/socket.manager'
 
-let workerInstance: Worker<TransactionJobData> | null = null
+// ═══════════════════════════════════════════════════════════════════════════════
+// Worker State
+// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Process a transaction job
- */
-async function processJob(job: Job<TransactionJobData>, io: Server): Promise<void> {
-  const { transactionId, type, sender } = job.data
+let pollInterval: ReturnType<typeof setInterval> | null = null
+let workerIo: Server | null = null
+const POLL_INTERVAL_MS = 5000 // Poll every 5 seconds
 
-  console.log(`[idleraiders-logs] Processing ${type} job for ${sender} (${job.id})`)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Job Processor
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  // Fetch the transaction from MongoDB
-  const tx = await Transaction.findById(transactionId)
+async function processPendingTransactions(): Promise<void> {
+  if (!workerIo) return
 
-  if (!tx) {
-    console.error(`[idleraiders-logs] Transaction not found: ${transactionId}`)
-    throw new Error(`Transaction not found: ${transactionId}`)
+  try {
+    // Pick up pending/processing transactions (limit batch to 10 per cycle)
+    const pending = await Transaction.find({ status: { $in: ['pending', 'processing'] } })
+      .sort({ createdAt: 1 })
+      .limit(10)
+      .lean()
+
+    for (const txDoc of pending) {
+      try {
+        const tx = await Transaction.findById(txDoc._id)
+        if (!tx) continue
+        if (tx.status === 'completed' || tx.status === 'failed') continue
+
+        if (tx.status === 'pending') {
+          tx.status = 'processing'
+          await tx.save()
+        }
+
+        console.log(
+          `[idleraiders-logs] Processing ${tx.type} transaction for ${tx.sender} (${tx._id})`,
+        )
+
+        switch (tx.type) {
+          case 'deposit':
+            await processor.processDeposit(tx, workerIo)
+            break
+          case 'withdraw':
+            await processor.processWithdraw(tx, workerIo)
+            break
+          case 'dollar_purchase':
+            await processor.processDollarPurchase(tx, workerIo)
+            break
+          case 'registration':
+            await processor.processRegistration(tx, workerIo)
+            break
+          default:
+            console.warn(`[idleraiders-logs] Unknown transaction type: ${tx.type}`)
+            tx.status = 'failed'
+            tx.logs = { failureCheckpoint: 'unknownType', type: tx.type }
+            await tx.save()
+        }
+
+        console.log(
+          `[idleraiders-logs] Completed ${tx.type} for ${tx.sender} - Status: ${tx.status}`,
+        )
+      } catch (err) {
+        console.error(
+          `[idleraiders-logs] Error processing transaction ${txDoc._id}:`,
+          (err as Error).message,
+        )
+      }
+    }
+  } catch (err) {
+    console.error('[idleraiders-logs] Poll error:', (err as Error).message)
   }
-
-  // Skip if already completed
-  if (tx.status === 'completed') {
-    console.log(`[idleraiders-logs] Transaction already completed: ${transactionId}`)
-    return
-  }
-
-  // Update status to processing
-  if (tx.status === 'pending') {
-    tx.status = 'processing'
-    await tx.save()
-  }
-
-  // Process based on type
-  switch (type) {
-    case 'deposit':
-      await processor.processDeposit(tx, io)
-      break
-    case 'withdraw':
-      await processor.processWithdraw(tx, io)
-      break
-    case 'dollar_purchase':
-      await processor.processDollarPurchase(tx, io)
-      break
-    case 'registration':
-      await processor.processRegistration(tx, io)
-      break
-    case 'referral_payout':
-      console.log(`[idleraiders-logs] Referral payout not yet implemented`)
-      tx.status = 'failed'
-      tx.logs = { failureCheckpoint: 'notImplemented' }
-      await tx.save()
-      break
-    default:
-      console.warn(`[idleraiders-logs] Unknown transaction type: ${type}`)
-      tx.status = 'failed'
-      tx.logs = { failureCheckpoint: 'unknownType', type }
-      await tx.save()
-  }
-
-  console.log(`[idleraiders-logs] Completed ${type} job for ${sender} - Status: ${tx.status}`)
 }
 
-/**
- * Initialize the transaction worker
- */
-export function initializeTransactionWorker(io: Server): Worker<TransactionJobData> {
-  if (workerInstance) {
-    return workerInstance
-  }
+// ═══════════════════════════════════════════════════════════════════════════════
+// Worker Lifecycle
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  // Initialize socket references for the processor
+export function initializeTransactionWorker(io: Server): void {
+  if (pollInterval) return
+
+  workerIo = io
   initializeSocketRefs(io, userSockets)
 
-  const connection = getRedisConnection()
-
-  workerInstance = new Worker<TransactionJobData>(
-    TRANSACTION_QUEUE_NAME,
-    async (job) => {
-      await processJob(job, io)
-    },
-    {
-      connection,
-      concurrency: 5, // Process up to 5 jobs concurrently
-      limiter: {
-        max: 10,
-        duration: 1000, // Rate limit: 10 jobs per second
-      },
-    }
+  pollInterval = setInterval(processPendingTransactions, POLL_INTERVAL_MS)
+  console.log(
+    `[idleraiders-logs] Transaction worker initialized (polling every ${POLL_INTERVAL_MS / 1000}s)`,
   )
-
-  // Event handlers
-  workerInstance.on('completed', (job) => {
-    console.log(`[idleraiders-logs] Job ${job.id} completed`)
-  })
-
-  workerInstance.on('failed', (job, error) => {
-    console.error(`[idleraiders-logs] Job ${job?.id} failed:`, error.message)
-  })
-
-  workerInstance.on('error', (error) => {
-    console.error('[idleraiders-logs] Worker error:', error.message)
-  })
-
-  console.log('[idleraiders-logs] Transaction worker initialized')
-
-  return workerInstance
 }
 
-/**
- * Close the worker gracefully
- */
 export async function closeTransactionWorker(): Promise<void> {
-  if (workerInstance) {
-    await workerInstance.close()
-    workerInstance = null
-    console.log('[idleraiders-logs] Transaction worker closed')
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
   }
+  workerIo = null
+  console.log('[idleraiders-logs] Transaction worker closed')
 }
 
 export default {

@@ -6,8 +6,6 @@ import { connectDB } from '../lib/config/database'
 import { CORS_ORIGIN, PORT } from '../lib/config/config'
 import { startWorkers, stopWorkers } from './workers/index'
 import { initializeSocketServer } from './sockets/socket.manager'
-import { closeRedisConnection } from '../lib/config/redis'
-import { closeTransactionQueue } from '../lib/queues/transaction.queue'
 import { getCurrentHivePrice, isHiveUsdPriceInitialized } from '../lib/modules/transactions/transaction.logic'
 
 const app = express()
@@ -107,14 +105,6 @@ async function shutdown(signal: string) {
     // Stop workers first (BullMQ + cron)
     console.log('[idleraiders-logs] Stopping workers...')
     await stopWorkers()
-
-    // Close the transaction queue
-    console.log('[idleraiders-logs] Closing transaction queue...')
-    await closeTransactionQueue()
-
-    // Close Redis connection
-    console.log('[idleraiders-logs] Closing Redis connection...')
-    await closeRedisConnection()
 
     // Close Socket.IO
     if (io) {

@@ -1,5 +1,4 @@
 import Transaction from './transaction.model'
-import { getRedisConnection } from '@/lib/config/redis'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -41,14 +40,7 @@ export class HivePriceNotInitializedError extends Error {
 
 const USD_PER_UNIT = 1.0
 
-// Redis key used to share the HIVE/USD price across all processes.
-// TTL is 15 minutes (3× the 5-minute update interval) so a stale value
-// is always available even if the price worker temporarily goes quiet.
-const HIVE_PRICE_REDIS_KEY = 'idleraiders:hive_usd_price'
-const HIVE_PRICE_REDIS_TTL = 900 // 15 minutes in seconds
-
-// In-process cache — avoids a Redis round-trip on every price read within
-// the same process. The price worker still writes to Redis on every update.
+// In-process price cache — the price worker updates this via setHiveUsdPrice()
 let cachedHiveUsdPrice: number | null = null
 
 export function setHiveUsdPrice(price: number): void {
@@ -57,49 +49,16 @@ export function setHiveUsdPrice(price: number): void {
     return
   }
   cachedHiveUsdPrice = price
-
-  // Write to Redis so other processes (Next.js API routes) can read it.
-  getRedisConnection()
-    .set(HIVE_PRICE_REDIS_KEY, price.toString(), 'EX', HIVE_PRICE_REDIS_TTL)
-    .catch((err) => console.error('[idleraiders-logs] Failed to persist HIVE price to Redis:', err.message))
 }
 
 export async function isHiveUsdPriceInitialized(): Promise<boolean> {
-  if (cachedHiveUsdPrice !== null && cachedHiveUsdPrice > 0) return true
-  try {
-    const raw = await getRedisConnection().get(HIVE_PRICE_REDIS_KEY)
-    if (raw) {
-      const price = parseFloat(raw)
-      if (Number.isFinite(price) && price > 0) {
-        cachedHiveUsdPrice = price
-        return true
-      }
-    }
-  } catch {
-    // Redis unavailable — fall through to false
-  }
-  return false
+  return cachedHiveUsdPrice !== null && cachedHiveUsdPrice > 0
 }
 
 export async function getHiveUsdPrice(): Promise<number> {
   if (cachedHiveUsdPrice !== null && cachedHiveUsdPrice > 0) {
     return cachedHiveUsdPrice
   }
-
-  // In-memory cache is empty (different process) — try Redis.
-  try {
-    const raw = await getRedisConnection().get(HIVE_PRICE_REDIS_KEY)
-    if (raw) {
-      const price = parseFloat(raw)
-      if (Number.isFinite(price) && price > 0) {
-        cachedHiveUsdPrice = price
-        return price
-      }
-    }
-  } catch (err: any) {
-    console.error('[idleraiders-logs] Redis read failed in getHiveUsdPrice:', err.message)
-  }
-
   throw new HivePriceNotInitializedError()
 }
 
