@@ -74,7 +74,6 @@ export interface PlayerReward {
   damage: number
   gm: number
   points: number
-  shards: number
 }
 
 export interface GuildReward {
@@ -82,19 +81,15 @@ export interface GuildReward {
   guildName: string
   rank: number
   damage: number
-  totalShards: number
-  memberShards: number
 }
 
 export interface RewardDistributionResult {
   playerRewards: {
     count: number
-    totalShards: number
     distributions: PlayerReward[]
   }
   guildRewards: {
     count: number
-    totalShards: number
     distributions: GuildReward[]
   }
 }
@@ -538,94 +533,17 @@ export async function getComputedLeaderboardDataForWeek(
 // ═══════════════════���════════════════════════���══════════════════════════════════
 
 /**
- * Distribute weekly leaderboard rewards to players (shards) and guilds (points)
+ * Leaderboard rewards are currently a placeholder — no payouts are distributed.
+ * Rankings are tracked for display only.
  */
 export async function distributeLeaderboardRewards(
-  computedData: ComputedLeaderboardData,
-  leaderboardEntries: ILeaderboardEntry[]
+  _computedData: ComputedLeaderboardData,
+  _leaderboardEntries: ILeaderboardEntry[]
 ): Promise<RewardDistributionResult> {
-  const playerRewards: PlayerReward[] = []
-  const guildRewards: GuildReward[] = []
-  const playerShardUpdates: Array<{ playerId: string | Types.ObjectId; amount: number }> = []
-
-  // 1. Calculate and collect player rewards from global leaderboard
-  console.log('[idleraiders-logs] Calculating player rewards from global leaderboard...')
-
-  leaderboardEntries.forEach((entry, idx) => {
-    const rank = idx + 1
-    const rankData = computedData.global.ranks[rank]
-
-    if (rankData && rankData.reward > 0) {
-      const reward: PlayerReward = {
-        playerId: entry.player.toString(),
-        username: entry.username,
-        rank,
-        damage: entry.totalDamage,
-        gm: entry.gm || 0,
-        points: entry.points || entry.totalDamage,
-        shards: rankData.reward,
-      }
-      playerRewards.push(reward)
-      playerShardUpdates.push({
-        playerId: entry.player,
-        amount: rankData.reward,
-      })
-    }
-  })
-
-  // 2. Distribute player shards in bulk
-  if (playerShardUpdates.length > 0) {
-    console.log(`[idleraiders-logs] Distributing shards to ${playerShardUpdates.length} players...`)
-    const result = await playerRepo.bulkIncrementShards(playerShardUpdates)
-    console.log(`[idleraiders-logs] Player shards distributed: ${result.modifiedCount} players updated`)
-  }
-
-  // 3. Calculate and distribute guild rewards (as guild points, not player shards)
-  console.log('[idleraiders-logs] Calculating guild rewards...')
-
-  const guildRanks = Object.entries(computedData.guild.ranks)
-  for (const [rankStr, guildData] of guildRanks) {
-    const rank = parseInt(rankStr)
-
-    if (guildData.reward > 0) {
-      const guild = await guildRepo.findById(guildData.guildId.toString())
-
-      if (guild) {
-        await guildRepo.incrementPoints(guildData.guildId, guildData.reward)
-
-        const guildReward: GuildReward = {
-          guildId: guildData.guildId,
-          guildName: guildData.guildName,
-          rank,
-          damage: guildData.damage,
-          totalShards: guildData.reward,
-          memberShards: 0,
-        }
-        guildRewards.push(guildReward)
-
-        console.log(`[idleraiders-logs] Guild ${guildData.guildName}: ${guildData.reward} points added to guild`)
-      }
-    }
-  }
-
-  const totalPlayerShards = playerRewards.reduce((sum, r) => sum + r.shards, 0)
-  const totalGuildShards = guildRewards.reduce((sum, r) => sum + r.totalShards, 0)
-
-  console.log(`[idleraiders-logs] Reward distribution complete:`)
-  console.log(`  - Players: ${playerRewards.length} rewarded, ${totalPlayerShards} total shards`)
-  console.log(`  - Guilds: ${guildRewards.length} rewarded, ${totalGuildShards} total points`)
-
+  console.log('[idleraiders-logs] Leaderboard rewards are placeholder — no payouts distributed.')
   return {
-    playerRewards: {
-      count: playerRewards.length,
-      totalShards: totalPlayerShards,
-      distributions: playerRewards,
-    },
-    guildRewards: {
-      count: guildRewards.length,
-      totalShards: totalGuildShards,
-      distributions: guildRewards,
-    },
+    playerRewards: { count: 0, distributions: [] },
+    guildRewards:  { count: 0, distributions: [] },
   }
 }
 

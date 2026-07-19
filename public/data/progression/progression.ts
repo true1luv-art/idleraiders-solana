@@ -22,7 +22,7 @@ export const ACHIEVEMENTS = [
     icon: '🗡️',
     category: 'combat',
     check: (s) => s.totalMissions >= 50,
-    rewards: { coins: 500, shards: 5 },
+    rewards: { coins: 500 },
   },
   {
     id: 'centurion',
@@ -31,7 +31,7 @@ export const ACHIEVEMENTS = [
     icon: '🛡️',
     category: 'combat',
     check: (s) => s.totalMissions >= 100,
-    rewards: { coins: 1000, shards: 10 },
+    rewards: { coins: 1000 },
   },
   {
     id: 'warlord',
@@ -40,7 +40,7 @@ export const ACHIEVEMENTS = [
     icon: '👑',
     category: 'combat',
     check: (s) => s.totalMissions >= 500,
-    rewards: { coins: 5000, shards: 50 },
+    rewards: { coins: 5000 },
   },
   {
     id: 'boss_slayer',
@@ -49,7 +49,7 @@ export const ACHIEVEMENTS = [
     icon: '🐉',
     category: 'combat',
     check: (s) => s.totalBossDamage >= 10000,
-    rewards: { coins: 250, shards: 3 },
+    rewards: { coins: 250 },
   },
   {
     id: 'dragon_killer',
@@ -58,7 +58,7 @@ export const ACHIEVEMENTS = [
     icon: '💀',
     category: 'combat',
     check: (s) => s.totalBossDamage >= 100000,
-    rewards: { coins: 1500, shards: 15 },
+    rewards: { coins: 1500 },
   },
   {
     id: 'godslayer',
@@ -67,7 +67,7 @@ export const ACHIEVEMENTS = [
     icon: '⚡',
     category: 'combat',
     check: (s) => s.totalBossDamage >= 1000000,
-    rewards: { coins: 10000, shards: 100 },
+    rewards: { coins: 10000 },
   },
 
   // ── Collection Achievements ─────────────────────────────────
@@ -87,7 +87,7 @@ export const ACHIEVEMENTS = [
     icon: '📚',
     category: 'collection',
     check: (s) => s.uniqueCards >= 25,
-    rewards: { coins: 750, shards: 8 },
+    rewards: { coins: 750 },
   },
   {
     id: 'collector_50',
@@ -96,7 +96,7 @@ export const ACHIEVEMENTS = [
     icon: '🏛️',
     category: 'collection',
     check: (s) => s.uniqueCards >= 50,
-    rewards: { coins: 2000, shards: 25 },
+    rewards: { coins: 2000 },
   },
 
   // ── Progression Achievements ────────────────────────────────
@@ -134,7 +134,7 @@ export const ACHIEVEMENTS = [
     icon: '⭐',
     category: 'progression',
     check: (s) => s.playerLevel >= 50,
-    rewards: { coins: 3000, shards: 35 },
+    rewards: { coins: 3000 },
   },
   {
     id: 'lvl_100',
@@ -143,7 +143,7 @@ export const ACHIEVEMENTS = [
     icon: '🌟',
     category: 'progression',
     check: (s) => s.playerLevel >= 100,
-    rewards: { coins: 10000, shards: 100 },
+    rewards: { coins: 10000 },
   },
 
   // ── Social Achievements ─────────────────────────────────────
@@ -154,7 +154,7 @@ export const ACHIEVEMENTS = [
     icon: '🏰',
     category: 'social',
     check: (s) => s.inGuild,
-    rewards: { coins: 500, shards: 5 },
+    rewards: { coins: 500 },
   },
 ]
 

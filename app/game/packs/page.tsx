@@ -188,14 +188,10 @@ const PacksPage = () => {
 
 	// Derived values from pack selection
 	const packImage = isBoosterPack ? boosterPackImg : packImg
-	const hasShardPrice = typeof pack?.buy?.shards === 'number'
-	const currencyType = hasShardPrice ? 'shard' : 'token'
-	const tokenUnitCost = hasShardPrice ? (pack?.buy?.shards ?? 0) : (pack?.buy?.coins ?? 0)
-	const tokenPaymentMethod = hasShardPrice ? 'shards' : 'coins'
-	const dollarCost = pack?.buy?.dollars ?? 0
+	const tokenUnitCost = pack?.buy?.coins ?? 0
+	const tokenPaymentMethod = 'coins'
 
-	const playerBalance = currencyType === 'shard' ? (player.shards ?? 0) : (player.coins ?? 0)
-	const playerDollars = player.dollars ?? 0
+	const playerBalance = player.coins ?? 0
 
 	const getOwnedCount = (packId: string) => (ownedPacks as Record<string, number>)[packId] || 0
 	const totalOwned = Object.values(ownedPacks).reduce((a, b) => a + b, 0)
@@ -206,8 +202,7 @@ const PacksPage = () => {
 	// return whether the API call succeeded.
 	const handleBuyPacks = async (quantity: number): Promise<boolean> => {
 		if (!pack || !buyModalPayment) return false
-		const paymentMethod =
-			buyModalPayment === 'dollar' ? 'dollars' : tokenPaymentMethod
+		const paymentMethod = tokenPaymentMethod
 		const res = (await buyPacksAction(pack.id, quantity, paymentMethod)) as Record<
 			string,
 			any

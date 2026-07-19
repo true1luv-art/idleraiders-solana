@@ -31,7 +31,7 @@ interface GameCard {
 interface GamePack {
   id: string
   name?: string
-  buy?: { coins?: number; shards?: number; dollars?: number }
+  buy?: { coins?: number }
   data?: {
     dropRates: Record<string, number>
     guaranteedRarity?: string
@@ -394,20 +394,8 @@ export async function buyPacks(
     if ((player.coins ?? 0) < tokenCost) throw new Error('Not enough Realm Coins')
     updateData.coins = (player.coins ?? 0) - tokenCost
     totalCost = tokenCost
-  } else if (paymentMethod === 'shards' || paymentMethod === 'shard') {
-    const shardCost = (pack.buy?.shards ?? 0) * quantity
-    if ((player.shards ?? 0) < shardCost) throw new Error('Not enough Soul Shards')
-    updateData.shards = (player.shards ?? 0) - shardCost
-    totalCost = shardCost
-    currencyType = 'shard'
-  } else if (paymentMethod === 'dollars' || paymentMethod === 'dollar') {
-    const dollarCost = (pack.buy?.dollars ?? 2) * quantity
-    if ((player.dollars ?? 0) < dollarCost) throw new Error('Not enough Dollars')
-    updateData.dollars = Number(((player.dollars ?? 0) - dollarCost).toFixed(2))
-    totalCost = dollarCost
-    currencyType = 'dollar'
   } else {
-    throw new Error('Invalid payment method')
+    throw new Error('Invalid payment method — only coins are accepted')
   }
 
   await playerRepo.updateById(player._id.toString(), updateData)

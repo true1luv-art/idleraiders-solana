@@ -27,7 +27,7 @@ interface ViewedProfile {
 	xp: number
 	xpToNextLevel: number
 	coins: number
-	shards: number
+
 	totalMissions: number
 	totalBossDamage: number
 	totalMinutesPlayed: number
@@ -267,11 +267,7 @@ const ViewPlayerProfileModal = ({ open, onClose, username }: Props) => {
 													value={profile.coins.toLocaleString()}
 													label="Realm Coins"
 												/>
-												<WealthTile
-													iconNode={<CurrencyIcon type="shard" size={14} />}
-													value={profile.shards.toLocaleString()}
-													label="Soul Shards"
-												/>
+
 											<WealthTile
 												iconNode={<span className="text-sm">🃏</span>}
 												value={`${profile.totalCards} (${profile.uniqueCards})`}

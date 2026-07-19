@@ -114,8 +114,6 @@ export interface PlayerState {
 	xp: number
 	xpToNextLevel: number
 	coins: number
-	shards: number
-	dollars: number
 	energy: number
 	storageSlots: number
 	lastCycleUpdate: Date
@@ -134,7 +132,7 @@ export interface PlayerState {
 	stats: Stats
 	cards: CardItem[]
 	materials: MaterialItem[]
-	potions: IItemDocument[]
+	potions: { energy: number; xp: number }
 	packs: IItemDocument[]
 	achievements: Achievement[]
 }
@@ -244,7 +242,7 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 
 	// Single pass over items: materials, potions, packs, totalMaterials
 	const materials: MaterialItem[] = []
-	const potions: IItemDocument[] = []
+	const potions: { energy: number; xp: number } = { energy: 0, xp: 0 }
 	const packs: IItemDocument[] = []
 	let totalMaterials = 0
 
@@ -261,7 +259,8 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 			})
 			totalMaterials += item.quantity ?? 0
 		} else if (item.itemType === 'potion') {
-			potions.push(item)
+			if (item.id === 'energy_potion') potions.energy += item.quantity ?? 0
+			else if (item.id === 'exp_potion') potions.xp += item.quantity ?? 0
 		} else if (item.itemType === 'pack') {
 			packs.push(item)
 		}
@@ -407,8 +406,6 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		xp: player.xp ?? 0,
 		xpToNextLevel: xpToNextLevel(player.level ?? 1),
 		coins: player.coins ?? 0,
-		shards: player.shards ?? 0,
-		dollars: player.dollars ?? 0,
 		energy: player.energy ?? 0,
 		storageSlots: player.storageSlots ?? 3,
 		lastCycleUpdate: player.lastCycleUpdate,

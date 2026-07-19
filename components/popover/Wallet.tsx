@@ -52,24 +52,7 @@ const WalletPopover = () => {
               {(wallet.coins ?? 0).toLocaleString()}
             </span>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CurrencyIcon type="shard" size={18} />
-              <span className="text-xs text-muted-foreground">Soul Shards</span>
-            </div>
-            <span className="font-body text-sm font-bold text-purple-400">
-              {(wallet.shards ?? 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CurrencyIcon type="dollar" size={18} />
-              <span className="text-xs text-muted-foreground">Dollars</span>
-            </div>
-            <span className="font-body text-sm font-bold text-green-400">
-              {(wallet.dollars ?? 0).toLocaleString()}
-            </span>
-          </div>
+
         </PopoverBody>
         {WALLET_ENABLED && (
           <PopoverFooter>

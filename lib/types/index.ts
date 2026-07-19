@@ -79,10 +79,8 @@ export interface IPlayer {
 	isRegistered: boolean
 	level: number
 	xp: number
-	coins: number
-	shards: number
-	dollars: number
-	energy: number
+  coins: number
+  energy: number
 	storageSlots: number
 	missionStats?: IMissionStats
 	milestones?: IMilestones
@@ -227,7 +225,7 @@ export interface IMarketListing {
 	itemType?: ItemType
 	quantity: number
 	price: number
-	currency: 'coins' | 'shards'
+	currency: 'coins'
 	status: ListingStatus
 	createdAt: Date
 	updatedAt: Date

@@ -121,7 +121,7 @@ const TUTORIAL_SECTIONS = [
 				heading: 'Storage System',
 				points: [
 					'Your inventory has limited storage slots',
-					'Upgrade storage capacity using shards',
+					'Your storage is fixed based on your account tier',
 					'Stack identical items to save space',
 					'Sell excess items at the marketplace or to NPCs',
 				],
@@ -170,7 +170,7 @@ const TUTORIAL_SECTIONS = [
 			{
 				heading: 'Leaderboard Rewards',
 				points: [
-					'Top players receive premium rewards including shards and rare cards',
+					'Top players are recognized on the leaderboard',
 					'Rewards are distributed at the end of each boss cycle',
 					'Guild rankings also provide bonus rewards to all members',
 					'Check the leaderboard tab to see current standings',

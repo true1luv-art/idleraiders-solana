@@ -34,9 +34,7 @@ export function usePlayer() {
 
   const wallet = useMemo(() => {
     const coins = playerState?.coins ?? 0
-    const shards = playerState?.shards ?? 0
-    const dollars = playerState?.dollars ?? 0
-    return { coins, shards, dollars }
+    return { coins }
   }, [playerState])
 
   const milestones = useMemo(() => {

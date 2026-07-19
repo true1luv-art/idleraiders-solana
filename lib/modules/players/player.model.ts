@@ -47,9 +47,11 @@ export interface IPlayer {
   level: number
   xp: number
   coins: number
-  shards: number
-  dollars: number
   energy: number
+  potions: {
+    energy: number
+    xp: number
+  }
   storageSlots: number
   missionStats?: IMissionStats
   milestones?: IMilestones
@@ -122,9 +124,11 @@ const PlayerSchema = new Schema<IPlayerDocument>(
     level: { type: Number, min: 1, max: 150, default: 1 },
     xp: { type: Number, min: 0, default: 0 },
     coins: { type: Number, min: 0, default: 0 },
-    shards: { type: Number, min: 0, default: 0 },
-    dollars: { type: Number, min: 0, default: 0 },
     energy: { type: Number, min: 0, max: 100, default: 100 },
+    potions: {
+      type: new Schema({ energy: { type: Number, min: 0, default: 0 }, xp: { type: Number, min: 0, default: 0 } }, { _id: false }),
+      default: () => ({ energy: 0, xp: 0 }),
+    },
     storageSlots: { type: Number, min: 3, default: 3 },
     activeMission: { type: Schema.Types.ObjectId, ref: 'Mission', default: null },
     guildId: { type: Schema.Types.ObjectId, ref: 'Guild', default: null },

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context'
 import { useHiveKeychain } from '@/hooks/useHiveKeychain'
 import { useWalletActions } from '@/features/actions/walletActions'
-import { Loader2, Coins, Shield, Gift, CheckCircle2, LogOut, AlertCircle } from 'lucide-react'
+import { Loader2, Coins, Shield, CheckCircle2, LogOut, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { REGISTRATION } from '@/public/data/system/system'
@@ -154,17 +154,7 @@ const RegistrationModal = ({ open, username, referredBy, onRegistrationComplete,
 										<p className="text-xs text-muted-foreground">Unlock all features and gameplay</p>
 									</div>
 								</div>
-								<div className="flex items-center gap-3 text-sm">
-									<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-										<Gift size={16} className="text-primary" />
-									</div>
-									<div>
-										<p className="font-medium text-foreground">Starter Bonus</p>
-										<p className="text-xs text-muted-foreground">
-											Receive {REGISTRATION.STARTER_DOLLARS} dollars to buy packs and items
-										</p>
-									</div>
-								</div>
+
 								<div className="flex items-center gap-3 text-sm">
 									<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
 										<Coins size={16} className="text-primary" />
