@@ -37,9 +37,7 @@ function resolveChain(): SupportedChain {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const config = {
-  mongoUri: IS_PRODUCTION
-    ? process.env.MONGO_URI!
-    : (process.env.MONGO_URI_LOCAL ?? process.env.MONGO_URI!),
+  mongoUri: process.env.MONGODB_URI!,
 
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret',
 
@@ -110,7 +108,7 @@ export const config = {
 // All callers can continue to import these without any changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const MONGO_URI: string | undefined = config.mongoUri
+export const MONGODB_URI: string | undefined = config.mongoUri
 
 export const JWT_SECRET_ENCODED: Uint8Array = new TextEncoder().encode(config.jwtSecret)
 export const JWT_EXPIRY_SECONDS: number = 7 * 24 * 60 * 60 // 7 days
