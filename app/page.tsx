@@ -38,7 +38,7 @@ const features = [
 	{ icon: Users, title: 'Collect Heroes', desc: '100+ unique cards across warriors, mages, rogues, and more.' },
 	{ icon: Coins, title: 'Player Economy', desc: 'Trade rare items in a dynamic, player-driven marketplace.' },
 	{ icon: Shield, title: 'Idle Progression', desc: "Your raiders fight while you're away. Always grow stronger." },
-	{ icon: Crown, title: 'Endgame Glory', desc: 'Climb leaderboards and prove your dominance season after season.' },
+	{ icon: Crown, title: 'Endgame Glory', desc: 'Conquer Guild Wars and prove your dominance season after season.' },
 ]
 
 const steps = [
@@ -509,7 +509,7 @@ export default function LandingPage() {
 				</p>
 				<h4 className="font-display font-bold text-foreground mt-5!">2. How We Use Your Information</h4>
 				<p>
-					Your information is used to: provide and maintain the game service, display leaderboards and player
+					Your information is used to: provide and maintain the game service, display player
 					profiles, process marketplace transactions, improve game balance and mechanics, and communicate important
 					updates.
 				</p>

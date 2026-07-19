@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '@/context/GameContext'
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
-// leaderboard data loaded dynamically when viewing other players
 import {
 	BookOpen,
 	Package,
@@ -157,8 +156,6 @@ const ProfilePage = () => {
 		? { ...playerWithDefaults, ...viewedProfile } 
 		: playerWithDefaults
 
-	const rank = '—'
-
 	// Merge WORLD_DATA territory definitions with per-player progress
 	const territoriesWithProgress: Record<string, any>[] = useMemo(() => {
 		return (gameData?.WORLD?.TERRITORIES ?? []).map((def: Record<string, any>) => {
@@ -303,8 +300,7 @@ const ProfilePage = () => {
 								{player.username}
 							</h1>
 							<p className="text-[11px] md:text-xs text-muted-foreground mt-0.5">
-								Level {player.level} Raider · Rank{' '}
-								<span className="text-foreground font-semibold">#{rank}</span>
+								Level {player.level} Raider
 							</p>
 							{!isViewingOther && inGuild && (
 								<p className="text-[10px] md:text-[11px] text-muted-foreground/60 mt-0.5 flex items-center gap-1">
@@ -805,8 +801,8 @@ const ProfilePage = () => {
 															fontFamily: 'Inter, sans-serif',
 														}}
 													>
-														Level {player.level} · Rank #{rank} · {player.totalMissions}{' '}
-														Missions
+								Level {player.level} · {player.totalMissions}{' '}
+								Missions
 													</p>
 												</div>
 											</div>

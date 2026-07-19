@@ -173,7 +173,7 @@ if (loading) {
           </div>
         </div>
         <p className="text-[10px] text-muted-foreground mt-2">
-          Earn points from leaderboard rankings. All perks affect Guild War only.
+          Earn points from Guild War participation. All perks affect Guild War only.
         </p>
       </motion.div>
 

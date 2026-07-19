@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { 
   Swords, 
   Clock, 
-  Trophy, 
   Loader2,
   Flag,
   Castle,
@@ -23,7 +22,6 @@ import {
   ChevronUp,
   Zap,
   Crosshair,
-  Crown,
   BarChart3,
   Hammer,
 } from 'lucide-react'
@@ -247,7 +245,6 @@ interface GuildWarOverview {
   }
   outposts: WarOutpost[]
   strongholds: WarStronghold[]
-  leaderboard: (GuildWarEntry & { rank: number })[]
   guildEntry: GuildWarEntry | null
   guildStronghold: WarStronghold | null
 }
@@ -299,7 +296,7 @@ export const WarTab = ({
   const [error, setError] = useState<string | null>(null)
   const [joining, setJoining] = useState(false)
   const [attacking, setAttacking] = useState<string | null>(null)
-  const [selectedTab, setSelectedTab] = useState<'outposts' | 'strongholds' | 'leaderboard'>('outposts')
+  const [selectedTab, setSelectedTab] = useState<'outposts' | 'strongholds'>('outposts')
   const [supplyCountdown, setSupplyCountdown] = useState(() => msUntilNextSupplyDrop())
   const [spending, setSpending] = useState<SupplyActionType | null>(null)
   const [supplyError, setSupplyError] = useState<string | null>(null)
@@ -934,7 +931,7 @@ if (loading) {
 
       {/* Tab Selector */}
       <div className="flex gap-2">
-        {(['outposts', 'strongholds', 'leaderboard'] as const).map((tab) => (
+        {(['outposts', 'strongholds'] as const).map((tab) => (
           <Button
             key={tab}
             variant={selectedTab === tab ? 'default' : 'outline'}
@@ -944,7 +941,6 @@ if (loading) {
           >
             {tab === 'outposts' && <Flag size={12} className="mr-1" />}
             {tab === 'strongholds' && <Castle size={12} className="mr-1" />}
-            {tab === 'leaderboard' && <Trophy size={12} className="mr-1" />}
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </Button>
         ))}
@@ -1087,9 +1083,8 @@ if (loading) {
                       {/* Active Buffs Tooltip (for enemy-controlled outposts) */}
                       {(() => {
                         if (isNeutral || isOurs || isLocked) return <div />
-                        const enemyEntry = warData.leaderboard.find(e => e.guildId === outpost.controlledBy)
                         const now = new Date()
-                        const activeEnemyBuffs = enemyEntry?.activeBuffs?.filter(b => new Date(b.expiresAt) > now) ?? []
+                        const activeEnemyBuffs: WarBuff[] = []
                         if (activeEnemyBuffs.length === 0) return <div />
                         return (
                           <TooltipProvider delayDuration={0}>
@@ -1219,8 +1214,7 @@ if (loading) {
                     <div className="mt-auto pt-3 flex flex-col gap-2">
                       {/* Stats row */}
                       {(() => {
-                        const guildEntry = warData.leaderboard.find(e => e.guildId === stronghold.guildId)
-                        const supplies = guildEntry?.warSupplies ?? 0
+                        const supplies = 0
                         return (
                           <div className="grid grid-cols-5 gap-1 rounded-lg bg-background/40 px-2 py-1.5 text-[10px] md:text-xs">
                             <span className="flex flex-col items-center gap-0.5">
@@ -1267,9 +1261,8 @@ if (loading) {
                       <div className="flex items-center justify-between">
                         {/* Active Buffs Tooltip */}
                         {(() => {
-                          const enemyEntry = warData.leaderboard.find(e => e.guildId === stronghold.guildId)
                           const now = new Date()
-                          const activeEnemyBuffs = enemyEntry?.activeBuffs?.filter(b => new Date(b.expiresAt) > now) ?? []
+                          const activeEnemyBuffs: WarBuff[] = []
                           if (activeEnemyBuffs.length === 0) return <div />
                           return (
                             <TooltipProvider delayDuration={0}>
@@ -1397,68 +1390,7 @@ if (loading) {
         </motion.div>
       )}
 
-      {/* Leaderboard Tab */}
-      {selectedTab === 'leaderboard' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-2"
-        >
-          {warData.leaderboard.length === 0 ? (
-            <div className="text-center py-8">
-              <Trophy size={32} className="mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No guilds on leaderboard yet</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Be the first to capture an outpost!</p>
-            </div>
-          ) : (
-            warData.leaderboard.slice(0, 10).map((entry, idx) => {
-              const isOurs = entry.guildId === myGuildId
-              
-              return (
-                <motion.div
-                  key={entry.guildId}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.03 }}
-                  className={cn(
-                    'rounded-xl border p-3 flex items-center gap-3',
-                    isOurs ? 'border-primary/30 bg-primary/5' : 'border-border'
-                  )}
-                  style={!isOurs ? { background: 'linear-gradient(145deg, hsl(230 12% 14%), hsl(230 12% 10%))' } : undefined}
-                >
-                  {/* Rank */}
-                  <div className={cn(
-                    'w-8 h-8 rounded-lg flex items-center justify-center font-display font-bold',
-                    entry.rank === 1 ? 'bg-amber-500/20 text-amber-500' :
-                    entry.rank === 2 ? 'bg-slate-400/20 text-slate-400' :
-                    entry.rank === 3 ? 'bg-orange-600/20 text-orange-600' :
-                    'bg-secondary text-muted-foreground'
-                  )}>
-                    {entry.rank <= 3 ? <Crown size={14} /> : entry.rank}
-                  </div>
 
-                  {/* Guild Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold truncate">
-                      {entry.guildName}
-                      {isOurs && <span className="text-primary ml-1">(You)</span>}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {entry.outpostsCaptured} captured | {entry.strongholdsDestroyed} destroyed
-                    </p>
-                  </div>
-
-                  {/* Valor */}
-                  <div className="text-right">
-                    <p className="font-display text-sm font-bold text-primary">{formatNumber(entry.valor)}</p>
-                    <p className="text-[10px] text-muted-foreground">valor</p>
-                  </div>
-                </motion.div>
-              )
-            })
-          )}
-        </motion.div>
-      )}
 
       {/* Member Contributions Modal — Drawer on mobile, Dialog on desktop */}
       {(() => {

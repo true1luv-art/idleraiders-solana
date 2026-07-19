@@ -49,9 +49,6 @@ export async function GET(request: NextRequest) {
     // rebuilding/muted enemy strongholds with revival countdowns
     const strongholds = await guildwarService.getAllStrongholdsIncludingDestroyed()
 
-    // Get war leaderboard
-    const leaderboard = await guildwarService.getWarLeaderboard()
-
     // Get player's guild war entry if they have a guild
     let guildEntry = null
     let guildStronghold = null
@@ -71,7 +68,6 @@ export async function GET(request: NextRequest) {
       },
       outposts,
       strongholds,
-      leaderboard,
       guildEntry,
       guildStronghold,
     }

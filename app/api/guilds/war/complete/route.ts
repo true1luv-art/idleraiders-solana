@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
     // Get updated war overview
     const outposts = await guildwarService.getOutpostsWithCurrentStatus()
     const strongholds = await guildwarService.getAllStrongholdsWithCurrentHp()
-    const leaderboard = await guildwarService.getWarLeaderboard()
 
     return {
       ...result,
@@ -65,7 +64,6 @@ export async function POST(request: NextRequest) {
       warUpdate: {
         outposts,
         strongholds,
-        leaderboard,
       },
     }
   })

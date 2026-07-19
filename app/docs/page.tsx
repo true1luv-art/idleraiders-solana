@@ -65,7 +65,6 @@ const DocsPage = () => {
     { id: "guilds", label: "Guild System" },
     { id: "guildwars", label: "Guild Wars" },
     { id: "training", label: "Training System" },
-    { id: "leaderboard", label: "Leaderboard & Rewards" },
     { id: "rarities", label: "Card Rarities" },
     { id: "leveling", label: "XP & Leveling" },
     { id: "marketplace", label: "Marketplace" },
@@ -289,7 +288,7 @@ BOOSTER_MULTIPLIERS (per card):
 
           {/* ═══ BOSS MECHANICS ═══ */}
           <motion.section {...fadeUp}>
-            <SectionTitle id="bosses" sub="Boss raids are 30-minute missions that contribute to the weekly leaderboard.">
+            <SectionTitle id="bosses" sub="Boss raids are 30-minute missions that deal damage and earn XP.">
               Boss Mechanics
             </SectionTitle>
 
@@ -302,22 +301,6 @@ FinalDamage = max(1, BaseDamage)`}
                 "Damage varies from 80% to 120% of Raid Power (random variance)",
                 "Boss raids last 30 minutes (1800 seconds) and cost 30 energy",
                 "Each raid earns 45 XP (before XP boosters)",
-                "Damage accumulates toward the weekly leaderboard",
-              ]}
-            />
-
-            <FormulaBlock
-              label="Weekly Reward Pool"
-              formula={`GlobalPool = min(PREMIUM_POOL, (GlobalDamage / EXPECTED_DAMAGE) × PREMIUM_POOL)
-PlayerReward = floor((PlayerDamage / TotalDamage) × GlobalPool)
-
-EXPECTED_DAMAGE = 1,000,000
-PREMIUM_POOL    = 1,000 Soul Shards (SSHRD)`}
-              notes={[
-                "Pool activates fully when global damage reaches 1,000,000",
-                "PREMIUM_POOL is the maximum weekly payout (1,000 Soul Shards)",
-                "Rewards are proportional to your share of total boss damage",
-                "Weekly reset: Monday 00:00 Manila time (UTC+8)",
               ]}
             />
 
@@ -607,7 +590,7 @@ Min Guild Level:       3
 Min Members:           5
 Matchmaking Variance:  ±20% guild power`}
               notes={[
-                "Wars run on the weekly leaderboard cycle — 7 days per season",
+                "Wars run on a weekly cycle — 7 days per season",
                 "The Sunday 16:00 UTC snapshot finalizes the war and starts the next one",
                 "Guilds joining mid-week have less than a full 7 days of battle time",
                 "Each attack costs only 10 energy with a 30-min cooldown",
@@ -628,7 +611,7 @@ Outpost Tier Valor Multipliers:
   Tier 1: 1.0×  Tier 2: 1.5×  Tier 3: 2.0×  Tier 4: 2.5×  Tier 5: 3.0×
 
 End-of-war payout:
-  Final Guild Points are distributed by leaderboard rank
+  Final Guild Points are distributed by valor rank
   (see distributeWarRewards) — there is no flat winner/loser
   valor bonus or title.`}
               notes={[
@@ -684,40 +667,6 @@ Training Types:
                 "At 1000 luck for that card type: ~60 mastery per session",
                 "Mastery is cumulative and persists across missions",
                 "Training sessions grant 120 XP each (2 XP × 60 min)",
-              ]}
-            />
-          </motion.section>
-
-          {/* ═══ LEADERBOARD ═══ */}
-          <motion.section {...fadeUp}>
-            <SectionTitle id="leaderboard" sub="Weekly leaderboard ranking determines Soul Shard rewards.">
-              Leaderboard and Rewards
-            </SectionTitle>
-
-            <FormulaBlock
-              label="Leaderboard Ranking"
-              formula={`GlobalTotalDamage = Σ entry.totalDamage for all players
-Players ranked by totalDamage (descending)
-Top 100 players displayed on leaderboard`}
-              notes={[
-                "Damage is recorded per player via leaderboardService.recordDamageForWeek()",
-                "Each boss attack adds damage to the player's weekly total",
-                "Guild leaderboard aggregates member damage",
-              ]}
-            />
-
-            <FormulaBlock
-              label="Weekly Reward Distribution"
-              formula={`EXPECTED_DAMAGE = 1,000,000
-PREMIUM_POOL    = 1,000 Soul Shards
-
-GlobalPool   = min(PREMIUM_POOL, (GlobalDamage / EXPECTED_DAMAGE) × PREMIUM_POOL)
-PlayerReward = floor((PlayerDamage / GlobalTotalDamage) × GlobalPool)`}
-              notes={[
-                "Pool scales with global activity (caps at 1,000 Soul Shards)",
-                "Individual rewards are proportional to your share of total damage",
-                "Week boundary: Monday 00:00 Manila time (UTC+8)",
-                "Leaderboard is cleared on weekly reset",
               ]}
             />
           </motion.section>
@@ -901,7 +850,7 @@ DROP RATES (both packs):
                 <div className="space-y-3">
                   {[
                     { q: "What should I spend Realm Coins on first?", a: "Buy Standard Packs to grow your card collection. Each card rolls independently — Common 65%, Uncommon 23%, Rare 10%, Epic 1.9%, Legendary 0.1%." },
-                    { q: "How do I get Soul Shards?", a: "Soul Shards are earned from weekly leaderboard rewards based on your share of global boss damage." },
+                    { q: "How do I get Soul Shards?", a: "Soul Shards are earned from Guild War rewards distributed at the end of each weekly season based on your guild's valor ranking." },
                     { q: "Is it better to sell or keep duplicate cards?", a: "Keep duplicates early — they stack and multiply stat contributions. Sell only when you need tokens for specific purchases." },
                     { q: "How does the daily repeat penalty work?", a: "Running the same dungeon+mission combo multiple times per day reduces the bonus reward by 15% per repeat (min 10% remaining). Resets at midnight Manila time." },
                     { q: "When should I join a guild?", a: "As soon as you reach level 16. Guild buffs scale up to +50% XP, Material and Energy Regen, plus +15% boss damage at max level." },

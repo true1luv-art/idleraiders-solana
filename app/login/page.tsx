@@ -253,7 +253,7 @@ const LoginPage = () => {
 						</h1>
 						<p className="text-base text-muted-foreground leading-relaxed max-w-md">
 							Connect your Hive account to command your raiders, conquer dungeons,
-							collect rare cards, and climb the global leaderboards.
+							collect rare cards, and dominate Guild Wars.
 						</p>
 					</div>
 
@@ -357,7 +357,7 @@ const LoginPage = () => {
 				</p>
 				<h4 className="font-display font-bold text-foreground !mt-5">2. How We Use Your Information</h4>
 				<p>
-					To provide the game service, display leaderboards, process marketplace transactions, and improve
+					To provide the game service, process marketplace transactions, and improve
 					game balance.
 				</p>
 				<h4 className="font-display font-bold text-foreground !mt-5">3. Data Storage</h4>

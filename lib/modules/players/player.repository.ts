@@ -15,14 +15,6 @@ export interface CreatePlayerData {
   xp?: number;
 }
 
-export interface PlayerLeaderboardEntry {
-  _id: Types.ObjectId;
-  username: string;
-  level: number;
-  xp: number;
-  guildId?: Types.ObjectId | null;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // Repository Functions
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -164,52 +156,10 @@ export async function countRegistered(): Promise<number> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Leaderboard Aggregations
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export async function getTopByXp(limit: number = 100): Promise<PlayerLeaderboardEntry[]> {
-  return Player.aggregate([
-    { $match: { isRegistered: true } },
-    { $sort: { xp: -1 } },
-    { $limit: limit },
-    { $project: { username: 1, level: 1, xp: 1, guildId: 1 } },
-  ]);
-}
-
-export async function getTopByLevel(limit: number = 100): Promise<PlayerLeaderboardEntry[]> {
-  return Player.aggregate([
-    { $match: { isRegistered: true } },
-    { $sort: { level: -1, xp: -1 } },
-    { $limit: limit },
-    { $project: { username: 1, level: 1, xp: 1, guildId: 1 } },
-  ]);
-}
-
-export async function getPlayerRank(
-  playerId: string | Types.ObjectId,
-  sortField: 'xp' | 'level' = 'xp'
-): Promise<number> {
-  const player = await Player.findById(playerId);
-  if (!player) return -1;
-
-  const filter: FilterQuery<IPlayer> = { isRegistered: true };
-  if (sortField === 'xp') {
-    filter.xp = { $gt: player.xp };
-  } else {
-    filter.$or = [
-      { level: { $gt: player.level } },
-      { level: player.level, xp: { $gt: player.xp } },
-    ];
-  }
-
-  return (await Player.countDocuments(filter)) + 1;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // Bulk Operations for Reward Distribution
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════���═════════════════════════════════════════════════
 // Energy Operations
 // ═══════════════════════════════════════════════════════════════════════════════
 

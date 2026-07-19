@@ -171,22 +171,6 @@ export async function runAutoReviveSweepIfDue(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Get current guild war leaderboard (guilds sorted by valor)
- */
-export async function getWarLeaderboard(): Promise<GuildWarEntryWithRank[]> {
-  const entries = await guildwarRepo.findAllEntriesSortedByValor(100)
-  
-  return entries.map((entry, idx) => {
-    // Convert Mongoose subdocument to plain object if needed
-    const entryObj = typeof entry.toObject === 'function' ? entry.toObject() : entry
-    return {
-      ...entryObj,
-      rank: idx + 1,
-    }
-  })
-}
-
-/**
  * Get all outposts with current status
  * Note: Garrison decay has been removed - garrisons only change from attacks
  */
@@ -1128,7 +1112,7 @@ export async function generateHourlySupplies(): Promise<{
 
 // ════════════════���══════════════════════════════════════════════════════════════
 // Core Functions - Finalization
-// ════════════════════════��════════════════════��═════════════════════════════════
+// ════════════════════════��════════════════════��═══════���═════════════════════════
 
 /**
  * Get computed guild war data for finalization

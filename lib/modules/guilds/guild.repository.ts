@@ -217,7 +217,7 @@ export async function updateMemberLastActive(
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════���═══════════════════════════════════════════════════════════════════
 // Reputation & Ranking
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -566,37 +566,4 @@ export async function getGuildWithPerks(
   return Guild.findById(guildId).select('name points perks level').lean()
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Leaderboard Queries
-// ═══════════════════════════════════════════════════════════════════════════════
 
-export async function getTopByXp(limit: number = 10): Promise<IGuildDocument[]> {
-  await connectDB()
-  return Guild.find().sort({ xp: -1 }).limit(limit)
-}
-
-// Alias for backwards compatibility
-export const getTopGuildsByXp = getTopByXp
-
-export async function getTopByLevel(limit: number = 10): Promise<IGuildDocument[]> {
-  await connectDB()
-  return Guild.find().sort({ level: -1, xp: -1 }).limit(limit)
-}
-
-// Alias for backwards compatibility
-export const getTopGuildsByLevel = getTopByLevel
-
-export async function findAllSortedByReputation(
-  options: { skip?: number; limit?: number } = {}
-): Promise<IGuildDocument[]> {
-  await connectDB()
-  const query = Guild.find().sort({ reputation: -1, level: -1, xp: -1 })
-  if (options.skip) query.skip(options.skip)
-  if (options.limit) query.limit(options.limit)
-  return query
-}
-
-export async function getTopByReputation(limit: number = 50): Promise<IGuildDocument[]> {
-  await connectDB()
-  return Guild.find().sort({ reputation: -1 }).limit(limit)
-}
