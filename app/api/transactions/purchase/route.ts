@@ -1,57 +1,51 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { connectDB } from '@/lib/config/database'
+/**
+ * app/api/transactions/purchase/route.ts
+ *
+ * POST /api/transactions/purchase
+ *
+ * Body: { txId: string, amount: number, itemId: string, walletAddress?: string }
+ *
+ * Enqueue-only: validates the request, then drops a row in
+ * `transactions_pending`. The drain worker verifies the on-chain payment,
+ * claims the settlement slot, and applies the in-game item effect.
+ */
+
+import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
-import { queueDollarPurchase } from '@/lib/modules/transactions/transaction.service'
-import { createPurchaseQuote, HivePriceNotInitializedError } from '@/lib/modules/transactions/transaction.logic'
+import { enqueuePurchase } from '@/lib/modules/transactions-pending/repository.server'
 
-// Get purchase quote
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  await connectDB()
+const VALID_ITEMS = new Set(['card_pack'])
 
-  try {
-    const { searchParams } = new URL(request.url)
-    const quantity = parseInt(searchParams.get('quantity') || '1', 10)
-    if (quantity < 1) {
-      return NextResponse.json({ success: false, error: 'Quantity must be at least 1' }, { status: 400 })
-    }
-
-    const quote = await createPurchaseQuote(quantity)
-    return NextResponse.json({ success: true, quote })
-  } catch (error) {
-    if (error instanceof HivePriceNotInitializedError) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 503 })
-    }
-    const err = error as Error
-    return NextResponse.json({ success: false, error: err.message }, { status: 400 })
-  }
-}
-
-// Create purchase transaction or get quote
 export async function POST(request: NextRequest) {
   return withAuth(request, async (_playerId, username) => {
     const body = await request.json()
-    const { action, transactionId, quantity } = body
+    const { txId, amount, itemId, walletAddress } = (body ?? {}) as Record<string, unknown>
 
-    // Handle quote request
-    if (action === 'quote') {
-      if (!quantity || quantity < 1) {
-        throw new Error('Quantity must be at least 1')
-      }
-      const quote = await createPurchaseQuote(quantity)
-      return { quote }
+    if (typeof txId !== 'string' || !txId.trim()) {
+      throw new Error('txId is required')
+    }
+    if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1) {
+      throw new Error('amount must be an integer >= 1')
+    }
+    if (typeof itemId !== 'string' || !VALID_ITEMS.has(itemId)) {
+      throw new Error(`itemId must be one of: ${[...VALID_ITEMS].join(', ')}`)
     }
 
-    // Handle purchase request (default action)
-    if (!transactionId) {
-      throw new Error('Missing blockchain transaction ID')
-    }
-    if (!quantity || quantity < 1) {
-      throw new Error('Invalid quantity')
-    }
+    const wallet = (typeof walletAddress === 'string' && walletAddress.trim())
+      ? walletAddress.trim()
+      : username
 
-    // username is JWT-verified; queueDollarPurchase performs its own checks.
-    const result = await queueDollarPurchase(transactionId, username, { quantity })
+    const result = await enqueuePurchase({
+      walletAddress: wallet,
+      txId:          txId.trim(),
+      amount,
+      itemId,
+    })
 
-    return result
+    return {
+      status:    'queued',
+      jobId:     result.jobId,
+      duplicate: result.duplicate,
+    }
   })
 }

@@ -33,6 +33,12 @@ export interface IDailyDungeonStats {
 
 export interface IPlayer {
   username: string
+  /**
+   * Solana public key (base58) or Robinhood EVM address (0x-prefixed).
+   * Optional for legacy Hive players; required for Solana-native auth flow.
+   * Sparse index allows null without breaking the unique constraint.
+   */
+  walletAddress?: string
   isRegistered: boolean
   // Ban state — set by admin tooling (e.g., for multi-accounting, abuse, RMT).
   // When true, the /game gate blocks the player from playing. Login still works.
@@ -110,6 +116,7 @@ const DailyDungeonStatsSchema = new Schema<IDailyDungeonStats>(
 const PlayerSchema = new Schema<IPlayerDocument>(
   {
     username: { type: String, unique: true, required: true },
+    walletAddress: { type: String, index: true, sparse: true },
     isRegistered: { type: Boolean, default: false },
     isBanned: { type: Boolean, default: false, index: true },
     banReason: { type: String },

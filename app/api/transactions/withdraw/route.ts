@@ -1,28 +1,52 @@
+/**
+ * app/api/transactions/withdraw/route.ts
+ *
+ * POST /api/transactions/withdraw
+ *
+ * Body: { amount: number, walletAddress?: string }
+ *
+ * Enqueue-only: validates the request, pre-checks the balance (fast fail),
+ * then drops a row in `transactions_pending`. The drain worker deducts coins,
+ * sends tokens on-chain, and records the ledger row. Recipient is always the
+ * authenticated wallet — cannot be overridden by the request body.
+ */
+
 import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
-import { queueWithdraw } from '@/lib/modules/transactions/transaction.service'
-import { TOKEN_MAIN, TOKEN_PREMIUM, isTokenSymbol } from '@/lib/config/tokens'
+import { enqueueWithdrawal } from '@/lib/modules/transactions-pending/repository.server'
+import { connectDB } from '@/lib/config/database'
+import Player from '@/lib/modules/players/player.model'
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (_playerId, username) => {
     const body = await request.json()
-    const { quantity, symbol, to } = body
+    const { amount, walletAddress } = (body ?? {}) as Record<string, unknown>
 
-    if (!quantity || quantity <= 0) {
-      throw new Error('Invalid withdrawal quantity')
-    }
-    if (!isTokenSymbol(symbol)) {
-      throw new Error(`Invalid symbol. Must be ${TOKEN_MAIN} or ${TOKEN_PREMIUM}.`)
-    }
-    if (!to) {
-      throw new Error('Missing recipient address')
+    if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1) {
+      throw new Error('amount must be an integer >= 1')
     }
 
-    // username is JWT-verified; queueWithdraw performs its own balance pre-check
-    // and reservation. The atomic deduction in the processor is the authoritative
-    // guard against over-spending.
-    const result = await queueWithdraw(username, { quantity, symbol, to })
+    // Recipient is always the authenticated wallet/username — never from body.
+    const wallet = (typeof walletAddress === 'string' && walletAddress.trim())
+      ? walletAddress.trim()
+      : username
 
-    return result
+    // Cheap pre-check — authoritative balance guard runs again in the worker.
+    await connectDB()
+    const player = await Player.findOne({
+      $or: [{ walletAddress: wallet }, { username }],
+    }).lean()
+
+    if (!player) throw new Error('Player not found')
+
+    const coins = (player as { coins?: number }).coins ?? 0
+    if (coins < amount) throw new Error('Insufficient coin balance')
+
+    const { jobId } = await enqueueWithdrawal({
+      walletAddress: wallet,
+      withdrawAmount: amount,
+    })
+
+    return { status: 'queued', jobId }
   })
 }
