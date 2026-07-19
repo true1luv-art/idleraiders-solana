@@ -5,7 +5,6 @@ import {
   Package, 
   Globe, 
   Backpack, 
-  Trophy, 
   Store, 
   User, 
   Repeat, 
@@ -21,7 +20,6 @@ export type PageType =
   | 'packs' 
   | 'world' 
   | 'inventory' 
-  | 'leaderboard' 
   | 'marketplace' 
   | 'profile' 
   | 'trader' 
@@ -41,7 +39,6 @@ const pageConfig: Record<PageType, { icon: LucideIcon; defaultMessage: string; c
   packs: { icon: Package, defaultMessage: 'Loading pack data...', color: 'text-amber-400' },
   world: { icon: Globe, defaultMessage: 'Loading world data...', color: 'text-emerald-400' },
   inventory: { icon: Backpack, defaultMessage: 'Loading inventory...', color: 'text-blue-400' },
-  leaderboard: { icon: Trophy, defaultMessage: 'Loading leaderboard...', color: 'text-yellow-400' },
   marketplace: { icon: Store, defaultMessage: 'Loading marketplace...', color: 'text-orange-400' },
   profile: { icon: User, defaultMessage: 'Loading profile...', color: 'text-cyan-400' },
   trader: { icon: Repeat, defaultMessage: 'Loading trader...', color: 'text-rose-400' },

@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/api/auth'
 import * as guildwarService from '@/lib/modules/guildwars/guildwar.service'
 import * as playerRepo from '@/lib/modules/players/player.repository'
 import * as guildRepo from '@/lib/modules/guilds/guild.repository'
-import { getCurrentWeek } from '@/lib/modules/leaderboards/leaderboard.logic'
+import { getCurrentWeek } from '@/lib/modules/guildwars/guildwar.logic'
 
 // Get guild war overview for current season
 export async function GET(request: NextRequest) {

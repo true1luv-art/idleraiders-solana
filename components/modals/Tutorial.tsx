@@ -162,18 +162,9 @@ const TUTORIAL_SECTIONS = [
 				heading: 'How Boss Raids Work',
 				points: [
 					'Boss raids are weekly competitive events',
-					'Deal as much damage as possible to climb the leaderboard',
 					'Your damage is based on your Raid Power and card selection',
 					'Boss health pools are massive - coordinate with your guild!',
-				],
-			},
-			{
-				heading: 'Leaderboard Rewards',
-				points: [
-					'Top players are recognized on the leaderboard',
 					'Rewards are distributed at the end of each boss cycle',
-					'Guild rankings also provide bonus rewards to all members',
-					'Check the leaderboard tab to see current standings',
 				],
 			},
 		],

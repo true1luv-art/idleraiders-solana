@@ -1,21 +1,15 @@
 /**
  * Weekly Snapshot Worker
- * Cron-based worker for weekly leaderboard finalization.
+ * Cron-based worker for weekly guild war finalization.
  * No BullMQ or Redis — uses a simple in-process lock flag to prevent duplicate runs.
  *
  * Orchestrates:
- * - Leaderboard finalization (computing final ranks)
- * - Reward distribution (shards to players, points to guilds)
- * - Starting fresh for new week
+ * - Guild war finalization (distributing guild points)
+ * - Starting new week's guild war
  */
 
 import cron from 'node-cron'
-import { getCurrentWeek } from '../../lib/modules/leaderboards/leaderboard.logic'
-import {
-  finalizeWeeklyLeaderboard,
-  rewardsDistributedForWeek,
-} from '../../lib/modules/leaderboards/leaderboard.service'
-import * as leaderboardRepo from '../../lib/modules/leaderboards/leaderboard.repository'
+import { getCurrentWeek } from '../../lib/modules/guildwars/guildwar.logic'
 import * as guildwarService from '../../lib/modules/guildwars/guildwar.service'
 import * as guildwarRepo from '../../lib/modules/guildwars/guildwar.repository'
 
@@ -38,13 +32,6 @@ let cronTask: ReturnType<typeof cron.schedule> | null = null
 export interface SnapshotResult {
   success: boolean
   weekNumber: number
-  leaderboardSnapshotsCreated: number
-  rewardsDistributed: {
-    playerCount: number
-    totalShards: number
-    guildCount: number
-    totalGuildShards: number
-  }
   warSeasonFinalized: boolean
   warRewardsDistributed: {
     guildCount: number
@@ -68,8 +55,6 @@ export async function processWeeklySnapshot(
     return {
       success: true,
       weekNumber,
-      leaderboardSnapshotsCreated: 0,
-      rewardsDistributed: { playerCount: 0, totalShards: 0, guildCount: 0, totalGuildShards: 0 },
       warSeasonFinalized: false,
       warRewardsDistributed: { guildCount: 0, totalPointsDistributed: 0 },
     }
@@ -82,62 +67,29 @@ export async function processWeeklySnapshot(
       `[idleraiders-logs] Processing weekly snapshot for week ${weekNumber} (triggered by: ${triggeredBy})`,
     )
 
-    // Idempotency check
-    const alreadyDistributed = await rewardsDistributedForWeek(weekNumber)
-    if (alreadyDistributed) {
-      console.log(
-        `[idleraiders-logs] Rewards already distributed for week ${weekNumber}, skipping`,
-      )
-      return {
-        success: true,
-        weekNumber,
-        leaderboardSnapshotsCreated: 0,
-        rewardsDistributed: { playerCount: 0, totalShards: 0, guildCount: 0, totalGuildShards: 0 },
-        warSeasonFinalized: false,
-        warRewardsDistributed: { guildCount: 0, totalPointsDistributed: 0 },
-      }
-    }
-
-    const activeLeaderboard = await leaderboardRepo.findActive()
     const activeGuildWar = await guildwarRepo.findActiveByWeek(weekNumber)
 
-    if (!activeLeaderboard && !activeGuildWar) {
+    if (!activeGuildWar) {
       console.log(
-        `[idleraiders-logs] No active leaderboard or guild war found for week ${weekNumber}`,
+        `[idleraiders-logs] No active guild war found for week ${weekNumber}`,
       )
       return {
         success: true,
         weekNumber,
-        leaderboardSnapshotsCreated: 0,
-        rewardsDistributed: { playerCount: 0, totalShards: 0, guildCount: 0, totalGuildShards: 0 },
         warSeasonFinalized: false,
         warRewardsDistributed: { guildCount: 0, totalPointsDistributed: 0 },
       }
     }
 
-    const isManual = triggeredBy === 'manual'
-    let leaderboardResult = {
-      playerRewards: { count: 0, totalShards: 0 },
-      guildRewards: { count: 0, totalShards: 0 },
-    }
     let warSeasonResult = { count: 0, totalPointsDistributed: 0 }
 
-    // 1. Finalize leaderboard (if exists)
-    if (activeLeaderboard) {
-      console.log(`[idleraiders-logs] Step 1: Finalizing leaderboard and distributing rewards...`)
-      const { rewardsDistributed } = await finalizeWeeklyLeaderboard(weekNumber, isManual)
-      leaderboardResult = rewardsDistributed
-    }
-
-    // 2. Finalize guild war (if exists)
-    if (activeGuildWar) {
-      console.log(`[idleraiders-logs] Step 2: Finalizing guild war and distributing war rewards...`)
-      try {
-        const { rewardsDistributed } = await guildwarService.finalizeGuildWar(weekNumber)
-        warSeasonResult = rewardsDistributed
-      } catch (error) {
-        console.error(`[idleraiders-logs] Error finalizing guild war:`, error)
-      }
+    // Finalize guild war
+    console.log(`[idleraiders-logs] Finalizing guild war and distributing war rewards...`)
+    try {
+      const { rewardsDistributed } = await guildwarService.finalizeGuildWar(weekNumber)
+      warSeasonResult = rewardsDistributed
+    } catch (error) {
+      console.error(`[idleraiders-logs] Error finalizing guild war:`, error)
     }
 
     console.log(`[idleraiders-logs] Week ${weekNumber} snapshot processing complete`)
@@ -145,14 +97,7 @@ export async function processWeeklySnapshot(
     return {
       success: true,
       weekNumber,
-      leaderboardSnapshotsCreated: activeLeaderboard ? 1 : 0,
-      rewardsDistributed: {
-        playerCount: leaderboardResult.playerRewards.count,
-        totalShards: leaderboardResult.playerRewards.totalShards,
-        guildCount: leaderboardResult.guildRewards.count,
-        totalGuildShards: leaderboardResult.guildRewards.totalShards,
-      },
-      warSeasonFinalized: !!activeGuildWar,
+      warSeasonFinalized: true,
       warRewardsDistributed: warSeasonResult,
     }
   } catch (error) {
@@ -160,8 +105,6 @@ export async function processWeeklySnapshot(
     return {
       success: false,
       weekNumber,
-      leaderboardSnapshotsCreated: 0,
-      rewardsDistributed: { playerCount: 0, totalShards: 0, guildCount: 0, totalGuildShards: 0 },
       warSeasonFinalized: false,
       warRewardsDistributed: { guildCount: 0, totalPointsDistributed: 0 },
       error: (error as Error).message,

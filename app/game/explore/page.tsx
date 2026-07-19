@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { Users, Trophy, ArrowLeftRight, Compass, Store, Flame, ExternalLink } from 'lucide-react'
+import { Users, ArrowLeftRight, Compass, Store, Flame, ExternalLink } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
@@ -34,15 +34,6 @@ const mainFeatures = [
 		image: '/assets/explore-guild.jpg',
 		icon: Users,
 		borderColor: 'border-sky-500/30',
-	},
-	{
-		id: 'rankings',
-		path: '/game/leaderboard',
-		title: 'Rankings',
-		description: 'Compete for the most powerful cards',
-		image: '/assets/explore-rankings.jpg',
-		icon: Trophy,
-		borderColor: 'border-amber-500/30',
 	},
 ]
 
@@ -197,12 +188,7 @@ const ExplorePage = () => {
 				<FeatureCard feature={mainFeatures[0]} index={0} size="large" />
 			</div>
 
-			{/* Main Features Grid */}
-			<div className="grid grid-cols-2 gap-3">
-				{mainFeatures.slice(1).map((feature, index) => (
-					<FeatureCard key={feature.id} feature={feature} index={index + 1} />
-				))}
-			</div>
+
 
 			{/* Phoenix Merchant Guild Section */}
 			<div className="space-y-3">

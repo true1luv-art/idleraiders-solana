@@ -287,26 +287,6 @@ export interface ITransactionDocument extends ITransaction, Document {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Leaderboard Types
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface ILeaderboardEntry {
-	_id: Types.ObjectId
-	playerId: Types.ObjectId
-	username: string
-	score: number
-	rank?: number
-	period: string
-	category: string
-	createdAt: Date
-	updatedAt: Date
-}
-
-export interface ILeaderboardEntryDocument extends ILeaderboardEntry, Document {
-	_id: Types.ObjectId
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // Game Data Types (Static Configuration)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -376,10 +356,6 @@ export interface GameSystemConfig {
 }
 
 export interface GameEconomyConfig {
-	leaderboard?: {
-		EXPECTED_DAMAGE: number
-		PREMIUM_POOL: number
-	}
 }
 
 export interface GameData {

@@ -2,14 +2,54 @@
  * GuildWar Logic
  * War mechanics utilities for guild war system
  * 
- * Uses the same week schedule as leaderboard:
  * Week schedule: Monday 00:00 UTC+8 to Sunday 23:59 UTC+8
+ * Snapshot runs: Sunday 16:00 UTC (Monday 00:00 UTC+8)
  */
 
-import { getCurrentWeek, getWeekForDate } from '../leaderboards/leaderboard.logic'
+// ═══════════════════════════════════════════════════════════════════════════════
+// Week Utilities (inlined from removed leaderboard module)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Re-export week functions for convenience
-export { getCurrentWeek, getWeekForDate }
+const WEEK_START_UTC_OFFSET = 8
+const MS_PER_HOUR = 60 * 60 * 1000
+const MS_PER_DAY = 24 * MS_PER_HOUR
+const MS_PER_WEEK = 7 * MS_PER_DAY
+
+// Reference epoch: Monday April 6, 2026 00:00 UTC+8 = Week 1
+const EPOCH_MONDAY_UTC8 = new Date('2026-04-06T00:00:00+08:00').getTime()
+
+function toUTC8(date: Date): Date {
+  return new Date(date.getTime() + WEEK_START_UTC_OFFSET * MS_PER_HOUR)
+}
+
+function getMondayOfWeek(date: Date): Date {
+  const utc8Date = toUTC8(date)
+  const dayOfWeek = utc8Date.getUTCDay()
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const startOfDay = new Date(utc8Date)
+  startOfDay.setUTCHours(0, 0, 0, 0)
+  const mondayTime = startOfDay.getTime() - daysSinceMonday * MS_PER_DAY
+  return new Date(mondayTime - WEEK_START_UTC_OFFSET * MS_PER_HOUR)
+}
+
+function calculateWeekNumber(date: Date): number {
+  const monday = getMondayOfWeek(date)
+  const weeksSinceEpoch = Math.floor(
+    (monday.getTime() - EPOCH_MONDAY_UTC8 + WEEK_START_UTC_OFFSET * MS_PER_HOUR) / MS_PER_WEEK
+  )
+  return weeksSinceEpoch + 1
+}
+
+export function getWeekForDate(date: Date): { weekNumber: number; weekStart: Date; weekEnd: Date } {
+  const weekNumber = calculateWeekNumber(date)
+  const weekStart = getMondayOfWeek(date)
+  const weekEnd = new Date(weekStart.getTime() + MS_PER_WEEK - 1)
+  return { weekNumber, weekStart, weekEnd }
+}
+
+export function getCurrentWeek(): { weekNumber: number; weekStart: Date; weekEnd: Date } {
+  return getWeekForDate(new Date())
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // War Constants

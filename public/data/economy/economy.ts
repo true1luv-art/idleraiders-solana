@@ -22,27 +22,6 @@ export const MARKETPLACE = {
 }
 
 // ─────────────────────────────────────────────
-// Leaderboard Configuration
-// ─────────────────────────────────────────────
-
-export const LEADERBOARD = {
-  // Minimum expected damage threshold (floor for tiny playerbases)
-  MIN_EXPECTED_DAMAGE: 1_000_000,
-
-  // Legacy hardcoded value - kept for backwards compatibility.
-  // New dynamic system uses: max(MIN_EXPECTED_DAMAGE, totalRaidPower × EXPECTED_ATTACKS_PER_WEEK)
-  EXPECTED_DAMAGE: 1_000_000,
-
-  // Expected number of boss attacks per player per week (average activity assumption).
-  // Each attack deals ~1.0× raidPower damage on average (range 0.8x–1.2x),
-  // so total expected weekly damage = totalRaidPower × EXPECTED_ATTACKS_PER_WEEK.
-  // Tune this based on observed player activity (energy regen, attack cooldowns).
-  EXPECTED_ATTACKS_PER_WEEK: 10,
-
-  PREMIUM_POOL: 1000,
-}
-
-// ─────────────────────────────────────────────
 // Material Conversion Configuration
 // ─────────────────────────────────────────────
 // Note: live conversion logic lives in lib/modules/items/item.service.ts:convertMaterials.
@@ -67,8 +46,6 @@ export const ECONOMY_DATA = {
   MISSION_REWARDS,
 
   MARKETPLACE,
-
-  LEADERBOARD,
 
   MATERIAL_CONVERSION,
 }

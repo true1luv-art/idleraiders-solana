@@ -1420,10 +1420,9 @@ export const GUILD_PERK_BRANCHES: IGuildPerkBranch[] = [
 
 export const GUILD_WAR_CONFIG = {
   MATCHMAKING_POWER_VARIANCE: 0.2, // 20% power variance for matchmaking
-  // War duration is bound to the weekly leaderboard cycle:
-  // Monday 00:00 UTC+8 -> Sunday 23:59:59.999 UTC+8 (7 days / 168 hours).
+  // War duration: Monday 00:00 UTC+8 -> Sunday 23:59:59.999 UTC+8 (7 days / 168 hours).
   // The Sunday 16:00 UTC snapshot cron calls finalizeGuildWar(weekNumber).
-  // See lib/modules/leaderboards/leaderboard.logic.ts:getCurrentWeek.
+  // See lib/modules/guildwars/guildwar.logic.ts:getCurrentWeek.
   ATTACK_ENERGY_COST: 10,
   ATTACK_COOLDOWN_MINUTES: 30,
   BASE_FORTRESS_HP: 100000,
