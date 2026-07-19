@@ -114,9 +114,8 @@ const WalletPageInner = () => {
 		requestHivePrice()
 	}, [refetchBalances, requestHivePrice])
 
-	const gameBalance = selectedToken.symbol === 'REALMC' ? (wallet.coins ?? 0) : (wallet.shards ?? 0)
-	const onChainBalance = selectedToken.symbol === 'REALMC' ? realmcBalance : sshrdBalance
-	const playerDollars = wallet.dollars ?? 0
+	const gameBalance = wallet.coins ?? 0
+	const onChainBalance = realmcBalance
 
 	const handleDeposit = async () => {
 		if (!username || !amount || parseFloat(amount) <= 0) return
@@ -268,24 +267,7 @@ const WalletPageInner = () => {
 							{(wallet.coins ?? 0).toLocaleString()}
 						</p>
 					</div>
-					<div className="rounded-xl border border-border bg-card p-3">
-						<div className="flex items-center gap-2 mb-1">
-							<CurrencyIcon type="shard" size={16} />
-							<span className="text-[10px] text-muted-foreground uppercase tracking-wider">Soul Shards</span>
-						</div>
-						<p className="font-display text-xl font-bold text-accent">
-							{(wallet.shards ?? 0).toLocaleString()}
-						</p>
-					</div>
-					<div className="rounded-xl border border-border bg-card p-3">
-						<div className="flex items-center gap-2 mb-1">
-							<CurrencyIcon type="dollar" size={16} />
-							<span className="text-[10px] text-muted-foreground uppercase tracking-wider">Dollar</span>
-						</div>
-						<p className="font-display text-xl font-bold text-green-400">
-							{(wallet.dollars ?? 0).toLocaleString()}
-						</p>
-					</div>
+
 				</div>
 
 				<p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-2">

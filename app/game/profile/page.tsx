@@ -100,13 +100,7 @@ const ProfilePage = () => {
 	const totalRaidPowerOwn = cards.reduce((a, c) => a + (c.stats?.raidPower ?? 0) * (c.quantity ?? 1), 0)
 	const totalMasteryOwn = cards.reduce((a, c) => a + (c.stats?.mastery ?? 0) * (c.quantity ?? 1), 0)
 	const totalLuckOwn = cards.reduce((a, c) => a + (c.stats?.luck ?? 0) * (c.quantity ?? 1), 0)
-	const totalGMOwn = cards.reduce((a, c) => a + (c.stats?.gm ?? 0) * (c.quantity ?? 1), 0)
 	const totalCardCountOwn = cards.reduce((a, c) => a + (c.quantity ?? 1), 0)
-	// Guild from playerState
-	const inGuild = !!playerState?.guild?.name
-	const guildName: string = (playerState?.guild?.name as string | undefined) ?? ''
-	const guildLevel: number = (playerState?.guild?.level as number | undefined) ?? 0
-	const playerRole: string = (playerState?.guild?.role as string | undefined) ?? 'member'
 
 	const router = useRouter()
 	const searchParams = useSearchParams()
@@ -133,7 +127,7 @@ const ProfilePage = () => {
 		const fetchProfile = async () => {
 			setLoadingProfile(true)
 			try {
-				const response = await authGet(`/api/players/profile?username=${encodeURIComponent(viewingUsername)}`)
+				const response = (await authGet(`/api/players/profile?username=${encodeURIComponent(viewingUsername)}`)) as { success?: boolean; profile?: Record<string, any>; message?: string }
 				if (response.success && response.profile) {
 					setViewedProfile(response.profile)
 				} else {

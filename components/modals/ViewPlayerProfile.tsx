@@ -72,18 +72,18 @@ const ViewPlayerProfileModal = ({ open, onClose, username }: Props) => {
 		if (!open || !username) return
 		let cancelled = false
 
-		const load = async () => {
-			setLoading(true)
-			setError(null)
-			setProfile(null)
-			try {
-				const response = await authGet(`/api/players/profile?username=${encodeURIComponent(username)}`)
-				if (cancelled) return
-				if (response?.success && response.profile) {
-					setProfile(response.profile as ViewedProfile)
-				} else {
-					setError(response?.message || 'Failed to load profile')
-				}
+			const load = async () => {
+				setLoading(true)
+				setError(null)
+				setProfile(null)
+				try {
+					const response = (await authGet(`/api/players/profile?username=${encodeURIComponent(username)}`)) as { success?: boolean; profile?: Record<string, any>; message?: string }
+					if (cancelled) return
+					if (response?.success && response.profile) {
+						setProfile(response.profile as ViewedProfile)
+					} else {
+						setError(response?.message || 'Failed to load profile')
+					}
 			} catch {
 				if (!cancelled) setError('Failed to load profile')
 			} finally {

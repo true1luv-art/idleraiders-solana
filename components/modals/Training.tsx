@@ -128,12 +128,12 @@ const TrainingModal = ({ open, onClose }: TrainingModalProps) => {
 			if (startingTraining) return
 			setStartingTraining(trainingType)
 			try {
-				const result = await startTraining(trainingType)
-				// If training started successfully, close the modal so the user
-				// can see the ActiveMissionBar take over.
-				if (result?.success !== false) {
-					onClose()
-				}
+			const result = (await startTraining(trainingType)) as { success?: boolean }
+			// If training started successfully, close the modal so the user
+			// can see the ActiveMissionBar take over.
+			if (result?.success !== false) {
+				onClose()
+			}
 			} finally {
 				setStartingTraining(null)
 			}
