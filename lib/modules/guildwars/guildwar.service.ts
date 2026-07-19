@@ -36,7 +36,9 @@ import {
   STRONGHOLD_AUTO_REVIVE_SWEEP_TTL_SEC,
 } from './guildwar.logic'
 import { WAR_ECONOMY_CONFIG } from '@/public/data/progression/progression'
-import { redis } from '@/lib/redis/client'
+
+// In-process rate-limit set for auto-revive sweeps (replaces Redis NX lock)
+const autoReviveSweepRan = new Set<string>()
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -128,32 +130,25 @@ export async function ensureGuildParticipation(
 /**
  * Lazy sweep that auto-revives strongholds destroyed more than
  * STRONGHOLD_AUTO_REVIVE_MS ago. Called from the player-facing war overview
- * endpoint. Rate-limited by a per-week Redis lock (SET NX EX) so only one
- * request per STRONGHOLD_AUTO_REVIVE_SWEEP_TTL_SEC window actually hits Mongo.
- *
- * Degrades gracefully: if Redis is unreachable, we still run the sweep so
- * correctness is preserved (the Mongo query is cheap — one singleton doc).
+ * endpoint. Rate-limited by an in-process Set so only one sweep per week
+ * per server restart window actually hits Mongo.
  */
 export async function runAutoReviveSweepIfDue(
   weekNumber: number
 ): Promise<{ ran: boolean; revivedCount: number }> {
   const lockKey = `guildwar:auto-revive:sweep:${weekNumber}`
 
-  let acquired = false
-  try {
-    const result = await redis.set(
-      lockKey,
-      '1',
-      'EX',
-      STRONGHOLD_AUTO_REVIVE_SWEEP_TTL_SEC,
-      'NX'
-    )
-    acquired = result === 'OK'
-  } catch (err) {
-    // Redis unreachable — fall through and run the sweep anyway.
-    console.warn('[guildwar] auto-revive redis lock failed, running sweep anyway', err)
-    acquired = true
+  if (autoReviveSweepRan.has(lockKey)) {
+    return { ran: false, revivedCount: 0 }
   }
+  autoReviveSweepRan.add(lockKey)
+
+  // Expire the in-process lock after STRONGHOLD_AUTO_REVIVE_SWEEP_TTL_SEC seconds
+  setTimeout(() => {
+    autoReviveSweepRan.delete(lockKey)
+  }, STRONGHOLD_AUTO_REVIVE_SWEEP_TTL_SEC * 1000)
+
+  const acquired = true
 
   if (!acquired) {
     return { ran: false, revivedCount: 0 }

@@ -104,21 +104,16 @@ function MissionRow({ entry, index }: { entry: Record<string, any>; index: numbe
 				if (d.rewardCard.isNew) {
 					rewardText += ' NEW'
 				}
-			} else if (d.materialDropCount) {
-				rewardText = `${d.materialDropCount} Materials`
 			}
 			if (d.xp) rewardText = rewardText ? `${rewardText} · ${d.xp} XP` : `${d.xp} XP`
 		} else if (missionType === 'dungeon') {
 		const rewards = []
 		if (d.tokens) rewards.push(`${d.tokens} Tokens`)
-		if (d.materials) rewards.push(`${d.materials} Materials`)
 		if (d.xp) rewards.push(`${d.xp} XP`)
 		rewardText = rewards.join(' · ')
 	} else if (missionType === 'boss') {
 		const rewards = []
-		if (d.totalMaterialDrops) rewards.push(`${d.totalMaterialDrops} Materials`)
-		if (d.componentDrops) rewards.push(`${d.componentDrops} Components`)
-		if (d.catalystDrops) rewards.push(`${d.catalystDrops} Catalysts`)
+		if (d.damage) rewards.push(`${d.damage} DMG`)
 		if (d.xp) rewards.push(`${d.xp} XP`)
 		rewardText = rewards.join(' · ')
 	}

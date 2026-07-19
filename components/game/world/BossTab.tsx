@@ -1,6 +1,5 @@
-import { Lock, Zap, Loader2, Info } from 'lucide-react'
+import { Lock, Zap, Loader2 } from 'lucide-react'
 import { getBossImage } from '@/features/images'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const isDungeonUnlocked = (dungeon: Record<string, any>, playerLevel: number) => {
 	return playerLevel >= dungeon.requiredLevel
@@ -101,51 +100,7 @@ export function BossTab({
 									</div>
 									{/* Action row: Details on left, Raid on right */}
 									<div className="flex items-center justify-between">
-										<TooltipProvider delayDuration={0}>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<button
-														type="button"
-														className="flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-primary transition-colors"
-													>
-														<Info size={12} /> Details
-													</button>
-												</TooltipTrigger>
-												<TooltipContent
-													side="top"
-													className="max-w-[240px] text-[10px] md:text-xs leading-relaxed bg-background text-foreground border border-border"
-												>
-													<p className="font-bold text-foreground mb-1">Drop Rates</p>
-													<p>Components: {boss.dropRate.component}%</p>
-													<p>Catalysts: {boss.dropRate.catalyst}%</p>
-													<p className="font-bold text-foreground mt-2 mb-1">
-														Catalyst Rarity Distribution
-													</p>
-													<div className="space-y-1">
-														<p>
-															<span className="text-emerald-400">● Common:</span>{' '}
-															{Math.round(boss.catalystDropRate.common * 100)}%
-														</p>
-														<p>
-															<span className="text-blue-400">● Uncommon:</span>{' '}
-															{Math.round(boss.catalystDropRate.uncommon * 100)}%
-														</p>
-														<p>
-															<span className="text-purple-400">● Rare:</span>{' '}
-															{Math.round(boss.catalystDropRate.rare * 100)}%
-														</p>
-														<p>
-															<span className="text-yellow-400">● Epic:</span>{' '}
-															{Math.round(boss.catalystDropRate.epic * 100)}%
-														</p>
-														<p>
-															<span className="text-orange-500">● Legendary:</span>{' '}
-															{Math.round(boss.catalystDropRate.legendary * 100)}%
-														</p>
-													</div>
-												</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
+										<span />
 										<button
 											onClick={() => onStartBoss(boss.id, boss.name)}
 											disabled={!!activeMission || !canAfford || startingMission}

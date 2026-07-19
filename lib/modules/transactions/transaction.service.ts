@@ -1,7 +1,9 @@
 /**
  * Transaction Service
- * Queue operations for deposit, withdraw, purchase, and registration
- * Processing is handled by the backend service worker
+ * Direct (queue-free) processing for deposit, withdraw, dollar_purchase, and registration.
+ * Deduplication is enforced by:
+ *   1. A DB pending-tx check (one pending tx per user at a time)
+ *   2. The MongoDB unique index on Transaction.transactionId (chain-tx deduplication)
  */
 
 import crypto from 'crypto'
@@ -9,82 +11,14 @@ import type { ITransactionDocument } from './transaction.model'
 import * as transactionRepo from './transaction.repository'
 import * as playerRepo from '../players/player.repository'
 import * as logicService from './transaction.logic'
-import { addTransactionJob } from '@/lib/queues/transaction.queue'
 import { type TokenSymbol, isTokenSymbol, getBalanceField } from '@/lib/config/tokens'
-import { getRedisConnection } from '@/lib/config/redis'
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Per-user transaction lock
-// Enforces "one transaction at a time" per user across deposit/withdraw/purchase/
-// registration. Combines a fast DB pre-check with an atomic Redis NX lock to
-// close the race window between two near-simultaneous queue calls.
+// Constants
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const USER_TX_LOCK_KEY = 'idleraiders:user_tx_lock'
-const USER_TX_LOCK_TTL = 1800 // 30 minutes — bounded fallback if lock isn't released
 const PENDING_TX_MESSAGE =
   'You already have a transaction in progress. Please wait for it to finish before submitting another.'
-
-async function acquireUserTxLock(username: string): Promise<boolean> {
-  const redis = getRedisConnection()
-  const result = await redis.set(
-    `${USER_TX_LOCK_KEY}:${username}`,
-    Date.now().toString(),
-    'EX',
-    USER_TX_LOCK_TTL,
-    'NX',
-  )
-  return result === 'OK'
-}
-
-/**
- * Release the per-user transaction lock. Called by the processor when a
- * transaction reaches a terminal status (completed or failed).
- */
-export async function releaseUserTxLock(username: string): Promise<void> {
-  const redis = getRedisConnection()
-  await redis.del(`${USER_TX_LOCK_KEY}:${username}`)
-}
-
-/**
- * Refresh (or set, with no NX guard) the lock TTL. Used by recovery on startup
- * so that pending transactions re-queued from disk continue to block new
- * submissions even if the previous TTL expired during downtime.
- */
-async function refreshUserTxLock(username: string): Promise<void> {
-  const redis = getRedisConnection()
-  await redis.set(
-    `${USER_TX_LOCK_KEY}:${username}`,
-    Date.now().toString(),
-    'EX',
-    USER_TX_LOCK_TTL,
-  )
-}
-
-/**
- * Reserve a transaction slot for the user, or return a rejection message.
- * Performs both a DB pending-tx check (covers crashed-worker scenarios) and a
- * Redis NX acquire (closes the race window between concurrent requests).
- */
-async function reserveUserTxSlot(
-  username: string,
-): Promise<{ ok: true } | { ok: false; message: string }> {
-  // Fast DB pre-check — also catches the case where Redis lost the lock during
-  // a restart but a tx record is still pending/processing in Mongo.
-  const pending = await transactionRepo.findPendingBySender(username, 1)
-  if (pending.length > 0) {
-    return { ok: false, message: PENDING_TX_MESSAGE }
-  }
-
-  // Atomic NX acquire to prevent the small race window between two requests
-  // that both pass the DB check before either writes its tx record.
-  const lockAcquired = await acquireUserTxLock(username)
-  if (!lockAcquired) {
-    return { ok: false, message: PENDING_TX_MESSAGE }
-  }
-
-  return { ok: true }
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -96,8 +30,7 @@ interface QueueResult {
   transactionId?: string
   error?: string
   /**
-   * Stable machine-readable failure code. Currently used so clients/support
-   * can distinguish duplicate chain-tx replays from generic queue failures.
+   * Stable machine-readable failure code.
    */
   code?: 'duplicate_transaction'
 }
@@ -110,9 +43,6 @@ function isDuplicateTransactionIdError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false
   const e = err as { code?: number; keyPattern?: Record<string, unknown> }
   if (e.code !== 11000) return false
-  // If keyPattern is present, only treat it as duplicate-tx when the violated
-  // index is on transactionId. Older driver shapes may omit keyPattern, in
-  // which case we still treat any 11000 from this collection as a duplicate.
   return !e.keyPattern || Object.prototype.hasOwnProperty.call(e.keyPattern, 'transactionId')
 }
 
@@ -138,15 +68,29 @@ interface RegistrationMetadata {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Helper Functions
+// Helpers
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function generateTxId(): string {
   return crypto.randomUUID()
 }
 
+/**
+ * Guard: ensure the user has no pending/processing transaction already.
+ * The MongoDB unique index on transactionId handles chain-tx deduplication.
+ */
+async function checkNoPendingTx(
+  username: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const pending = await transactionRepo.findPendingBySender(username, 1)
+  if (pending.length > 0) {
+    return { ok: false, message: PENDING_TX_MESSAGE }
+  }
+  return { ok: true }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
-// Queue Operations
+// Transaction Operations
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -166,9 +110,9 @@ export async function queueDeposit(
     return { success: false, message: 'Invalid symbol' }
   }
 
-  const slot = await reserveUserTxSlot(username)
-  if (!slot.ok) {
-    return { success: false, message: slot.message }
+  const guard = await checkNoPendingTx(username)
+  if (!guard.ok) {
+    return { success: false, message: guard.message }
   }
 
   try {
@@ -183,18 +127,12 @@ export async function queueDeposit(
       logs: {},
     })
 
-    // Add to BullMQ queue for processing
-    await addTransactionJob(tx._id.toString(), 'deposit', username)
-
     return {
       success: true,
       message: 'Deposit queued for processing',
       transactionId: tx._id.toString(),
     }
   } catch (error) {
-    // Release the slot since the tx never made it into the system.
-    await releaseUserTxLock(username).catch(() => {})
-
     if (isDuplicateTransactionIdError(error)) {
       console.warn(
         `[idleraiders-logs] queueDeposit duplicate chainTxId=${chainTxId} from ${username}`,
@@ -232,9 +170,6 @@ export async function queueWithdraw(username: string, metadata: WithdrawMetadata
     return { success: false, message: 'Missing recipient' }
   }
 
-  // Local balance check (read-only). The atomic deduction in the processor is
-  // the authoritative guard against over-spending; this just gives a fast
-  // user-visible error before queueing.
   const player = await playerRepo.findByUsername(username)
   if (!player) {
     return { success: false, message: 'Player not found' }
@@ -244,9 +179,9 @@ export async function queueWithdraw(username: string, metadata: WithdrawMetadata
     return { success: false, message: `Insufficient ${symbol} balance` }
   }
 
-  const slot = await reserveUserTxSlot(username)
-  if (!slot.ok) {
-    return { success: false, message: slot.message }
+  const guard = await checkNoPendingTx(username)
+  if (!guard.ok) {
+    return { success: false, message: guard.message }
   }
 
   try {
@@ -261,16 +196,12 @@ export async function queueWithdraw(username: string, metadata: WithdrawMetadata
       logs: {},
     })
 
-    // Add to BullMQ queue for processing
-    await addTransactionJob(tx._id.toString(), 'withdraw', username)
-
     return {
       success: true,
       message: 'Withdrawal queued for processing',
       transactionId: tx._id.toString(),
     }
   } catch (error) {
-    await releaseUserTxLock(username).catch(() => {})
     console.error('[idleraiders-logs] queueWithdraw Error:', error)
     return {
       success: false,
@@ -298,13 +229,12 @@ export async function queueDollarPurchase(
     return { success: false, message: 'Price service unavailable, please try again shortly' }
   }
 
-  const slot = await reserveUserTxSlot(username)
-  if (!slot.ok) {
-    return { success: false, message: slot.message }
+  const guard = await checkNoPendingTx(username)
+  if (!guard.ok) {
+    return { success: false, message: guard.message }
   }
 
   try {
-    // Calculate expectedHive server-side — never trust the client
     const { expectedHive, hiveUsdAtQuote } = await logicService.calculateExpectedHive(quantity)
 
     const tx = await transactionRepo.create({
@@ -318,17 +248,12 @@ export async function queueDollarPurchase(
       logs: {},
     })
 
-    // Add to BullMQ queue for processing
-    await addTransactionJob(tx._id.toString(), 'dollar_purchase', username)
-
     return {
       success: true,
       message: 'Purchase queued for processing',
       transactionId: tx._id.toString(),
     }
   } catch (error) {
-    await releaseUserTxLock(username).catch(() => {})
-
     if (isDuplicateTransactionIdError(error)) {
       console.warn(
         `[idleraiders-logs] queueDollarPurchase duplicate chainTxId=${chainTxId} from ${username}`,
@@ -364,9 +289,9 @@ export async function queueRegistration(
     return { success: false, message: 'Price service unavailable, please try again shortly' }
   }
 
-  const slot = await reserveUserTxSlot(username)
-  if (!slot.ok) {
-    return { success: false, message: slot.message }
+  const guard = await checkNoPendingTx(username)
+  if (!guard.ok) {
+    return { success: false, message: guard.message }
   }
 
   try {
@@ -381,17 +306,12 @@ export async function queueRegistration(
       logs: {},
     })
 
-    // Add to BullMQ queue for processing
-    await addTransactionJob(tx._id.toString(), 'registration', username)
-
     return {
       success: true,
       message: 'Registration queued for processing',
       transactionId: tx._id.toString(),
     }
   } catch (error) {
-    await releaseUserTxLock(username).catch(() => {})
-
     if (isDuplicateTransactionIdError(error)) {
       console.warn(
         `[idleraiders-logs] queueRegistration duplicate chainTxId=${chainTxId} from ${username}`,
@@ -413,57 +333,6 @@ export async function queueRegistration(
   }
 }
 
-// ═══��════════════��══════════════════════════════════════════════════════════════
-// Recovery - Re-queue pending transactions on startup
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Recover pending transactions from the database and re-add them to the queue.
- * This should be called on server startup to handle any transactions that were
- * pending when the server was last shut down.
- */
-export async function recoverPendingTransactions(): Promise<{ recovered: number; failed: number }> {
-  console.log('[idleraiders-logs] Starting transaction recovery...')
-  
-  let recovered = 0
-  let failed = 0
-
-  try {
-    // Find all pending or processing transactions
-    const pendingTransactions = await transactionRepo.findByStatus(['pending', 'processing'], 500)
-    
-    if (pendingTransactions.length === 0) {
-      console.log('[idleraiders-logs] No pending transactions to recover')
-      return { recovered: 0, failed: 0 }
-    }
-
-    console.log(`[idleraiders-logs] Found ${pendingTransactions.length} pending transactions to recover`)
-
-    for (const tx of pendingTransactions) {
-      try {
-        // Re-acquire the per-user transaction lock so new submissions stay
-        // blocked until this resurrected tx finishes (in case the previous
-        // lock TTL expired during downtime).
-        await refreshUserTxLock(tx.sender).catch(() => {})
-
-        // Re-add to the BullMQ queue
-        await addTransactionJob(tx._id.toString(), tx.type, tx.sender)
-        recovered++
-        console.log(`[idleraiders-logs] Recovered transaction: ${tx._id} (${tx.type}) for ${tx.sender}`)
-      } catch (error) {
-        failed++
-        console.error(`[idleraiders-logs] Failed to recover transaction ${tx._id}:`, (error as Error).message)
-      }
-    }
-
-    console.log(`[idleraiders-logs] Transaction recovery complete: ${recovered} recovered, ${failed} failed`)
-    return { recovered, failed }
-  } catch (error) {
-    console.error('[idleraiders-logs] Transaction recovery error:', error)
-    return { recovered, failed }
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // Transaction Status
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -478,7 +347,7 @@ export async function getTransactionStatus(transactionId: string): Promise<{
 } | null> {
   const tx = await transactionRepo.findById(transactionId)
   if (!tx) return null
-  
+
   return {
     status: tx.status,
     type: tx.type,

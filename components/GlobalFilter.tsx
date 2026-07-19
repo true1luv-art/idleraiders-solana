@@ -302,22 +302,4 @@ export const WalletTransactionFilter = ({
 	/>
 )
 
-export const WorkshopCraftFilter = ({
-	filters,
-	onChange,
-}: {
-	filters: Record<string, string | undefined>
-	onChange: (filters: any) => void
-}) => (
-	<GlobalFilter
-		filters={filters}
-		onChange={onChange}
-		searchPlaceholder="Search recipes..."
-		config={[
-			{ key: 'type', optionsKey: 'type' },
-			{ key: 'rarity', optionsKey: 'rarity' },
-		]}
-	/>
-)
-
 export default GlobalFilter

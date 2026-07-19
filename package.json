@@ -45,7 +45,7 @@
 		"@radix-ui/react-toggle-group": "1.1.11",
 		"@radix-ui/react-tooltip": "1.2.8",
 		"autoprefixer": "^10.4.20",
-		"bullmq": "^5.34.0",
+
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "1.1.1",
@@ -57,7 +57,7 @@
 		"framer-motion": "^12.6.3",
 		"html-to-image": "^1.11.13",
 		"input-otp": "1.4.2",
-		"ioredis": "^5.4.2",
+
 		"jose": "^6.2.2",
 		"lucide-react": "^0.564.0",
 		"mongoose": "^9.3.1",

@@ -10,25 +10,9 @@ import Item from '../items/item.model'
 import * as blockchainService from './transaction.blockchain'
 import * as logicService from './transaction.logic'
 import * as historyService from '../histories/history.service'
-import { releaseUserTxLock } from './transaction.service'
 import { GAME_ACCOUNT_NAME } from '../../config/config'
-import { getRedisConnection } from '../../config/redis'
 import { REGISTRATION } from '@/public/data/system/system'
 import { getBalanceField, getTokenMinUnit, ceilToTokenPrecision } from '@/lib/config/tokens'
-
-/**
- * Release the per-user "one transaction at a time" lock once a transaction
- * reaches a terminal state. Called from a `finally` block so it fires whether
- * the processor returns normally or throws, but only when status is terminal —
- * mid-flight retries (where status is still pending/processing) keep the lock.
- */
-async function releaseLockIfTerminal(tx: { sender: string; status: string }): Promise<void> {
-  if (tx.status === 'completed' || tx.status === 'failed') {
-    await releaseUserTxLock(tx.sender).catch((err) => {
-      console.error('[idleraiders-logs] Failed to release user tx lock for', tx.sender, err)
-    })
-  }
-}
 
 // These will be injected from the server side
 let userSocketsRef: Record<string, string> = {}
@@ -49,49 +33,37 @@ export function getUserSockets(): Record<string, string> {
   return userSocketsRef
 }
 
-// Redis-based treasury minting lock for distributed workers
-const TREASURY_MINT_LOCK_KEY = 'idleraiders:treasury_mint_lock'
-const TREASURY_MINT_LOCK_TTL = 30 // 30 seconds max lock time
+// In-process treasury minting mutex (replaces Redis distributed lock)
+const treasuryMintLocks = new Map<string, boolean>()
 
 // Delay helper for waiting on blockchain processing
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
- * Acquire a distributed lock for treasury minting using Redis
- * Returns true if lock acquired, false if another process holds the lock
+ * Acquire in-process lock for treasury minting
  */
 async function acquireTreasuryMintLock(symbol: string): Promise<boolean> {
-  const redis = getRedisConnection()
-  const lockKey = `${TREASURY_MINT_LOCK_KEY}:${symbol}`
-  const result = await redis.set(lockKey, Date.now().toString(), 'EX', TREASURY_MINT_LOCK_TTL, 'NX')
-  return result === 'OK'
+  if (treasuryMintLocks.get(symbol)) return false
+  treasuryMintLocks.set(symbol, true)
+  return true
 }
 
 /**
- * Release the distributed treasury mint lock
+ * Release the in-process treasury mint lock
  */
 async function releaseTreasuryMintLock(symbol: string): Promise<void> {
-  const redis = getRedisConnection()
-  const lockKey = `${TREASURY_MINT_LOCK_KEY}:${symbol}`
-  await redis.del(lockKey)
+  treasuryMintLocks.delete(symbol)
 }
 
 /**
- * Wait for treasury mint lock to be released by another process
+ * Wait for treasury mint lock to be released
  */
 async function waitForTreasuryMintLock(symbol: string, maxWaitMs = 15000): Promise<void> {
-  const redis = getRedisConnection()
-  const lockKey = `${TREASURY_MINT_LOCK_KEY}:${symbol}`
   const startTime = Date.now()
-  
   while (Date.now() - startTime < maxWaitMs) {
-    const lockExists = await redis.exists(lockKey)
-    if (!lockExists) {
-      return // Lock released
-    }
-    await delay(1000) // Check every second
+    if (!treasuryMintLocks.get(symbol)) return
+    await delay(1000)
   }
-  
   console.log(`[idleraiders-logs] Treasury mint lock wait timeout for ${symbol}`)
 }
 
@@ -113,7 +85,7 @@ export const processDeposit = async (tx: any, io: Server) => {
     const depositTx = await blockchainService.validateHiveEngineDeposit(tx.transactionId, symbol)
 
     if (!depositTx) {
-      // If we haven't exceeded max attempts, throw to trigger BullMQ retry
+      // If we haven't exceeded max attempts, throw to retry
       if (attemptCount < 5) {
         console.log(`[idleraiders-logs] Deposit tx not found on chain yet, attempt ${attemptCount}/5, will retry...`)
         throw new Error('Transaction not found on blockchain yet, will retry')
@@ -255,9 +227,7 @@ export const processDeposit = async (tx: any, io: Server) => {
       error: error.message,
       transactionId: tx._id,
     })
-    throw error // Re-throw for BullMQ retry
-  } finally {
-    await releaseLockIfTerminal(tx)
+    throw error
   }
 }
 
@@ -348,7 +318,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
         const newEffective = await logicService.getEffectiveBalance(newBalance, symbol)
         
         if (!confirmed || newEffective < quantity) {
-          // Still insufficient - this job will retry via BullMQ
+          // Still insufficient - will retry
           throw new Error(`Treasury balance still insufficient after waiting for replenish: ${newEffective} < ${quantity}`)
         }
       } else {
@@ -377,7 +347,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
           })
           
           if (newEffective < quantity) {
-            // This can happen if SSC is slow, let BullMQ retry
+            // This can happen if SSC is slow, will retry
             throw new Error(`Treasury balance not confirmed after mint: ${newEffective} < ${quantity}`)
           }
         } finally {
@@ -389,7 +359,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
 
     // 3. Broadcast Hive Engine transfer with withdrawal memo
     // IDEMPOTENCY CHECK: If chainTxId already exists, the transfer was already sent
-    // This prevents duplicate blockchain transfers on BullMQ retries
+    // This prevents duplicate blockchain transfers on retries
     let chainTxId = tx.chainTxId
     
     if (!chainTxId) {
@@ -440,7 +410,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
 
     // CRITICAL: If the on-chain transfer was already broadcast, do NOT refund.
     // The tokens already left the treasury — refunding would create a double-spend.
-    // Leave the tx in 'processing' state and let BullMQ retry to finalize completion.
+    // Leave the tx in 'processing' state to be finalized on the next retry.
     // The chainTxId idempotency guard at the broadcast step will skip the duplicate transfer.
     if (tx.chainTxId) {
       console.error(
@@ -457,7 +427,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
       } catch (saveErr: any) {
         console.error('[processWithdraw] Failed to save post-broadcast error logs:', saveErr.message)
       }
-      throw error // Re-throw so BullMQ retries to finalize the transaction
+      throw error
     }
 
     // Pre-broadcast path: refund only if the player's balance was actually deducted.
@@ -490,9 +460,7 @@ export const processWithdraw = async (tx: any, io: Server) => {
       error: error.message,
       transactionId: tx._id,
     })
-    throw error // Re-throw for BullMQ visibility
-  } finally {
-    await releaseLockIfTerminal(tx)
+    throw error
   }
 }
 
@@ -514,7 +482,7 @@ export const processDollarPurchase = async (tx: any, io: Server) => {
     const chainTx = await blockchainService.validateHiveTransaction(tx.transactionId)
 
     if (!chainTx) {
-      // If we haven't exceeded max attempts, throw to trigger BullMQ retry
+      // If we haven't exceeded max attempts, throw to retry
       if (attemptCount < 5) {
         console.log(`[idleraiders-logs] Dollar purchase tx not found on chain yet, attempt ${attemptCount}/5, will retry...`)
         throw new Error('Transaction not found on blockchain yet, will retry')
@@ -624,9 +592,7 @@ export const processDollarPurchase = async (tx: any, io: Server) => {
       error: error.message,
       transactionId: tx._id,
     })
-    throw error // Re-throw for BullMQ retry
-  } finally {
-    await releaseLockIfTerminal(tx)
+    throw error
   }
 }
 
@@ -648,7 +614,7 @@ export const processRegistration = async (tx: any, io: Server) => {
     const chainTx = await blockchainService.validateHiveTransaction(tx.transactionId)
 
     if (!chainTx) {
-      // If we haven't exceeded max attempts, throw to trigger BullMQ retry
+      // If we haven't exceeded max attempts, throw to retry
       if (attemptCount < 5) {
         console.log(`[idleraiders-logs] Registration tx not found on chain yet, attempt ${attemptCount}/5, will retry...`)
         throw new Error('Transaction not found on blockchain yet, will retry')
@@ -672,7 +638,7 @@ export const processRegistration = async (tx: any, io: Server) => {
     if (chainTx.symbol !== 'HIVE') validationErrors.push('Must be HIVE transfer')
     
     // Validate registration fee amount (USD-based with current HIVE price).
-    // If the price service hasn't reported a rate yet, throw so BullMQ retries
+    // If the price service hasn't reported a rate yet, throw so the caller retries
     // the job rather than failing the tx permanently with a bogus expected amount.
     if (!logicService.isHiveUsdPriceInitialized()) {
       console.log('[idleraiders-logs] HIVE/USD price not initialized yet, deferring registration validation for retry...')
@@ -832,9 +798,7 @@ export const processRegistration = async (tx: any, io: Server) => {
       error: error.message,
       transactionId: tx._id,
     })
-    throw error // Re-throw for BullMQ retry
-  } finally {
-    await releaseLockIfTerminal(tx)
+    throw error
   }
 }
 

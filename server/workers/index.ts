@@ -8,7 +8,6 @@ import { initializePriceWorker, stopPriceWorker } from './worker.price'
 import { initializeSnapshotWorker, stopSnapshotWorker } from './worker.snapshot'
 import { initializeGuildWarWorker, stopGuildWarWorker } from './worker.guildwar'
 import { getIO } from '../sockets/socket.manager'
-import { recoverPendingTransactions } from '../../lib/modules/transactions/transaction.service'
 
 /**
  * Start all workers
@@ -16,13 +15,10 @@ import { recoverPendingTransactions } from '../../lib/modules/transactions/trans
 export async function startWorkers(): Promise<void> {
   console.log('[idleraiders-logs] Starting workers...')
 
-  // Initialize BullMQ transaction worker (uses getIO() internally for notifications)
+  // Initialize polling transaction worker (uses getIO() internally for notifications)
   const io = getIO()
   if (io) {
     initializeTransactionWorker(io)
-    
-    // Recover any pending transactions from database and re-queue them
-    await recoverPendingTransactions()
   } else {
     console.warn('[idleraiders-logs] Socket.IO not initialized, transaction worker skipped')
   }
@@ -33,11 +29,8 @@ export async function startWorkers(): Promise<void> {
   // Initialize snapshot worker (cron-based)
   initializeSnapshotWorker()
 
-  // Initialize guild war worker (cron-based - hourly supply generation)
+  // Initialize guild war worker (cron-based)
   initializeGuildWarWorker()
-
-  // Note: Reputation worker removed - now uses on-demand Redis-based updates
-  // when users visit the guild browser (hourly check via checkAndUpdateReputationsIfNeeded)
 
   console.log('[idleraiders-logs] All workers initialized')
 }
@@ -50,7 +43,7 @@ export async function stopWorkers(): Promise<void> {
 
   await closeTransactionWorker()
   stopPriceWorker()
-  stopSnapshotWorker()
+  await stopSnapshotWorker()
   stopGuildWarWorker()
 
   console.log('[idleraiders-logs] All workers stopped')

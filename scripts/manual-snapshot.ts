@@ -15,7 +15,6 @@
 
 import 'dotenv/config'
 import mongoose from 'mongoose'
-import { getRedisConnection, closeRedisConnection } from '../lib/config/redis'
 import * as leaderboardService from '../lib/modules/leaderboards/leaderboard.service'
 import * as leaderboardRepo from '../lib/modules/leaderboards/leaderboard.repository'
 import * as guildwarService from '../lib/modules/guildwars/guildwar.service'
@@ -32,20 +31,14 @@ async function runManualSnapshot() {
 
   try {
     // Connect to MongoDB
-    console.log('\n[1/8] Connecting to MongoDB...')
+    console.log('\n[1/7] Connecting to MongoDB...')
     await mongoose.connect(MONGODB_URI)
     console.log('      MongoDB connected')
-
-    // Connect to Redis
-    console.log('\n[2/8] Connecting to Redis...')
-    const redis = getRedisConnection()
-    await redis.ping()
-    console.log('      Redis connected')
 
     // Get current week info
     const { weekNumber, weekStart, weekEnd } = getCurrentWeek()
 
-    console.log('\n[3/8] Week Information:')
+    console.log('\n[2/7] Week Information:')
     console.log(`      Week Number: ${weekNumber}`)
     console.log(`      Week Start: ${weekStart.toISOString()}`)
     console.log(`      Week End: ${weekEnd.toISOString()}`)
@@ -74,10 +67,10 @@ async function runManualSnapshot() {
       } else if (activeLeaderboard.entries.length === 0) {
         console.log('\n[SKIPPED] No leaderboard entries to process')
       } else {
-        console.log(`\n[4/8] Found ${activeLeaderboard.entries.length} players on leaderboard`)
+        console.log(`\n[3/7] Found ${activeLeaderboard.entries.length} players on leaderboard`)
 
         // Compute rewards preview
-        console.log('\n[5/8] Computing reward distribution...')
+        console.log('\n[4/7] Computing reward distribution...')
         const computedData = await leaderboardService.getComputedLeaderboardData()
         console.log(`      Global Pool: ${computedData.global.pool} shards`)
         console.log(`      Guild Pool: ${computedData.guild.pool} points`)
@@ -107,7 +100,7 @@ async function runManualSnapshot() {
     } else if (activeGuildWar.status === 'finalized') {
       console.log('\n[SKIPPED] Guild war already finalized for this week')
     } else {
-      console.log(`\n[6/8] Found guild war with ${activeGuildWar.entries.length} participating guilds`)
+      console.log(`\n[5/7] Found guild war with ${activeGuildWar.entries.length} participating guilds`)
       console.log(`      Outposts: ${activeGuildWar.outposts.length}`)
       console.log(`      Strongholds: ${activeGuildWar.strongholds.length}`)
 
@@ -139,7 +132,7 @@ async function runManualSnapshot() {
     console.log('───────────────────────────────────────────────────────────────')
 
     // Start new leaderboard
-    console.log('\n[7/8] Creating new leaderboard for next week...')
+    console.log('\n[6/7] Creating new leaderboard for next week...')
     const newLeaderboard = await leaderboardRepo.findActive()
     if (newLeaderboard && newLeaderboard.weekNumber === weekNumber + 1) {
       console.log(`      New leaderboard already exists for week ${weekNumber + 1}`)
@@ -149,7 +142,7 @@ async function runManualSnapshot() {
     }
 
     // Start new guild war
-    console.log('\n[8/8] Creating new guild war for next week...')
+    console.log('\n[7/7] Creating new guild war for next week...')
     try {
       const newGuildWar = await guildwarService.getOrCreateCurrentGuildWar()
       console.log(`      Guild war for week ${newGuildWar.weekNumber} is ready`)
@@ -185,8 +178,7 @@ async function runManualSnapshot() {
   } finally {
     // Cleanup connections
     await mongoose.disconnect()
-    await closeRedisConnection()
-    console.log('\nConnections closed. Exiting.')
+    console.log('\nMongoDB disconnected. Exiting.')
   }
 }
 
