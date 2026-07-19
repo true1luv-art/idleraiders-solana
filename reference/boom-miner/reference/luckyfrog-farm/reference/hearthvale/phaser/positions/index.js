@@ -1,0 +1,7 @@
+export { PLOT_POSITIONS }                                          from './plotPositions.js'
+export { TREE_POSITIONS }                                          from './treePositions.js'
+export { STONE_POSITIONS, IRON_POSITIONS, GOLD_POSITIONS }        from './stonePositions.js'
+export { BUILDING_POSITIONS }                                      from './buildingPositions.js'
+export { NPC_POSITIONS }                                           from './npcs.js'
+export { BARN_ZONE, CHICKEN_SPAWN_POSITIONS, COW_SPAWN_POSITIONS, SHEEP_SPAWN_POSITIONS } from './barnPositions.js'
+export { FISHING_POSITIONS }                                       from './fishingPositions.js'
