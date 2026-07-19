@@ -69,10 +69,11 @@ export const config = {
     treasuryAddress: process.env.TREASURY_ADDRESS ?? '',
     treasuryKey:     process.env.TREASURY_KEY ?? '',
 
+    // Solana — RPC is hardcoded to mainnet; Helius is still env-based (server-only secret)
     solana: {
-      rpcUrl:      process.env.SOLANA_RPC_URL ?? 'https://api.mainnet-beta.solana.com',
+      rpcUrl:       'https://api.mainnet-beta.solana.com',
       heliusApiKey: process.env.HELIUS_API_KEY ?? '',
-      mint:        process.env.CONTRACT_ADDRESS ?? '',
+      mint:         process.env.CONTRACT_ADDRESS ?? '',
     },
 
     // Robinhood Chain constants — hardcoded (no env vars needed)
