@@ -11,7 +11,6 @@ import {
 } from './mission.logic'
 import { getRawCardBoostsById, applyBoostCap } from '../players/player.builder'
 import { getManilaDateString } from '@/lib/utils/time'
-import * as itemService from '../items/item.service'
 import * as playerService from '../players/player.service'
 import { addCard, addCardWithDetails, getPlayerCardsByTerritory, CARDS_BY_ID } from '../cards/card.service'
 import Card from '../cards/card.model'

@@ -1,5 +1,6 @@
 import Card, { type ICardDocument } from '../cards/card.model'
-import Item, { type IItemDocument } from '../items/item.model'
+import Item from '../items/item.model'
+import type { IItemDocument } from '../items/item.model'
 import Mission, { type IMissionDocument } from '../missions/mission.model'
 import Player, { type IPlayerDocument } from './player.model'
 // Import Guild model to ensure schema is registered before populate
@@ -133,7 +134,6 @@ export interface PlayerState {
 	cards: CardItem[]
 	materials: MaterialItem[]
 	potions: { energy: number; xp: number }
-	packs: IItemDocument[]
 	achievements: Achievement[]
 }
 
@@ -240,10 +240,8 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		: (activeMissionDoc as IMissionDocument | null)
 	const activeMission = serializeActiveMission(missionToSerialize)
 
-	// Single pass over items: materials, potions, packs, totalMaterials
+	// Build materials list from items collection (potions are now on player doc, packs are no longer stored)
 	const materials: MaterialItem[] = []
-	const potions: { energy: number; xp: number } = { energy: 0, xp: 0 }
-	const packs: IItemDocument[] = []
 	let totalMaterials = 0
 
 	for (const item of dbItems as IItemDocument[]) {
@@ -258,12 +256,13 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 				itemType: 'material',
 			})
 			totalMaterials += item.quantity ?? 0
-		} else if (item.itemType === 'potion') {
-			if (item.id === 'energy_potion') potions.energy += item.quantity ?? 0
-			else if (item.id === 'exp_potion') potions.xp += item.quantity ?? 0
-		} else if (item.itemType === 'pack') {
-			packs.push(item)
 		}
+	}
+
+	// Potions are now embedded directly on the player document
+	const potions: { energy: number; xp: number } = {
+		energy: player.potions?.energy ?? 0,
+		xp: player.potions?.xp ?? 0,
 	}
 
 	// Accumulate stats from all cards
@@ -425,7 +424,6 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		cards,
 		materials,
 		potions,
-		packs,
 		achievements,
 	}
 }

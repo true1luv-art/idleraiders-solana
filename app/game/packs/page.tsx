@@ -16,7 +16,6 @@ const CATALOG_PAGE_SIZE = 15
 import CurrencyIcon from '@/components/CurrencyIcon'
 import GameCard from '@/components/ui/game-card'
 import { PacksPoolFilter } from '@/components/GlobalFilter'
-import OpenPackConfirm from '@/components/modals/OpenPackConfirm'
 import BuyPackConfirm from '@/components/modals/BuyPackConfirm'
 
 const cardBackImg = GAME_UI_IMAGES.cardBack
@@ -99,14 +98,9 @@ const PacksPage = () => {
 		return map
 	}, [boosterCardPool, boosterCardSupply])
 
-	// Derive owned packs from player state
-	const ownedPacks = useMemo(() => {
-		const packsMap: Record<string, number> = {}
-		for (const packItem of playerState?.packs ?? []) {
-			packsMap[packItem.id] = packItem.quantity || 1
-		}
-		return packsMap
-	}, [playerState])
+	// Packs are no longer stored in inventory — purchasing immediately mints cards.
+	// ownedPacks is kept as an empty map so existing UI references don't break.
+	const ownedPacks = useMemo(() => ({} as Record<string, number>), [])
 
 	// Build available packs early
 	const availablePacks = ITEMS_DATA.filter((p) => p?.catergory === 'pack' && p.id !== 'land_pack')
@@ -196,58 +190,42 @@ const PacksPage = () => {
 	const getOwnedCount = (packId: string) => (ownedPacks as Record<string, number>)[packId] || 0
 	const totalOwned = Object.values(ownedPacks).reduce((a, b) => a + b, 0)
 
-	// ─── Purchase handler ──────────────────────────────────
-	// The BuyPackConfirm modal owns the idle/buying/success phase transitions
-	// and auto-closes itself after showing the success state, so we just
-	// return whether the API call succeeded.
+	// ─── Purchase + reveal handler ────────────────────────────────
+	// Buying a pack immediately mints cards (no intermediate inventory).
+	// The BuyPackConfirm modal calls this; on success we hand off directly
+	// to the card-reveal animation.
 	const handleBuyPacks = async (quantity: number): Promise<boolean> => {
 		if (!pack || !buyModalPayment) return false
-		const paymentMethod = tokenPaymentMethod
-		const res = (await buyPacksAction(pack.id, quantity, paymentMethod)) as Record<
-			string,
-			any
-		>
-		return res?.success !== false
-	}
-
-	// ─── Open handler ──────────────────────────────────────
-	// NOTE: the caller keeps the OpenPackConfirm modal OPEN while this runs so
-	// the modal can display its own "Setting up packs..." loader. We only
-	// dismiss the confirm modal after the API returns and just before the
-	// pack-opening reveal animation takes over.
-	const handleOpenPack = async (packId: string, quantity: number = 1) => {
-		if (isOpening || isOpeningPack) return
-		const owned = ownedPacks[packId] || 0
-		if (owned <= 0) {
-			toast.error('No packs to open!')
-			return
-		}
-		const qty = Math.max(1, Math.min(10, Math.floor(quantity), owned))
-		setOpeningPackId(packId)
+		const qty = Math.max(1, Math.min(10, Math.floor(quantity)))
+		setOpeningPackId(pack.id)
 		setIsOpening(true)
 
 		try {
-			const result = (await openPackAction(packId, qty)) as Record<string, any>
-			if (result?.success === false || !Array.isArray(result?.cards) || result.cards.length === 0) {
+			const res = (await buyPacksAction(pack.id, qty, tokenPaymentMethod)) as Record<string, any>
+			if (res?.success === false || !Array.isArray(res?.cards) || res.cards.length === 0) {
 				setIsOpening(false)
 				setOpeningPackId(null)
-				setConfirmPackId(null)
-				return
+				return false
 			}
 
-			// Server finished rolling — close the confirm modal and hand off to
-			// the full-screen reveal animation.
-			setConfirmPackId(null)
+			// Cards are already set via buyPacksAction → setOpenedCards.
+			// Transition to the full-screen reveal animation.
+			setBuyModalPayment(null)
 			setPackAnimating(true)
-			setCardsFlipped(new Array(result.cards.length).fill(false))
+			setCardsFlipped(new Array(res.cards.length).fill(false))
 			setTimeout(() => setPackAnimating(false), 2500)
+			return true
 		} catch (err) {
 			toast.error((err as Error)?.message || 'Failed to open pack')
 			setIsOpening(false)
 			setOpeningPackId(null)
-			setConfirmPackId(null)
+			return false
 		}
 	}
+
+	// handleOpenPack is no longer needed — purchase now directly mints cards.
+	// Kept as a no-op to avoid breaking any stale references.
+	const handleOpenPack = async (_packId: string, _quantity: number = 1) => {}
 
 	const handleFlipCard = (index: number) => {
 		playCardFlipStatic()
@@ -763,25 +741,7 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 				onConfirm={handleBuyPacks}
 			/>
 
-			{/* Open confirmation — qty stepper lives here so multi-pack opening can be
-			    wired in later without touching the page's trigger button. */}
-			<OpenPackConfirm
-				open={confirmPackId !== null}
-				onClose={() => setConfirmPackId(null)}
-				packName={
-					availablePacks.find((candidate) => candidate.id === confirmPackId)?.name || ''
-				}
-				packImage={confirmPackId === 'booster_pack' ? boosterPackImg : packImg}
-				ownedCount={confirmPackId ? getOwnedCount(confirmPackId) : 0}
-				isOpening={isOpening || isOpeningPack}
-				onConfirm={(qty) => {
-					if (!confirmPackId) return
-					// Don't close the modal here — handleOpenPack will close it
-					// only after the server responds, so the modal can keep
-					// showing its "Setting up packs..." loader during the call.
-					handleOpenPack(confirmPackId, qty)
-				}}
-			/>
+
 		</div>
 	)
 }

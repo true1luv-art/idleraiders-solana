@@ -16,7 +16,7 @@ interface RevealedCard {
 }
 
 export const usePackActions = () => {
-  const { authPost, authGet, authPut } = useApiActions()
+  const { authPost, authGet } = useApiActions()
   const [cardSupply, setCardSupply] = useState<CardSupply>({})
   const [openedCards, setOpenedCards] = useState<RevealedCard[]>([])
   const [openedPackId, setOpenedPackId] = useState<string | null>(null)
@@ -24,11 +24,19 @@ export const usePackActions = () => {
   const [isBuyingPacks, setIsBuyingPacks] = useState(false)
   const [isOpeningPack, setIsOpeningPack] = useState(false)
 
+  // Keep split supply maps for backwards compatibility with the packs page UI
+  const standardCardSupply: CardSupply = cardSupply
+  const boosterCardSupply: CardSupply = cardSupply
+  const [availableBoosterSupply, setAvailableBoosterSupply] = useState(0)
+
   const getCardSupply = useCallback(async () => {
     try {
       const data = await authGet('/api/cards/supply')
       if (data?.supply) {
         setCardSupply(data.supply)
+      }
+      if (typeof data?.availableBoosterSupply === 'number') {
+        setAvailableBoosterSupply(data.availableBoosterSupply)
       }
       return data
     } catch (error) {
@@ -46,38 +54,20 @@ export const usePackActions = () => {
     }
   }, [getCardSupply])
 
+  /**
+   * Buy and immediately open packs in a single request (max 10).
+   * Replaces the old separate buyPacks + openPack flow.
+   */
   const buyPacks = useCallback(
     async (packId: string, quantity: number, paymentMethod = 'coins') => {
       setIsBuyingPacks(true)
-      try {
-        const data = await authPost('/api/items/packs', { action: 'buy', packId, quantity, paymentMethod })
-
-        // Success feedback is shown inside the BuyPackConfirm modal (green check
-        // + auto-close). Only surface a toast when the purchase fails.
-        if (data?.success === false) {
-          toast.error(data.message || 'Failed to purchase packs')
-        }
-
-        return data
-      } catch (error) {
-        const err = error as Error
-        toast.error(err.message || 'Failed to purchase packs')
-        return { success: false, message: err.message }
-      } finally {
-        setIsBuyingPacks(false)
-      }
-    },
-    [authPost],
-  )
-
-  const openPack = useCallback(
-    async (packId: string, quantity: number = 1) => {
       setIsOpeningPack(true)
       try {
-        const data = await authPut('/api/items/packs', { packId, quantity })
+        const qty = Math.max(1, Math.min(10, Math.floor(quantity)))
+        const data = await authPost('/api/items/packs', { packId, quantity: qty, paymentMethod })
 
         if (data?.success === false) {
-          toast.error(data.message || 'Failed to open pack')
+          toast.error(data.message || 'Failed to purchase packs')
           return data
         }
 
@@ -86,13 +76,25 @@ export const usePackActions = () => {
         return data
       } catch (error) {
         const err = error as Error
-        toast.error(err.message || 'Failed to open pack')
+        toast.error(err.message || 'Failed to purchase packs')
         return { success: false, message: err.message }
       } finally {
+        setIsBuyingPacks(false)
         setIsOpeningPack(false)
       }
     },
-    [authPut],
+    [authPost],
+  )
+
+  /**
+   * Alias kept for backwards compatibility with existing UI call sites.
+   * Internally delegates to buyPacks since purchase now immediately mints cards.
+   */
+  const openPack = useCallback(
+    async (packId: string, quantity: number = 1, paymentMethod = 'coins') => {
+      return buyPacks(packId, quantity, paymentMethod)
+    },
+    [buyPacks],
   )
 
   const clearOpenedCards = useCallback(() => {
@@ -102,6 +104,9 @@ export const usePackActions = () => {
 
   return {
     cardSupply,
+    standardCardSupply,
+    boosterCardSupply,
+    availableBoosterSupply,
     openedCards,
     openedPackId,
     isFetchingSupply,
