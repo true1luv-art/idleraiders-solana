@@ -7,9 +7,8 @@
  * processes jobs oldest-first (sequential — no concurrent double-spends),
  * routes to the correct handler by type.
  *
- * Runs alongside the legacy transaction.worker.ts in parallel during the
- * migration window. Both workers coexist safely because they read from
- * different collections (transactions vs transactions_pending).
+ * Processes all pending transactions from the transactions_pending collection.
+ * Routes deposit / withdrawal / purchase jobs to their dedicated handlers.
  *
  * SERVER-ONLY.
  */

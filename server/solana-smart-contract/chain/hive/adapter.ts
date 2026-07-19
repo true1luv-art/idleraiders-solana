@@ -3,9 +3,8 @@
  *
  * Hive-Engine chain adapter conforming to the ChainAdapter interface.
  *
- * This is a thin wrapper over the existing Hive broadcast logic in
- * lib/modules/transactions/transaction.blockchain.ts. No Hive logic is
- * reimplemented here — the existing code continues to work unchanged.
+ * Self-contained Hive chain adapter using @hiveio/dhive directly.
+ * Implements deposit verification, outbound transfer, and memo parsing.
  *
  * SERVER-ONLY.
  */
@@ -142,8 +141,7 @@ export async function verifyDeposit(
     if (!tx) {
       return { valid: false, code: 'NOT_CONFIRMED', reason: 'Transaction not found on Hive' }
     }
-    // Basic check — the existing transaction.processor.ts performs full
-    // Hive-Engine sidechain validation. Here we confirm chain existence.
+  // Confirms on-chain existence; drain handlers perform full game-state validation.
     return { valid: true }
   } catch (err) {
     return {

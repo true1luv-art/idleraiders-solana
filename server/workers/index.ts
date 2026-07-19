@@ -3,7 +3,6 @@
  * Initialize all background workers
  */
 
-import { initializeTransactionWorker, closeTransactionWorker } from './transaction.worker'
 import { initializePriceWorker, stopPriceWorker } from './worker.price'
 import { initializeSnapshotWorker, stopSnapshotWorker } from './worker.snapshot'
 import { initializeGuildWarWorker, stopGuildWarWorker } from './worker.guildwar'
@@ -18,11 +17,7 @@ export async function startWorkers(): Promise<void> {
 
   const io = getIO()
   if (io) {
-    // Legacy Hive transaction worker — kept running during migration window.
-    initializeTransactionWorker(io)
-
-    // New durable transaction queue worker (deposit / withdrawal / purchase).
-    // Reads from transactions_pending; safe to run alongside the legacy worker.
+    // Durable transaction queue worker (deposit / withdrawal / purchase).
     initializeDrainWorker(io)
   } else {
     console.warn('[idleraiders-logs] Socket.IO not initialized, transaction workers skipped')
@@ -46,7 +41,6 @@ export async function startWorkers(): Promise<void> {
 export async function stopWorkers(): Promise<void> {
   console.log('[idleraiders-logs] Stopping workers...')
 
-  await closeTransactionWorker()
   await closeDrainWorker()
   stopPriceWorker()
   await stopSnapshotWorker()
