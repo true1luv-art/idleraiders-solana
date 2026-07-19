@@ -134,7 +134,7 @@ export interface ICardDocument extends ICard, Document {
 // Item Types
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type ItemType = 'material' | 'potion' | 'pack'
+export type ItemType = 'potion' | 'pack'
 
 export interface IItem {
 	_id: Types.ObjectId

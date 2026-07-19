@@ -39,7 +39,7 @@ const merchantGuildFeatures = [
 		id: 'trader',
 		path: '/game/trader',
 		title: 'Trader',
-		description: 'Upgrade materials to higher tiers',
+		description: 'Exchange items and trade with other players',
 		image: '/assets/explore-trader.jpg',
 		icon: ArrowLeftRight,
 		borderColor: 'border-orange-500/30',

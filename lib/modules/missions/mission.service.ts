@@ -198,7 +198,6 @@ function getTerritoryDropRate(territoryId: string): { card: number } {
 	return territory?.dropRate ?? { card: 15 }
 }
 
-/**
 async function getPlayerOrThrow(playerId: string | Types.ObjectId): Promise<IPlayerDocument> {
 	const player = await playerRepo.findById(playerId)
 	if (!player) throw new Error('Player not found')
@@ -608,7 +607,6 @@ export async function completeStoryQuest(
 
 	let cardDropped = false
 	let rewardCard: { cardId: string; rarity: string; type: string } | null = null
-	let chestItem: StoryCompletionResult['chestItem'] | undefined = undefined
 	let progressAdvanced = false
 
 	// ═════════════════════════════════════════════════════════════════════════
@@ -748,7 +746,6 @@ export async function completeStoryQuest(
 			cardDropped,
 			rewardCard,
 			progressAdvanced,
-			chestItem,
 			storyProgress: player.milestones!.storyProgress,
 			xp,
 			sourceName: mission.sourceName,
@@ -770,7 +767,6 @@ export async function completeStoryQuest(
 		territoryId: mission.territoryId!,
 		questNumber: mission.questNumber!,
 		isFirstCompletion,
-		chestItem,
 	}
 }
 

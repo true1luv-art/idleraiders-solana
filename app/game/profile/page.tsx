@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import {
 	BookOpen,
-	Package,
 	Zap,
 	Clock,
 	Target,
@@ -81,7 +80,6 @@ const ProfilePage = () => {
 	const { playerState, gameData } = useGame()
 	const ownPlayer = playerState ?? {}
 	const cards = playerState?.cards ?? []
-	const materials = playerState?.materials ?? []
 
 	// Ensure all required properties have defaults
 	const playerWithDefaults: Record<string, any> = {
@@ -175,19 +173,14 @@ const ProfilePage = () => {
 	const totalGM = isViewingOther && viewedProfile ? viewedProfile.gm : totalGMOwn
 	const totalCardCount = isViewingOther && viewedProfile ? viewedProfile.totalCards : totalCardCountOwn
 	const uniqueCards = isViewingOther && viewedProfile ? viewedProfile.uniqueCards : cards.length
-	const totalMaterials =
-		isViewingOther && viewedProfile
-			? viewedProfile.totalMaterials
-			: materials.reduce((a, m) => a + m.quantity, 0)
 
-	const boostCategories: { id: string; label: string; Icon: typeof BookOpen; key: 'expBoost' | 'matBoost' | 'energyBoost' }[] = [
+	const boostCategories: { id: string; label: string; Icon: typeof BookOpen; key: 'expBoost' | 'energyBoost' }[] = [
 		{ id: 'xp', label: 'XP', Icon: BookOpen, key: 'expBoost' },
-		{ id: 'material', label: 'Material', Icon: Package, key: 'matBoost' },
 		{ id: 'energy', label: 'Energy', Icon: Zap, key: 'energyBoost' },
 	]
 
 	// Live boosts from booster cards (already post-cap from the server via applyBoostCap)
-	const playerBoosts = (playerState?.boosts ?? {}) as { expBoost?: number; matBoost?: number; energyBoost?: number }
+	const playerBoosts = (playerState?.boosts ?? {}) as { expBoost?: number; energyBoost?: number }
 
 	// Achievements come pre-evaluated from the server; allAchievements[i].unlocked is a boolean
 	const allAchievements: Record<string, any>[] =
@@ -391,12 +384,7 @@ const ProfilePage = () => {
 						label="Cards (Unique)"
 						delay={0.14}
 					/>
-					<StatCard
-						icon={<span className="text-lg">📦</span>}
-						value={totalMaterials.toLocaleString()}
-						label="Materials"
-						delay={0.16}
-					/>
+
 				</div>
 			</div>
 
