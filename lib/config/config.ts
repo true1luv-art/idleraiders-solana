@@ -43,6 +43,17 @@ export const config = {
 
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret',
 
+  // Pack / mint pricing (whole-token amounts; multiply by decimals before sending)
+  // Env vars override; constants/game.ts MINT_COST is the canonical fallback for heroes.
+  pack: {
+    hero:         Number(process.env.PACK_PRICE_HERO       ?? 500_000),
+    equipment:    Number(process.env.PACK_PRICE_EQUIPMENT  ?? 100_000),
+    relic:        Number(process.env.PACK_PRICE_RELIC      ?? 150_000),
+    mount:        Number(process.env.PACK_PRICE_MOUNT      ?? 200_000),
+    booster:      Number(process.env.PACK_PRICE_BOOSTER    ?? 50_000),
+    registration: Number(process.env.REGISTRATION_FEE     ?? 1_000),
+  },
+
   // Worker tuning
   withdrawal: {
     workerPollMs: 5000,
