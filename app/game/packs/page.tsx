@@ -20,7 +20,7 @@ import BuyPackConfirm from '@/components/modals/BuyPackConfirm'
 
 const cardBackImg = GAME_UI_IMAGES.cardBack
 const packImg = GAME_UI_IMAGES.heroesPack
-const boosterPackImg = GAME_UI_IMAGES.boosterPack
+const boosterPackImg = GAME_UI_IMAGES.heroesPack
 
 // ─── Constants ─────────────────────────────────────────────
 import {
@@ -367,42 +367,25 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 				{/* Pricing & Purchase — two buttons, each opens the BuyPackConfirm
 				    modal with the corresponding payment method. */}
 					<div className="border-t border-border/50 p-5 space-y-3">
-						<div className="grid grid-cols-2 gap-2">
-							<button
-								onClick={() => setBuyModalPayment('token')}
-								disabled={isBuyingPacks || (isBoosterPack && availableBoosterSupply <= 0)}
-								className="group relative flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-background/60 p-3 transition-all hover:border-primary/60 hover:bg-background disabled:opacity-40"
-							>
-								<span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-									<Sparkles size={11} /> Buy with {currencyType === 'shard' ? 'Shards' : 'Tokens'}
-								</span>
-								<span className="font-display text-base font-bold text-foreground flex items-center gap-1.5">
-									<CurrencyIcon type={currencyType} size={16} />
-									{tokenUnitCost.toLocaleString()}
-								</span>
-								<span className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
-									Balance <CurrencyIcon type={currencyType} size={10} />
-									{playerBalance.toLocaleString()}
-								</span>
-							</button>
-							<button
-								onClick={() => setBuyModalPayment('dollar')}
-								disabled={isBuyingPacks || (isBoosterPack && availableBoosterSupply <= 0)}
-								className="group relative flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-background/60 p-3 transition-all hover:border-primary/60 hover:bg-background disabled:opacity-40"
-							>
-								<span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-									<Sparkles size={11} /> Buy with Dollar
-								</span>
-								<span className="font-display text-base font-bold text-foreground flex items-center gap-1.5">
-									<CurrencyIcon type="dollar" size={16} />
-									{dollarCost.toFixed(2)}
-								</span>
-								<span className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
-									Balance <CurrencyIcon type="dollar" size={10} />
-									{playerDollars.toLocaleString()}
-								</span>
-							</button>
-						</div>
+							<div className="flex justify-center">
+								<button
+									onClick={() => setBuyModalPayment('token')}
+									disabled={isBuyingPacks || (isBoosterPack && availableBoosterSupply <= 0)}
+									className="group relative flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-background/60 p-3 transition-all hover:border-primary/60 hover:bg-background disabled:opacity-40 w-full max-w-[200px]"
+								>
+									<span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+										<Sparkles size={11} /> Buy with Tokens
+									</span>
+									<span className="font-display text-base font-bold text-foreground flex items-center gap-1.5">
+										<CurrencyIcon type="coins" size={16} />
+										{tokenUnitCost.toLocaleString()}
+									</span>
+									<span className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
+										Balance <CurrencyIcon type="coins" size={10} />
+										{playerBalance.toLocaleString()}
+									</span>
+								</button>
+							</div>
 						{isBoosterPack && availableBoosterSupply <= 0 && (
 							<p className="text-center text-xs font-semibold text-red-400 flex items-center justify-center gap-1.5">
 								<Zap size={12} /> Sold Out
@@ -723,23 +706,17 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 
 			{/* Buy confirmation — opened from the per-currency Buy buttons above.
 			    Handles qty selection, affordability, and purchase loading state. */}
-			<BuyPackConfirm
-				open={buyModalPayment !== null}
-				onClose={() => setBuyModalPayment(null)}
-				packName={pack.name}
-				packImage={packImage}
-				currency={buyModalPayment === 'dollar' ? 'dollar' : currencyType}
-				currencyLabel={
-					buyModalPayment === 'dollar'
-						? 'Dollars'
-						: currencyType === 'shard'
-						? 'Shards'
-						: 'Tokens'
-				}
-				unitPrice={buyModalPayment === 'dollar' ? dollarCost : tokenUnitCost}
-				balance={buyModalPayment === 'dollar' ? playerDollars : playerBalance}
-				onConfirm={handleBuyPacks}
-			/>
+				<BuyPackConfirm
+					open={buyModalPayment !== null}
+					onClose={() => setBuyModalPayment(null)}
+					packName={pack.name}
+					packImage={packImage}
+					currency="coins"
+					currencyLabel="Tokens"
+					unitPrice={tokenUnitCost}
+					balance={playerBalance}
+					onConfirm={handleBuyPacks}
+				/>
 
 
 		</div>

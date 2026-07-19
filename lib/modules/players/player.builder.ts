@@ -1,8 +1,6 @@
 import Card, { type ICardDocument } from '../cards/card.model'
 import Mission, { type IMissionDocument } from '../missions/mission.model'
 import Player, { type IPlayerDocument } from './player.model'
-// Import Guild model to ensure schema is registered before populate
-import '../guilds/guild.model'
 import { xpToNextLevel } from './player.logic'
 import { getManilaDateString } from '@/lib/utils/time'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
@@ -28,14 +26,6 @@ interface GameCard {
 	}
 }
 
-interface GameItem {
-	id: string
-	name?: string
-	type?: string
-	icon?: string
-	category?: string
-}
-
 // Combined card-derived values: stats from hero/equipment/etc.
 export interface RawCardValues {
   raidPower: number
@@ -47,22 +37,11 @@ interface Stats {
 	raidPower: number
 	mastery: number
 	luck: number
-	gm: number
 }
 
 interface Boosts {
 	expBoost: number
-	matBoost: number
 	energyBoost: number
-}
-
-// Guild-level bonuses derived from the player's guild level (decimals, e.g. 0.04 = +4%).
-// All zero when the player is not in a guild.
-interface GuildBonuses {
-	xpBonus: number
-	materialBonus: number
-	energyRegen: number
-	bossDamage: number
 }
 
 interface SerializedMission {
@@ -110,10 +89,8 @@ export interface PlayerState {
 	missionStats: { fatigue: number; mastery: number; isExpBoostActive: boolean }
 	dailyDungeonStats: Record<string, number>
 	boosts: Boosts
-	guildBonuses: GuildBonuses
 	milestones: Record<string, unknown>
 	activeMission: SerializedMission | null
-	guildId: Types.ObjectId | null
 	joinedAt: Date | null
 	totalMissions: number
 	totalBossDamage: number
@@ -161,12 +138,6 @@ function getMissionLabel(type: string): string {
 			return 'Story Quest'
 		case 'boss':
 			return 'Boss Raid'
-		case 'training':
-			return 'Training Session'
-		case 'war_outpost':
-			return 'Attacking Outpost'
-		case 'war_stronghold':
-			return 'Attacking Stronghold'
 		default:
 			return 'Mission'
 	}
@@ -224,7 +195,7 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 	}
 
 	// Accumulate stats from all cards
-	const stats: Stats = { raidPower: 0, mastery: 0, luck: 0, gm: 0 }
+	const stats: Stats = { raidPower: 0, mastery: 0, luck: 0 }
 
 	const cards: CardItem[] = (dbCards as ICardDocument[]).map((dbCard) => {
 		const cardDef = CARDS_BY_ID[dbCard.cardId] ?? {}
@@ -234,7 +205,6 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		stats.raidPower += (s.raidPower || 0) * qty
 		stats.mastery += (s.mastery || 0) * qty
 		stats.luck += (s.luck || 0) * qty
-		stats.gm += (s.gm || 0) * qty
 
 		return {
 			id: dbCard.cardId,
@@ -251,36 +221,8 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 
 	const boosts: Boosts = {
 		expBoost: 0,
-		matBoost: 0,
 		energyBoost: 0,
 	}
-
-	// Derive guild bonuses from the populated guild doc (set up via
-	// buildPlayerStateById's .populate('guildId')). Safely falls back to zeros
-	// when guildId isn't populated (e.g. some direct buildPlayerState callers)
-	// or when the player has no guild.
-	const guildBonuses: GuildBonuses = (() => {
-		const zero: GuildBonuses = { xpBonus: 0, materialBonus: 0, energyRegen: 0, bossDamage: 0 }
-		const guildRef = player.guildId as unknown
-		if (!guildRef || typeof guildRef !== 'object') return zero
-		const guildLevel = (guildRef as { level?: number }).level
-		if (typeof guildLevel !== 'number') return zero
-		const levels = (GAME_DATA as { PROGRESSION?: { GUILDS?: { LEVELS?: Array<{
-			level: number
-			xpBonus: number
-			materialBonus: number
-			energyRegen: number
-			bossDamage: number
-		}> } } }).PROGRESSION?.GUILDS?.LEVELS ?? []
-		const entry = levels.find((l) => l.level === guildLevel)
-		if (!entry) return zero
-		return {
-			xpBonus: entry.xpBonus ?? 0,
-			materialBonus: entry.materialBonus ?? 0,
-			energyRegen: entry.energyRegen ?? 0,
-			bossDamage: entry.bossDamage ?? 0,
-		}
-	})()
 
 	// Serialize the milestones subdoc — convert the missionCompletions Map to a plain object
 	// so it survives JSON transport and is consumable by the client UI.
@@ -305,7 +247,6 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		territoriesCompleted: number
 		totalTerritories: number
 		minutesPlayed: number
-		inGuild: boolean
 	}
 
 	const achStats: AchStats = {
@@ -318,7 +259,6 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		territoriesCompleted: milestones.storyProgress ?? 0,
 		totalTerritories: (GAME_DATA as { WORLD?: { TERRITORIES?: unknown[] } }).WORLD?.TERRITORIES?.length ?? 0,
 		minutesPlayed: milestones.totalMinutesPlayed ?? 0,
-		inGuild: !!player.guildId,
 	}
 
 	interface ProgressionAchievement {
@@ -368,10 +308,8 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
 		missionStats: player.missionStats ?? { fatigue: 0, mastery: 0, isExpBoostActive: false },
 		dailyDungeonStats: dailyDungeonStatsObj,
 		boosts,
-		guildBonuses,
 		milestones,
 		activeMission,
-		guildId: player.guildId ?? null,
 		joinedAt: player.createdAt ?? null,
 		totalMissions: milestones.totalMissionsCompleted ?? 0,
 		totalBossDamage: milestones.totalBossDamage ?? 0,
@@ -388,7 +326,7 @@ export async function buildPlayerStateById(playerId: string | Types.ObjectId): P
 		throw new Error('Player ID is required')
 	}
 
-	const player = await Player.findById(playerId).populate('activeMission').populate('guildId')
+	const player = await Player.findById(playerId).populate('activeMission')
 
 	if (!player) {
 		throw new Error('Player not found')

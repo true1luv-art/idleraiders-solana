@@ -1,4 +1,4 @@
-export default function ProgressBar({ value, max, label }) {
+export default function ProgressBar({ value, max, label }: { value: number; max: number; label?: string }) {
   const percentage = max > 0 ? Math.floor((value / max) * 100) : 0
 
   return (

@@ -5,7 +5,7 @@ import * as cardRepo from '@/lib/modules/cards/card.repository'
 import { xpToNextLevel } from '@/lib/modules/players/player.logic'
 import { applyBoostCap } from '@/lib/modules/players/player.builder'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
-import { BOOSTER_MULTIPLIERS } from '@/public/data/cards/cardConfig'
+import { RARITY_MULTIPLIERS } from '@/public/data/cards/cardConfig'
 
 /**
  * GET /api/players/profile?username=xxx
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const playerId = player._id
+    const playerId = (player as unknown as { _id: string })._id
 
     // Get cards for stat calculation. Stats are NOT persisted on the card
     // documents — they live on the static CARDS_BY_ID registry and are
@@ -45,28 +45,25 @@ export async function GET(request: NextRequest) {
     let totalRaidPower = 0
     let totalMastery = 0
     let totalLuck = 0
-    let totalGM = 0
     let totalCards = 0
-    const rawBoosts = { expBoost: 0, matBoost: 0, energyBoost: 0 }
+    const rawBoosts = { expBoost: 0, energyBoost: 0 }
 
     for (const card of cards) {
       const qty = card.quantity ?? 1
       totalCards += qty
       const def = CARDS_BY_ID[card.cardId] ?? {}
-      const stats = (def as { stats?: { raidPower?: number; mastery?: number; luck?: number; gm?: number } }).stats ?? {}
+      const stats = (def as { stats?: { raidPower?: number; mastery?: number; luck?: number } }).stats ?? {}
 
       if (def.type === 'booster' && def.class && def.rarity) {
-        // Booster cards contribute only to the three boost types
-        const pct = BOOSTER_MULTIPLIERS[def.rarity] ?? 0
+        // Booster cards contribute only to boost types (xpBoost, energyBoost)
+        const pct = RARITY_MULTIPLIERS[(def.rarity as string)] ?? 0
         const amount = pct * qty
         if (def.class === 'xpBoost') rawBoosts.expBoost += amount
-        else if (def.class === 'materialBoost') rawBoosts.matBoost += amount
         else if (def.class === 'energyBoost') rawBoosts.energyBoost += amount
       } else {
         totalRaidPower += (stats.raidPower ?? 0) * qty
         totalMastery += (stats.mastery ?? 0) * qty
         totalLuck += (stats.luck ?? 0) * qty
-        totalGM += (stats.gm ?? 0) * qty
       }
     }
     const uniqueCards = cards.length
@@ -74,7 +71,6 @@ export async function GET(request: NextRequest) {
     // Apply the same diminishing-returns cap used for the viewing player
     const boosts = {
       expBoost: applyBoostCap(rawBoosts.expBoost),
-      matBoost: applyBoostCap(rawBoosts.matBoost),
       energyBoost: applyBoostCap(rawBoosts.energyBoost),
     }
 
@@ -92,7 +88,6 @@ export async function GET(request: NextRequest) {
         xp: player.xp ?? 0,
         xpToNextLevel: xpToNextLevel(level),
         coins: player.coins ?? 0,
-        shards: player.shards ?? 0,
         totalMissions: milestones.totalMissionsCompleted ?? 0,
         totalBossDamage: milestones.totalBossDamage ?? 0,
         totalMinutesPlayed: milestones.totalMinutesPlayed ?? 0,
@@ -101,7 +96,6 @@ export async function GET(request: NextRequest) {
         raidPower: totalRaidPower,
         mastery: totalMastery,
         luck: totalLuck,
-        gm: totalGM,
         totalCards,
         uniqueCards,
         // Effective (post-cap) boost percentages from booster cards

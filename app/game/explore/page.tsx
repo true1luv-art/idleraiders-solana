@@ -63,7 +63,7 @@ const FeatureCard = ({
 	size = 'normal',
 	onExternalClick,
 }: {
-	feature: (typeof mainFeatures)[0] | (typeof merchantGuildFeatures)[0]
+	feature: (typeof merchantGuildFeatures)[0]
 	index: number
 	size?: 'large' | 'normal'
 	onExternalClick?: (feature: (typeof merchantGuildFeatures)[0]) => void

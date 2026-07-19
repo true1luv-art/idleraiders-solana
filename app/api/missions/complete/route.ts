@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
       message: 'Mission completed!',
       delta: {
         coins: updatedState.coins,
-        shards: updatedState.shards,
         level: updatedState.level,
         xp: updatedState.xp,
         xpToNextLevel: updatedState.xpToNextLevel,
