@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useState, useEffect, type ReactNode } from 'react'
+import { signInWithHiveKeychain, isHiveKeychainAvailable } from '@/lib/auth/wallet-adapters/hive'
 
 // Only log in development
 const isDev = typeof window !== 'undefined' && process.env.NODE_ENV === 'development'
@@ -85,8 +86,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 	}, [])
 
 	const login = useCallback(async (name: string, referral = '') => {
-		const hive_keychain = window.hive_keychain
-		if (!hive_keychain) {
+		if (!isHiveKeychainAvailable()) {
 			log('Hive Keychain not found on window')
 			setError('Hive Keychain extension not found. Please install it first.')
 			return { success: false }
@@ -97,54 +97,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		setError(null)
 
 		try {
-			const signature = await new Promise<string>((resolve, reject) => {
-				let hasResponded = false
-
-				// Add a timeout to prevent infinite waiting
-				const timeout = setTimeout(() => {
-					if (!hasResponded) {
-						hasResponded = true
-						log('Keychain request timed out after 15 seconds')
-						reject(
-							new Error(
-								'Keychain popup did not respond. Make sure the extension is enabled and try again.',
-							),
-						)
-					}
-				}, 15000) // 15 second timeout
-
-				try {
-					log('Calling requestSignBuffer')
-					hive_keychain.requestSignBuffer(name, 'Idle Raiders Sign In', 'Posting', (response) => {
-						if (hasResponded) {
-							log('Ignoring late response from keychain')
-							return
-						}
-						hasResponded = true
-						clearTimeout(timeout)
-						log('Keychain response received')
-
-						if (response.success && response.result) {
-							resolve(response.result)
-						} else {
-							reject(new Error(response.message || 'Sign failed'))
-						}
-					})
-				} catch (err) {
-					hasResponded = true
-					clearTimeout(timeout)
-					logError('Error calling requestSignBuffer')
-					reject(
-						new Error('Failed to call keychain: ' + (err instanceof Error ? err.message : 'Unknown error')),
-					)
-				}
-			})
+			log('Calling signInWithHiveKeychain')
+			const result = await signInWithHiveKeychain(name)
 
 			log('Signature obtained, sending login request')
 			const response = await fetch('/api/players/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ username: name, signature, referral }),
+				body: JSON.stringify({ username: name, signature: result.signature, referral }),
 			})
 
 			const data = await response.json()
