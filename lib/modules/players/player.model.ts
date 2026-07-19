@@ -11,7 +11,6 @@ export interface IMilestones {
   totalMinutesPlayed: number
   totalOpenedPacks: number
   totalCardsCollected: number
-  totalCraftedCards: number
   totalMissionsCompleted: number
   totalTrainingSessions: number
   storyProgress: number
@@ -84,7 +83,6 @@ const MilestoneSchema = new Schema<IMilestones>({
   totalMinutesPlayed: { type: Number, default: 0 },
   totalOpenedPacks: { type: Number, default: 0 },
   totalCardsCollected: { type: Number, default: 0 },
-  totalCraftedCards: { type: Number, default: 0 },
   totalMissionsCompleted: { type: Number, default: 0 },
   totalTrainingSessions: { type: Number, default: 0 },
   storyProgress: { type: Number, min: 0, max: 25, default: 0 },

@@ -18,7 +18,7 @@ export interface Card {
   class: string
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'special'
   supply?: number
-  source?: 'heroes_pack' | 'craft' | 'event'
+  source?: 'heroes_pack' | 'event'
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

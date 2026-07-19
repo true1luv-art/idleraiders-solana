@@ -41,7 +41,6 @@ const POOL_BY_RARITY: Record<string, AnyCard[]> = {}
 for (const c of cards) {
   if (!c.rarity) continue
   if (c.type === 'booster') continue
-  if (c.source?.type === 'crafting') continue
   if (c.source?.type === 'story') continue
   if (!POOL_BY_RARITY[c.rarity]) POOL_BY_RARITY[c.rarity] = []
   POOL_BY_RARITY[c.rarity].push(c)

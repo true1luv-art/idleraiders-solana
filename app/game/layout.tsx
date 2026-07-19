@@ -28,7 +28,6 @@ function getPageTypeFromPath(pathname: string): PageType {
     'training': 'training',
     'wallet': 'wallet',
     'explore': 'explore',
-    'crafting': 'crafting',
   }
   return pageMap[segment] ?? 'default'
 }

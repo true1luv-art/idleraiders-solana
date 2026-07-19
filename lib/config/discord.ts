@@ -12,7 +12,6 @@
 export type DiscordChannel = 
   | 'registrations'
   | 'guild-war'
-  | 'crafting'
   | 'pack-opening'
   | 'tavern'
 
@@ -48,7 +47,6 @@ export interface DiscordMessage {
 const WEBHOOK_ENV_KEYS: Record<DiscordChannel, string> = {
   'registrations': 'DISCORD_WEBHOOK_REGISTRATIONS',
   'guild-war': 'DISCORD_WEBHOOK_GUILD_WAR',
-  'crafting': 'DISCORD_WEBHOOK_CRAFTING',
   'pack-opening': 'DISCORD_WEBHOOK_PACK_OPENING',
   'tavern': 'DISCORD_WEBHOOK_TAVERN',
 }
@@ -59,7 +57,6 @@ const WEBHOOK_ENV_KEYS: Record<DiscordChannel, string> = {
 export const CHANNEL_COLORS: Record<DiscordChannel, number> = {
   'registrations': 0x00FF00,  // Green - New players
   'guild-war': 0xFF0000,      // Red - War/Combat
-  'crafting': 0xF39C12,       // Orange - Crafting
   'pack-opening': 0x9B59B6,   // Purple - Pack openings/Gacha
   'tavern': 0xFFD700,         // Gold - Highlight events (legendary pulls, captures, destructions)
 }
@@ -264,36 +261,6 @@ export async function notifyGuildWarEvent(data: {
 }
 
 /**
- * Notify when a player crafts a card
- */
-export async function notifyCrafting(data: {
-  playerName: string
-  cardName: string
-  cardRarity: string
-  isFirstCraft?: boolean
-}): Promise<boolean> {
-  // Only notify for rare+ crafts or first crafts
-  const notifiableRarities = ['rare', 'epic', 'legendary', 'mythic']
-  if (!data.isFirstCraft && !notifiableRarities.includes(data.cardRarity.toLowerCase())) {
-    return false
-  }
-
-  const color = RARITY_COLORS[data.cardRarity.toLowerCase()] || CHANNEL_COLORS['crafting']
-
-  return sendDiscordMessage('crafting', {
-    embeds: [{
-      title: data.isFirstCraft ? 'First Craft!' : 'Card Crafted!',
-      description: `**${data.playerName}** crafted **${data.cardName}**!`,
-      color,
-      fields: [
-        { name: 'Rarity', value: data.cardRarity, inline: true },
-      ],
-      timestamp: new Date().toISOString(),
-    }],
-  })
-}
-
-/**
  * Notify when a player opens a pack - shows ALL cards obtained
  */
 export async function notifyPackOpening(data: {
@@ -464,7 +431,6 @@ export async function testWebhooks(): Promise<Record<DiscordChannel, boolean>> {
   const results: Record<DiscordChannel, boolean> = {
     'registrations': false,
     'guild-war': false,
-    'crafting': false,
     'pack-opening': false,
     'tavern': false,
   }

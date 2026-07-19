@@ -3,7 +3,6 @@ import { EQUIPMENTS_CARD_DATA } from './equipments'
 import { MOUNTS_CARD_DATA } from './mounts'
 import { TRANSPORTS_CARD_DATA } from './transports'
 import { ARTIFACTS_CARD_DATA } from './artifacts'
-import { CRAFTING_CARD_DATA } from './crafts'
 import { STORIES_CARD_DATA } from './stories'
 
 import getCardStats from './cardConfig'
@@ -16,7 +15,6 @@ const RAW_CARDS = [
   ...MOUNTS_CARD_DATA,
   ...TRANSPORTS_CARD_DATA,
   ...ARTIFACTS_CARD_DATA,
-  ...CRAFTING_CARD_DATA,
   ...STORIES_CARD_DATA,
 ]
 

@@ -29,7 +29,7 @@ const dropRates = standardPack.data.dropRates as Record<string, number>
 const POOL_BY_RARITY: Record<string, AnyCard[]> = {}
 for (const card of cards) {
   if (!card.rarity) continue
-  if (card.source?.type && ["booster", "crafting", "story"].includes(card.source.type)) continue
+  if (card.source?.type && ["booster", "story"].includes(card.source.type)) continue
     ; (POOL_BY_RARITY[card.rarity] ||= []).push(card)
 }
 

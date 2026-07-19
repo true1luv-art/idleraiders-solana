@@ -58,7 +58,6 @@ export interface IMilestones {
 	totalMinutesPlayed: number
 	totalOpenedPacks: number
 	totalCardsCollected: number
-	totalCraftedCards: number
 	totalMissionsCompleted: number
 	storyProgress: number
 	missionCompletions: Map<string, number>

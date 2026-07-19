@@ -3,7 +3,7 @@
  *
  * Mirrors the production roll logic in `lib/modules/items/item.service.ts`:
  *   - Standard pack = 3 cards, each rolled independently against `dropRates`.
- *   - Pool excludes boosters, crafting, and story-source cards.
+ *   - Pool excludes boosters and story-source cards.
  *   - Within a rarity, the card is picked uniformly at random.
  *
  * Supply caps are ignored — over 3,000 rolls the expected number of legendaries is ~3,
@@ -29,7 +29,6 @@ const POOL_BY_RARITY: Record<string, AnyCard[]> = {}
 for (const card of cards) {
   if (!card.rarity) continue
   if (card.type === 'booster') continue
-  if (card.source?.type === 'crafting') continue
   if (card.source?.type === 'story') continue
   if (!POOL_BY_RARITY[card.rarity]) POOL_BY_RARITY[card.rarity] = []
   POOL_BY_RARITY[card.rarity].push(card)

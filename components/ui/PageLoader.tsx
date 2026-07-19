@@ -28,7 +28,6 @@ export type PageType =
   | 'training' 
   | 'wallet'
   | 'explore'
-  | 'crafting'
   | 'auth'
   | 'default'
 
@@ -49,7 +48,6 @@ const pageConfig: Record<PageType, { icon: LucideIcon; defaultMessage: string; c
   training: { icon: Dumbbell, defaultMessage: 'Loading training...', color: 'text-red-400' },
   wallet: { icon: Wallet, defaultMessage: 'Loading wallet...', color: 'text-green-400' },
   explore: { icon: Compass, defaultMessage: 'Loading exploration...', color: 'text-teal-400' },
-  crafting: { icon: Package, defaultMessage: 'Loading crafting...', color: 'text-indigo-400' },
   auth: { icon: Lock, defaultMessage: 'Verifying access...', color: 'text-primary' },
   default: { icon: Shield, defaultMessage: 'Loading...', color: 'text-primary' },
 }
