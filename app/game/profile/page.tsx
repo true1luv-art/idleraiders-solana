@@ -4,7 +4,8 @@ import React from 'react'
 import { useState, useRef, useCallback, useMemo, useEffect, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
+import GAME_DATA from '@/public/data/index'
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import {
@@ -77,7 +78,9 @@ const StatCard = ({
 )
 
 const ProfilePage = () => {
-	const { playerState, gameData } = useGame()
+	const playerState = useGameStore((s) => s.playerState)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const gameData: Record<string, any> = GAME_DATA
 	const ownPlayer = playerState ?? {}
 	const cards = playerState?.cards ?? []
 

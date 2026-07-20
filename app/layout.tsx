@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Philosopher } from 'next/font/google'
-import { AuthProvider, AudioProvider, GameProvider } from '@/context'
+import { AudioProvider } from '@/context'
+import { AuthHydration } from '@/components/AuthHydration'
 import { Toaster } from 'sonner'
 import Maintenance from '@/components/Maintenance'
 import './globals.css'
@@ -79,14 +80,11 @@ export default function RootLayout({
         {isMaintenance ? (
           <Maintenance />
         ) : (
-          <AuthProvider>
-            <AudioProvider>
-              <GameProvider>
-                {children}
-                <Toaster position="top-right" richColors />
-              </GameProvider>
-            </AudioProvider>
-          </AuthProvider>
+          <AudioProvider>
+            <AuthHydration />
+            {children}
+            <Toaster position="top-right" richColors />
+          </AudioProvider>
         )}
       </body>
     </html>

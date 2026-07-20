@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
+import GAME_DATA from '@/public/data/index'
 import { Layers, Backpack, ChevronLeft, ChevronRight } from 'lucide-react'
 import GlobalFilter, { InventoryCardsFilter } from '@/components/GlobalFilter'
 import GameCard from '@/components/ui/game-card'
@@ -10,7 +11,9 @@ import GameCard from '@/components/ui/game-card'
 const PAGE_SIZE = 15
 
 const InventoryPage = () => {
-	const { playerState, gameData } = useGame()
+	const playerState = useGameStore((s) => s.playerState)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const gameData: Record<string, any> = GAME_DATA
 	const cards = playerState?.cards ?? []
 	// Potions are embedded on the player doc as { energy: number, xp: number }
 	const rawPotions = playerState?.potions

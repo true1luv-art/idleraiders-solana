@@ -72,7 +72,9 @@ const PACKS_BY_ID = Object.fromEntries(
   ITEMS_ARRAY.filter((item) => item?.catergory === 'pack' || item?.category === 'pack').map((item) => [item.id, item])
 ) as Record<string, GamePack>
 
-const CARDS_BY_RARITY = CARDS_ARRAY.reduce((acc, card) => {
+// Only heroes enter the pack roll pool — equipment/mounts/artifacts are
+// preserved in GAME_DATA but excluded from drops until further notice.
+const CARDS_BY_RARITY = CARDS_ARRAY.filter((card) => card?.type === 'hero').reduce((acc, card) => {
   if (!card?.rarity) return acc
   if (!acc[card.rarity]) acc[card.rarity] = []
   acc[card.rarity].push(card)

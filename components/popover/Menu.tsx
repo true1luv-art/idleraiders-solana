@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { User, LogOut, Users, Settings, BookOpen, Clock, GraduationCap } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
-import { useGame } from '@/context/GameContext'
+import { useAuthStore } from '@/features/store/authStore'
+import { useGameStore } from '@/features/store/gameStore'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -25,8 +25,8 @@ interface MenuPopoverProps {
 }
 
 const MenuPopover = ({ onSettingsClick, onHistoryClick, onReferralsClick, onTutorialClick }: MenuPopoverProps) => {
-  const { playerState } = useGame()
-  const { logout } = useAuth()
+  const playerState = useGameStore((s) => s.playerState)
+  const logout = useAuthStore((s) => s.logout)
   const router = useRouter()
 
   if (!playerState) return null

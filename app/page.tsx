@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { useAuth } from '@/context'
+import { useAuth } from '@/hooks/useAuth'
 import {
 	Swords,
 	Shield,

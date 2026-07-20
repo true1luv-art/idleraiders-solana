@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useAuth } from '@/context'
+import { useAuth } from '@/hooks/useAuth'
 import { isHiveKeychainAvailable } from '@/lib/auth/wallet-adapters/hive'
 import { Loader2, FileText, ShieldCheck, UserPlus, ExternalLink, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { useWalletActions, usePlayerActions } from '@/features/actions'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useHiveBlockchain } from '@/hooks/useBlockchain'

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
+import GAME_DATA from '@/public/data/index'
 import { useMissionActions } from '@/features/actions'
 import { ChevronDown, ChevronUp, ChevronRight, Swords, Skull, BookOpen, Clock, Info, Dumbbell } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
@@ -56,7 +57,9 @@ const tabsConfig = {
 }
 
 const WorldPage = () => {
-	const { playerState, gameData } = useGame()
+	const playerState = useGameStore((s) => s.playerState)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const gameData: Record<string, any> = GAME_DATA
 	const { startMission } = useMissionActions()
 	const { milestones } = usePlayer()
 	const WORLD_DATA = gameData?.WORLD

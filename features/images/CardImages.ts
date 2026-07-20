@@ -10,21 +10,22 @@ export const CARD_BACK_FALLBACK = '/assets/card_back.png'
 
 export const CARD_IMAGES: Record<string, string> = {
   // ═══════════════════════════════════════════════════════════════════════════
-  // HEROES
+  // HEROES — 20 starting roster (Season 1)
   // ═══════════════════════════════════════════════════════════════════════════
-  // Legendary Heroes (1)
+
+  // Legendary (1)
   legendary_hero_1: '/assets/cards/legendary_hero_1.png',
 
-  // Epic Heroes (2)
+  // Epic (2)
   epic_hero_1: '/assets/cards/epic_hero_1.png',
   epic_hero_2: '/assets/cards/epic_hero_2.png',
 
-  // Rare Heroes (3)
+  // Rare (3)
   rare_hero_1: '/assets/cards/rare_hero_1.png',
   rare_hero_2: '/assets/cards/rare_hero_2.png',
   rare_hero_3: '/assets/cards/rare_hero_3.png',
 
-  // Uncommon Heroes (6)
+  // Uncommon (6)
   uncommon_hero_1: '/assets/cards/uncommon_hero_1.png',
   uncommon_hero_2: '/assets/cards/uncommon_hero_2.png',
   uncommon_hero_3: '/assets/cards/uncommon_hero_3.png',
@@ -32,7 +33,7 @@ export const CARD_IMAGES: Record<string, string> = {
   uncommon_hero_5: '/assets/cards/uncommon_hero_5.png',
   uncommon_hero_6: '/assets/cards/uncommon_hero_6.png',
 
-  // Common Heroes (8)
+  // Common (8)
   common_hero_1: '/assets/cards/common_hero_1.png',
   common_hero_2: '/assets/cards/common_hero_2.png',
   common_hero_3: '/assets/cards/common_hero_3.png',
@@ -43,89 +44,8 @@ export const CARD_IMAGES: Record<string, string> = {
   common_hero_8: '/assets/cards/common_hero_8.png',
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EQUIPMENT
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Legendary Equipment (1)
-  legendary_equipment_1: '/assets/cards/legendary_equipment_1.png',
-
-  // Epic Equipment (2)
-  epic_equipment_1: '/assets/cards/epic_equipment_1.png',
-  epic_equipment_2: '/assets/cards/epic_equipment_2.png',
-
-  // Rare Equipment (3)
-  rare_equipment_1: '/assets/cards/rare_equipment_1.png',
-  rare_equipment_2: '/assets/cards/rare_equipment_2.png',
-  rare_equipment_3: '/assets/cards/rare_equipment_3.png',
-
-  // Uncommon Equipment (5)
-  uncommon_equipment_1: '/assets/cards/uncommon_equipment_1.png',
-  uncommon_equipment_2: '/assets/cards/uncommon_equipment_2.png',
-  uncommon_equipment_3: '/assets/cards/uncommon_equipment_3.png',
-  uncommon_equipment_4: '/assets/cards/uncommon_equipment_4.png',
-  uncommon_equipment_5: '/assets/cards/uncommon_equipment_5.png',
-
-  // Common Equipment (8) - images not yet available, will use fallback
-  common_equipment_1: '/assets/cards/common_equipment_1.png',
-  common_equipment_2: '/assets/cards/common_equipment_2.png',
-  common_equipment_3: '/assets/cards/common_equipment_3.png',
-  common_equipment_4: '/assets/cards/common_equipment_4.png',
-  common_equipment_5: '/assets/cards/common_equipment_5.png',
-  common_equipment_6: '/assets/cards/common_equipment_6.png',
-  common_equipment_7: '/assets/cards/common_equipment_7.png',
-  common_equipment_8: '/assets/cards/common_equipment_8.png',
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MOUNTS (images not yet available)
-  // ═══════════════════════════════════════════════════════════════════════════
-  legendary_mount_1: '/assets/cards/legendary_mount_1.png',
-  epic_mount_1: '/assets/cards/epic_mount_1.png',
-  rare_mount_1: '/assets/cards/rare_mount_1.png',
-  rare_mount_2: '/assets/cards/rare_mount_2.png',
-  uncommon_mount_1: '/assets/cards/uncommon_mount_1.png',
-  uncommon_mount_2: '/assets/cards/uncommon_mount_2.png',
-  uncommon_mount_3: '/assets/cards/uncommon_mount_3.png',
-  common_mount_1: '/assets/cards/common_mount_1.png',
-  common_mount_2: '/assets/cards/common_mount_2.png',
-  common_mount_3: '/assets/cards/common_mount_3.png',
-  common_mount_4: '/assets/cards/common_mount_4.png',
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ARTIFACTS (images not yet available)
-  // ═══════════════════════════════════════════════════════════════════════════
-  legendary_artifact_1: '/assets/cards/legendary_artifact_1.png',
-  epic_artifact_1: '/assets/cards/epic_artifact_1.png',
-  rare_artifact_1: '/assets/cards/rare_artifact_1.png',
-  rare_artifact_2: '/assets/cards/rare_artifact_2.png',
-  rare_artifact_3: '/assets/cards/rare_artifact_3.png',
-  uncommon_artifact_1: '/assets/cards/uncommon_artifact_1.png',
-  uncommon_artifact_2: '/assets/cards/uncommon_artifact_2.png',
-  common_artifact_1: '/assets/cards/common_artifact_1.png',
-  common_artifact_2: '/assets/cards/common_artifact_2.png',
-  common_artifact_3: '/assets/cards/common_artifact_3.png',
-  common_artifact_4: '/assets/cards/common_artifact_4.png',
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // TRANSPORTS (images not yet available)
-  // ═══════════════════════════════════════════════════════════════════════════
-  legendary_transport_1: '/assets/cards/legendary_transport_1.png',
-  epic_transport_1: '/assets/cards/epic_transport_1.png',
-  rare_transport_1: '/assets/cards/rare_transport_1.png',
-  rare_transport_2: '/assets/cards/rare_transport_2.png',
-  rare_transport_3: '/assets/cards/rare_transport_3.png',
-  uncommon_transport_1: '/assets/cards/uncommon_transport_1.png',
-  uncommon_transport_2: '/assets/cards/uncommon_transport_2.png',
-  uncommon_transport_3: '/assets/cards/uncommon_transport_3.png',
-  uncommon_transport_4: '/assets/cards/uncommon_transport_4.png',
-  common_transport_1: '/assets/cards/common_transport_1.png',
-  common_transport_2: '/assets/cards/common_transport_2.png',
-  common_transport_3: '/assets/cards/common_transport_3.png',
-  common_transport_4: '/assets/cards/common_transport_4.png',
-  common_transport_5: '/assets/cards/common_transport_5.png',
-  common_transport_6: '/assets/cards/common_transport_6.png',
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // STORY CARDS (Territory 1-4 images available, Territory 5 pending)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════��═════════════════════════
   // Territory 1: Evershade
   story_special_1: '/assets/cards/story_special_1.png', // Evershade Scout (hero)
   story_special_2: '/assets/cards/story_special_2.png', // Ambusher's Cloak (equipment)
@@ -169,37 +89,6 @@ export const FALLBACK_IMAGES: Record<string, Record<string, string>> = {
     uncommon: '/assets/cards/uncommon_hero_1.png',
     common: '/assets/cards/common_hero_1.png',
     special: '/assets/cards/story_special_1.png',
-  },
-  equipment: {
-    legendary: '/assets/cards/legendary_equipment_1.png',
-    epic: '/assets/cards/epic_equipment_1.png',
-    rare: '/assets/cards/rare_equipment_1.png',
-    uncommon: '/assets/cards/uncommon_equipment_1.png',
-    common: '/assets/cards/uncommon_equipment_1.png', // Fallback to uncommon since common not available
-    special: '/assets/cards/story_special_2.png',
-  },
-  mount: {
-    legendary: '/assets/cards/legendary_hero_1.png', // Fallback to hero
-    epic: '/assets/cards/epic_hero_1.png',
-    rare: '/assets/cards/rare_hero_1.png',
-    uncommon: '/assets/cards/uncommon_hero_1.png',
-    common: '/assets/cards/common_hero_1.png',
-    special: '/assets/cards/story_special_3.png',
-  },
-  artifact: {
-    legendary: '/assets/cards/legendary_equipment_1.png', // Fallback to equipment
-    epic: '/assets/cards/epic_equipment_1.png',
-    rare: '/assets/cards/rare_equipment_1.png',
-    uncommon: '/assets/cards/uncommon_equipment_1.png',
-    common: '/assets/cards/uncommon_equipment_1.png',
-    special: '/assets/cards/story_special_5.png',
-  },
-  transport: {
-    legendary: '/assets/cards/legendary_equipment_1.png', // Fallback to equipment
-    epic: '/assets/cards/epic_equipment_1.png',
-    rare: '/assets/cards/rare_equipment_1.png',
-    uncommon: '/assets/cards/uncommon_equipment_1.png',
-    common: '/assets/cards/uncommon_equipment_1.png',
   },
   relic: {
     special: '/assets/cards/story_special_4.png',
