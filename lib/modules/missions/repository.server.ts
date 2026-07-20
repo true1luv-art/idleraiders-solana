@@ -9,7 +9,9 @@
  */
 
 import Mission, { type IMission, type IMissionDocument, type MissionType } from './model.server'
-import type { FilterQuery, UpdateQuery, QueryOptions, Types } from 'mongoose'
+import type { UpdateQuery, QueryOptions, Types } from 'mongoose'
+import mongoose from 'mongoose'
+type FilterQuery<T> = mongoose.QueryFilter<T>
 
 // Re-export types needed by mission.service.ts
 export type { MissionType }

@@ -111,7 +111,6 @@ export async function closeDrainWorker(): Promise<void> {
     clearInterval(pollInterval)
     pollInterval = null
   }
-  workerIo = null
   console.log('[idleraiders-logs] Drain worker closed')
 }
 

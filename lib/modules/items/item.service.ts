@@ -4,6 +4,7 @@ import * as cardRepo from '../cards/card.repository'
 import { addCardWithDetails, type AddCardResult } from '../cards/card.service'
 import GAME_DATA from '@/public/data'
 import * as historyService from '../histories/history.service'
+import type { LogEventPayload } from '../histories/repository.server'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -84,9 +85,8 @@ async function getPlayerOrThrow(playerId: string | Types.ObjectId) {
   return player
 }
 
-async function logHistorySafe(payload: Parameters<typeof historyService.logEvent>[0] | string): Promise<void> {
+async function logHistorySafe(payload: LogEventPayload): Promise<void> {
   try {
-    if (typeof payload === 'string') return
     await historyService.logEvent(payload)
   } catch (error) {
     console.warn('[ItemService] history log skipped:', (error as Error).message)

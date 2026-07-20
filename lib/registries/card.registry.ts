@@ -9,7 +9,7 @@ import type { GameCard } from '@/lib/types'
 
 export const CARDS_BY_ID = Object.freeze(
   Object.fromEntries(
-    ((GAME_DATA as { CARDS?: GameCard[] }).CARDS ?? []).map((card) => [card.id, card]),
+    ((GAME_DATA as unknown as { CARDS?: GameCard[] }).CARDS ?? []).map((card) => [card.id, card]),
   ) as Readonly<Record<string, GameCard>>,
 )
 

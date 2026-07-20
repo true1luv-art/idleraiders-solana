@@ -10,12 +10,13 @@
 import Player, { type IPlayer, type IPlayerDocument } from './model.server'
 import type { UpdateQuery, QueryOptions, Types } from 'mongoose'
 import mongoose from 'mongoose'
-type FilterQuery<T> = mongoose.FilterQuery<T>
+type FilterQuery<T> = mongoose.QueryFilter<T>
 import { xpToNextLevel, getXPForLevel } from './logic'
 import { getManilaDateString } from '@/lib/utils/time'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
 import GAME_DATA from '@/public/data'
 import type { GameData } from '@/lib/types'
+import type { LogEventPayload } from '@/lib/modules/histories/repository.server'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -324,7 +325,7 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
   ])
 
   const missionToSerialize = isPopulated
-    ? (rawActiveMission as Record<string, unknown>)
+    ? (rawActiveMission as unknown as Record<string, unknown>)
     : (activeMissionDoc as Record<string, unknown> | null)
   const activeMission = serializeActiveMission(missionToSerialize)
 
@@ -380,7 +381,7 @@ export async function buildPlayerState(player: IPlayerDocument): Promise<PlayerS
     check?: (stats: AchStats) => boolean; rewards?: unknown
   }
   const progressionAchievements = (
-    (GAME_DATA as GameData & { PROGRESSION?: { ACHIEVEMENTS?: ProgressionAchievement[] } })
+    (GAME_DATA as unknown as GameData & { PROGRESSION?: { ACHIEVEMENTS?: ProgressionAchievement[] } })
       .PROGRESSION?.ACHIEVEMENTS ?? []
   ) as ProgressionAchievement[]
 
@@ -440,10 +441,10 @@ export async function getPlayerOrThrow(playerId: string | Types.ObjectId): Promi
   return player
 }
 
-async function logHistorySafe(payload: Record<string, unknown>): Promise<void> {
+async function logHistorySafe(payload: LogEventPayload): Promise<void> {
   try {
     const { logEvent } = await import('../histories/history.service')
-    await logEvent(payload as Parameters<typeof logEvent>[0])
+    await logEvent(payload)
   } catch (error) {
     console.warn('[idleraiders-logs] history log skipped:', (error as Error).message)
   }

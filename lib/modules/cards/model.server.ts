@@ -58,7 +58,7 @@ const CardSchema = new Schema<ICardDocument>(
       enum: ['hero', 'equipment', 'relic', 'mount', 'artifact', 'transport'],
       required: true,
     },
-    class: {
+    cardClass: {
       type: String,
     },
     rarity: {

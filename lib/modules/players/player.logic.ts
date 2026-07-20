@@ -1,7 +1,7 @@
 import GAME_DATA from '@/public/data'
 import type { GameData } from '../../types'
 
-const SYSTEM = (GAME_DATA as GameData).SYSTEM ?? { PLAYER: { MAX_LEVEL: 150 }, ENERGY: { MAX: 100, REGEN_INTERVAL: 180 }, FATIGUE: { MAX: 100 } }
+const SYSTEM = (GAME_DATA as unknown as GameData).SYSTEM ?? { PLAYER: { MAX_LEVEL: 150 }, ENERGY: { MAX: 100, REGEN_INTERVAL: 180 }, FATIGUE: { MAX: 100 } }
 const PLAYER = SYSTEM.PLAYER ?? { MAX_LEVEL: 150 }
 
 
