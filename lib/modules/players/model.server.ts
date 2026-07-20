@@ -8,6 +8,7 @@ export type TerritoryId = 't1' | 't2' | 't3' | 't4' | 't5'
 
 export interface IMilestones {
   totalBossDamage: number
+  totalBossesDefeated: number
   totalMinutesPlayed: number
   totalOpenedPacks: number
   totalCardsCollected: number
@@ -81,6 +82,7 @@ export interface IPlayerDocument extends IPlayer, Document {
 
 const MilestoneSchema = new Schema<IMilestones>({
   totalBossDamage: { type: Number, default: 0 },
+  totalBossesDefeated: { type: Number, default: 0 },
   totalMinutesPlayed: { type: Number, default: 0 },
   totalOpenedPacks: { type: Number, default: 0 },
   totalCardsCollected: { type: Number, default: 0 },

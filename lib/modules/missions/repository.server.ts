@@ -229,10 +229,10 @@ interface Boss {
   id: string
   name: string
   tier: number
-  componentPool: string[]
-  catalystPool: string[]
-  dropRate: { component: number; catalyst: number }
-  catalystDropRate: { common: number; uncommon: number; rare: number; epic: number; legendary: number }
+  energyCost: number
+  damageMultiplier: number
+  requiredStoryProgress: number
+  baseTokenReward: number
 }
 
 interface GameMissionType {
@@ -262,7 +262,7 @@ export interface StoryCompletionResult {
   isFirstCompletion: boolean
 }
 
-export interface BossCompletionResult { damage: number; bossDefeated: boolean; xp: number }
+export interface BossCompletionResult { tokens: number; xp: number }
 
 interface HistoryPayload {
   playerId: Types.ObjectId | string
@@ -493,12 +493,15 @@ async function _startBossRaid(player: IPlayerDocument, bossId: string): Promise<
   const boss = BOSSES_BY_ID[bossId]
   if (!boss) throw new Error('Boss not found')
 
-  const bossLevel = boss.tier ?? 1
-  const requiredLevel = bossLevel * 15 - 14
+  const requiredLevel = boss.tier * 15 - 14
   if (player.level < requiredLevel) throw new Error('Boss locked - level too low')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const bossEnergyCost = (boss as any).energyCost ?? BOSS_RAID_ENERGY
+  const playerStoryProgress = player.milestones?.storyProgress ?? 0
+  if (playerStoryProgress < boss.requiredStoryProgress) {
+    throw new Error(`Boss locked - complete story quest ${boss.requiredStoryProgress} first`)
+  }
+
+  const bossEnergyCost = boss.energyCost ?? BOSS_RAID_ENERGY
   if (player.energy < bossEnergyCost) throw new Error('Not enough energy')
 
   const active = await findActiveByOwner(player._id)
@@ -648,19 +651,19 @@ export async function completeStoryQuest(
   let progressAdvanced = false
 
   if (isFirstCompletion) {
-    cardDropped = Math.random() < 0.15
+    // Story always advances on first completion — the boss gate must not be RNG-gated.
+    progressAdvanced = true
+    // Card drop is independent: 15% chance on first completion.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const questReward = (quest as any)?.reward
-    if (cardDropped && questReward?.id) {
+    if (questReward?.id && Math.random() < 0.15) {
       const cardData = CARDS_BY_ID[questReward.id]
       const cardType = cardData?.type || 'hero'
       const cardResult = await addCardWithDetails(playerId, { id: questReward.id, rarity: questReward.rarity || 'special', type: cardType }, 'story')
       rewardCard = { cardId: questReward.id, rarity: questReward.rarity || 'special', type: cardType, ...cardResult } as typeof rewardCard
+      cardDropped = true
       if (!player.milestones) player.milestones = {} as typeof player.milestones
       player.milestones!.totalCardsCollected = (player.milestones!.totalCardsCollected || 0) + 1
-      progressAdvanced = true
-    } else {
-      progressAdvanced = false
     }
   } else {
     const dropRate = getTerritoryDropRate(mission.territoryId!)
@@ -727,20 +730,51 @@ export async function completeBossMission(
   mission: IMissionDocument,
 ): Promise<BossCompletionResult> {
   const player = await _getPlayerOrThrow(playerId)
+  const boss = BOSSES_BY_ID[mission.bossId!]
+  if (!boss) throw new Error('Boss definition not found')
+
   const cardBoosts = await getRawCardBoostsById(playerId)
   const raidPower = cardBoosts.raidPower ?? 0
-  const baseDamage = Math.floor(raidPower * (0.8 + Math.random() * 0.4))
-  const damage = Math.max(1, baseDamage)
+
+  // Daily repeat tracking — keyed separately from dungeon runs
+  const now = new Date()
+  const todayManila = getManilaDateString(now)
+  if (!player.dailyDungeonStats) player.dailyDungeonStats = { runs: new Map(), lastReset: now }
+  const lastReset = player.dailyDungeonStats.lastReset
+  if (getManilaDateString(lastReset) !== todayManila) {
+    player.dailyDungeonStats.lastReset = now
+    player.dailyDungeonStats.runs = new Map()
+  }
+  const bossKey = `boss_${mission.bossId}`
+  const repeatCount = player.dailyDungeonStats.runs.get(bossKey) ?? 0
+
+  const entryFatigue = player.missionStats?.fatigue ?? 0
+  const storedMastery = player.missionStats?.mastery ?? 0
+  const cardMastery = cardBoosts.mastery
+  const effectiveMastery = cardMastery + storedMastery
+
+  // Same reward formula as dungeons — boss base reward is much higher, same decay applies
+  const tokens = calculateDungeonReward(
+    boss.baseTokenReward,
+    raidPower,
+    repeatCount,
+    entryFatigue,
+    effectiveMastery,
+    boss.energyCost,
+  )
+
+  player.dailyDungeonStats.runs.set(bossKey, repeatCount + 1)
 
   mission.completedAt = new Date()
   await mission.save()
 
   _clearActiveMission(player, mission._id as Types.ObjectId)
   if (!player.milestones) player.milestones = {} as typeof player.milestones
-  player.milestones!.totalBossDamage = (player.milestones!.totalBossDamage || 0) + damage
+  player.milestones!.totalBossesDefeated = (player.milestones!.totalBossesDefeated ?? 0) + 1
   player.milestones!.totalMissionsCompleted = (player.milestones!.totalMissionsCompleted || 0) + 1
   const missionMinutes = Math.floor(mission.duration / 60)
   player.milestones!.totalMinutesPlayed = (player.milestones!.totalMinutesPlayed || 0) + missionMinutes
+  player.coins = (player.coins || 0) + tokens
 
   const xpBoostPct = applyBoostCap(cardBoosts.expBoost)
   const expPotionMultiplier = player.missionStats?.isExpBoostActive ? 2 : 1
@@ -753,13 +787,14 @@ export async function completeBossMission(
     playerId: player._id, source: 'mission', eventType: 'mission', eventKey: 'mission.completed',
     metadata: {
       action: 'complete', type: 'boss', missionId: mission._id.toString(),
-      bossId: mission.bossId, damage, xp, sourceName: mission.sourceName,
+      bossId: mission.bossId, bossName: boss.name,
+      tokens, xp, repeatCount, sourceName: mission.sourceName,
     },
     target: { entityType: 'mission', entityId: mission._id.toString(), label: mission.sourceName || mission.bossId || 'Unknown' },
     tags: ['mission', 'boss'],
   })
 
-  return { damage, bossDefeated: false, xp }
+  return { tokens, xp }
 }
 
 export async function attackBoss(
@@ -772,8 +807,7 @@ export async function attackBoss(
   if (!boss) throw new Error('Boss not found')
 
   const cardBoosts = await getRawCardBoostsById(playerId)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tierMultiplier = (boss as any).damageMultiplier ?? 1.0
+  const tierMultiplier = boss.damageMultiplier ?? 1.0
   const baseDamage = Math.floor(raidPower * (0.8 + Math.random() * 0.4) * tierMultiplier)
   const damage = Math.max(1, baseDamage)
 

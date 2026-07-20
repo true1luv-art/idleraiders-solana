@@ -1,6 +1,6 @@
 # Data Layer Refactor Plan
 
-> **Status:** Phase 1 implemented (dead-code removal complete)
+> **Status:** Phase 1 + Phase 2 implemented (dead-code removal + story/boss system)
 > **Scope:** `public/data/**` (18 files, 3,347 lines before; ~1,500 lines after dead-code pass)
 > **Goal:** Remove dead code you've already removed from the game, eliminate duplication, split the monolith, and establish a consistent barrel pattern.
 
@@ -14,6 +14,37 @@
 | 4 | `progression/progression.ts` — removed `CRAFTING` (~912 lines) and `import getCardStats` | File down from 1,527 → 605 lines |
 | 5 | `progression/achievements.ts` — replaced duplicate definition with a re-export from `progression.ts` | Single source of truth with `rewards` |
 | 6 | `lib/types/index.ts` — `GameData.CARDS` changed from multi-key object to flat array; `GameData.ITEMS` changed from `{ MATERIALS, CONSUMABLES }` to flat array | Type now matches actual runtime shape |
+
+### Implemented (Phase 2 — Story Quest + Boss System)
+
+**Design decisions:**
+- Story quests always advance `storyProgress` on first completion — the card drop (15% chance) is now independent. Boss access must never be RNG-gated.
+- Boss raids use the exact same `calculateDungeonReward` formula as dungeons. The `baseTokenReward` is simply much higher. The daily repeat penalty (15% per run, floor 10%) applies the same way, so farming the same boss decays just like running the same dungeon.
+- `storyProgress` is the single gate to boss access. The level gate (`tier * 15 - 14`) still applies in addition.
+
+| # | Change | Result |
+|---|---|---|
+| 1 | `bosses.ts` — replaced `dropRate`/`catalystDropRate`/`componentPool`/`catalystPool` with `requiredStoryProgress` and `baseTokenReward` | 112 lines, no dead fields |
+| 2 | `logic.ts` — added `getBossUnlockGate(boss, playerLevel, storyProgress)` | UI can show both lock reasons clearly |
+| 3 | `completeStoryQuest` — `progressAdvanced` always true on first completion; card drop is a separate 15% roll | Story flow can no longer be permanently stuck |
+| 4 | `completeBossMission` — full `calculateDungeonReward` payout, daily repeat key `boss_${bossId}`, credits coins, proper XP | Boss raids now have real rewards |
+| 5 | `_startBossRaid` — added `storyProgress < boss.requiredStoryProgress` check before energy deduction | Gate enforced at start, not completion |
+| 6 | `model.server.ts` — added `totalBossesDefeated` to `IMilestones` and `MilestoneSchema` | Achievement system can track boss defeats |
+
+**Boss reward tiers:**
+
+| Boss | Territory | `requiredStoryProgress` | `baseTokenReward` |
+|---|---|---|---|
+| b2 Spider Queen | T1 Evershade | 2 | 800 |
+| b1 Goblin King | T1 Evershade | 4 | 800 |
+| b3 Soul Reaver | T2 Sunspire | 7 | 2,000 |
+| b4 Lich King | T2 Sunspire | 9 | 2,000 |
+| b5 Frost Giant | T3 Frosthold | 12 | 4,500 |
+| b6 Ancient Treant | T3 Frosthold | 14 | 4,500 |
+| b7 Ember Colossus | T4 Ember City | 17 | 9,000 |
+| b8 Ash Lord | T4 Ember City | 19 | 9,000 |
+| b9 Demon Lord | T5 Iron Citadel | 22 | 18,000 |
+| b10 Ancient Dragon | T5 Iron Citadel | 24 | 18,000 |
 
 ---
 
