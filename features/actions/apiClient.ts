@@ -1,8 +1,8 @@
 import { useCallback } from 'react'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
 
 export function useApiActions() {
-  const { apiRequest } = useGame()
+  const apiRequest = useGameStore((s) => s.apiRequest)
 
   const authPost = useCallback(async (endpoint: string, payload: Record<string, unknown> = {}) => {
     const result = await apiRequest(endpoint, {

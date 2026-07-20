@@ -9,11 +9,14 @@
  *   - PlayerState mirrors the shape returned by GET /api/players/state.
  *   - Settlement markers (lastDepositTxHash / lastWithdrawalTxHash) let modals
  *     react to their own completion when detected by useSettlementNotifier.
+ *   - apiRequest and fetchPlayerState were previously in GameContext and are
+ *     now store actions, eliminating the need for a React Context provider.
  *
  * CLIENT-ONLY — never import this from server code.
  */
 
 import { create } from 'zustand'
+import { getAuthToken } from '@/lib/auth/token'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -90,13 +93,30 @@ interface GameStore {
    * Mirrors boom-miner's setSettlement(type, txHash).
    */
   setSettlement: (type: 'deposit' | 'withdrawal' | 'purchase', txHash: string) => void
+
+  // ── API helpers (formerly in GameContext) ───────────────────────────────────
+  /**
+   * Authenticated fetch wrapper. Reads the auth_token cookie, attaches it as
+   * a Bearer header, auto-applies delta/playerState from the response envelope,
+   * and redirects to /login on 401.
+   */
+  apiRequest: <T = unknown>(
+    endpoint: string,
+    options?: RequestInit,
+  ) => Promise<{ success: boolean; data?: T; delta?: Partial<PlayerState>; error?: string }>
+
+  /**
+   * Loads the current player's full state from GET /api/players/state and
+   * writes it into the store.
+   */
+  fetchPlayerState: () => Promise<void>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Store
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const useGameStore = create<GameStore>((set) => ({
+export const useGameStore = create<GameStore>((set, get) => ({
   // ── Player state ─────────────────────────────────────────────────────────
   playerState: null,
   isLoading: false,
@@ -129,6 +149,62 @@ export const useGameStore = create<GameStore>((set) => ({
     if (type === 'deposit') set({ lastDepositTxHash: txHash })
     else if (type === 'withdrawal') set({ lastWithdrawalTxHash: txHash })
     else if (type === 'purchase') set({ lastPurchaseTxHash: txHash })
+  },
+
+  // ── API helpers ─────────────────────────────────────────────────────────────
+
+  apiRequest: async <T = unknown>(
+    endpoint: string,
+    options: RequestInit = {},
+  ) => {
+    const token = getAuthToken()
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> | undefined ?? {}),
+    }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    try {
+      const response = await fetch(endpoint, { ...options, headers })
+      const result = await response.json()
+
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login?session_expired=true'
+        }
+        return { success: false, error: 'Session expired. Please login again.' }
+      }
+
+      if (!response.ok) {
+        return { success: false, error: result.error ?? 'Request failed' }
+      }
+
+      if (result.delta) get().patchPlayerState(result.delta)
+      if (result.playerState) get().setPlayerState(result.playerState)
+
+      return { success: true, data: result as T, delta: result.delta }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  },
+
+  fetchPlayerState: async () => {
+    const token = getAuthToken()
+    if (!token) return
+
+    get().setLoading(true)
+    try {
+      const result = await get().apiRequest<{ playerState: PlayerState }>('/api/players/state')
+      if (result.success && result.data?.playerState) {
+        get().setPlayerState(result.data.playerState)
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[idleraiders-logs] Failed to fetch player state:', (error as Error).message)
+      }
+    } finally {
+      get().setLoading(false)
+    }
   },
 }))
 
