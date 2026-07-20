@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
-import { withAuth } from '@/lib/api/auth'
-import { usePotion } from '@/lib/modules/items/item.service'
+import { connectDB } from '@/lib/config/database'
+import { getPlayerFromRequest } from '@/lib/api/get-player.server'
+import { successResponse, errorResponse } from '@/lib/api/error-response.server'
+import { usePotion } from '@/lib/modules/items/repository.server'
 import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
 
 /**
@@ -10,18 +12,24 @@ import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
  * Body: { type: 'energy_potion' | 'exp_potion' }
  */
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (playerId) => {
+  await connectDB()
+
+  const outcome = await getPlayerFromRequest(request)
+  if (outcome.errorResponse) return outcome.errorResponse
+
+  try {
     const body = await request.json()
     const { type } = body
 
     if (!type) {
-      throw new Error('Missing potion type')
+      return errorResponse('Missing potion type', 400)
     }
 
+    const playerId = outcome.player._id.toString()
     const result = await usePotion(playerId, type)
     const updatedState = await buildPlayerStateById(playerId)
 
-    return {
+    return successResponse({
       ...result,
       message: 'Potion used!',
       delta: {
@@ -30,6 +38,9 @@ export async function POST(request: NextRequest) {
         missionStats: updatedState.missionStats,
         potions: updatedState.potions,
       },
-    }
-  })
+    })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Operation failed'
+    return errorResponse(msg)
+  }
 }

@@ -1,9 +1,15 @@
+/**
+ * lib/modules/items/repository.server.ts
+ *
+ * Server-side repository for item operations: packs and potions.
+ * Canonical location — all item logic lives here.
+ */
 import type { Types } from 'mongoose'
-import * as playerRepo from '../players/player.repository'
-import * as cardRepo from '../cards/card.repository'
-import { addCardWithDetails, type AddCardResult } from '../cards/card.service'
+import * as playerRepo from '../players/repository.server'
+import * as cardRepo from '../cards/repository.server'
+import { addCardWithDetails, type AddCardResult } from '../cards/repository.server'
 import GAME_DATA from '@/public/data'
-import * as historyService from '../histories/history.service'
+import * as historyService from '../histories/repository.server'
 import type { LogEventPayload } from '../histories/repository.server'
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -89,7 +95,7 @@ async function logHistorySafe(payload: LogEventPayload): Promise<void> {
   try {
     await historyService.logEvent(payload)
   } catch (error) {
-    console.warn('[ItemService] history log skipped:', (error as Error).message)
+    console.warn('[ItemRepository] history log skipped:', (error as Error).message)
   }
 }
 
@@ -190,8 +196,6 @@ export async function addPotion(
 
 /**
  * Purchase `quantity` (max 10) packs and immediately roll + mint all cards.
- * Follows the same pattern as boom-miner's hero mint: deduct cost, roll cards,
- * persist cards, log history, notify Discord.
  */
 export async function buyAndOpenPacks(
   playerId: string | Types.ObjectId,
@@ -199,7 +203,6 @@ export async function buyAndOpenPacks(
   quantity: number,
   paymentMethod: string
 ): Promise<BuyAndOpenPacksResult> {
-  // Validate quantity — hard cap at MAX_PACKS_PER_OPEN
   const qty = Math.max(1, Math.min(Math.floor(quantity), MAX_PACKS_PER_OPEN))
 
   const player = await getPlayerOrThrow(playerId)
@@ -221,12 +224,9 @@ export async function buyAndOpenPacks(
     throw new Error('Invalid payment method — only coins are accepted')
   }
 
-  // Deduct cost immediately (atomic — before rolling cards to prevent replay abuse)
   await playerRepo.updateById(player._id.toString(), updateData)
 
   // ── Roll cards ─────────────────────────────────────────────────────────────
-  // Fetch global supply ONCE, mutate locally per-roll so supply caps stay
-  // respected across the whole batch.
   const supplyData = await cardRepo.getTotalSupplyAggregation()
   const supplyMap: Record<string, number> = {}
   supplyData.forEach((item: { _id: string; supply: number }) => {
@@ -254,7 +254,7 @@ export async function buyAndOpenPacks(
       const result = await addCardWithDetails(playerId, card as Parameters<typeof addCardWithDetails>[1], 'pack')
       cardResults.push(result)
     } catch (error) {
-      console.error(`[ItemService] Failed to add card ${card.id}:`, (error as Error).message)
+      console.error(`[ItemRepository] Failed to add card ${card.id}:`, (error as Error).message)
       cardResults.push({
         card: null as any,
         previousCount: 0,
@@ -337,5 +337,3 @@ export async function buyAndOpenPacks(
 
   return { cards: allCards, packId, quantity: qty, totalCost, currencyType }
 }
-
-

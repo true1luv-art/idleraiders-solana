@@ -443,7 +443,7 @@ export async function getPlayerOrThrow(playerId: string | Types.ObjectId): Promi
 
 async function logHistorySafe(payload: LogEventPayload): Promise<void> {
   try {
-    const { logEvent } = await import('../histories/history.service')
+    const { logEvent } = await import('../histories/repository.server')
     await logEvent(payload)
   } catch (error) {
     console.warn('[idleraiders-logs] history log skipped:', (error as Error).message)

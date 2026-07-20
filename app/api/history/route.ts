@@ -1,16 +1,26 @@
 import { NextRequest } from 'next/server'
-import { withAuth } from '@/lib/api/auth'
-import { getHistory } from '@/lib/modules/histories/history.service'
+import { connectDB } from '@/lib/config/database'
+import { getPlayerFromRequest } from '@/lib/api/get-player.server'
+import { successResponse, errorResponse } from '@/lib/api/error-response.server'
+import { getHistory } from '@/lib/modules/histories/repository.server'
 
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (playerId) => {
+  await connectDB()
+
+  const outcome = await getPlayerFromRequest(request)
+  if (outcome.errorResponse) return outcome.errorResponse
+
+  try {
     const { searchParams } = new URL(request.url)
     const eventType = searchParams.get('eventType') || undefined
     const source = searchParams.get('source') || undefined
     const limit = parseInt(searchParams.get('limit') || '50', 10)
 
-    const result = await getHistory(playerId, { eventType, source, limit })
+    const result = await getHistory(outcome.player._id.toString(), { eventType, source, limit })
 
-    return { history: result.entries, total: result.total }
-  })
+    return successResponse({ history: result.entries, total: result.total })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Operation failed'
+    return errorResponse(msg)
+  }
 }

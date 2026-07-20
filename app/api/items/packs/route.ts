@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
-import { withAuth } from '@/lib/api/auth'
-import { buyAndOpenPacks } from '@/lib/modules/items/item.service'
+import { connectDB } from '@/lib/config/database'
+import { getPlayerFromRequest } from '@/lib/api/get-player.server'
+import { successResponse, errorResponse } from '@/lib/api/error-response.server'
+import { buyAndOpenPacks } from '@/lib/modules/items/repository.server'
 import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
 
 /**
@@ -13,7 +15,12 @@ import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
  * Body: { packId: string, quantity?: number, paymentMethod?: string }
  */
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (playerId) => {
+  await connectDB()
+
+  const outcome = await getPlayerFromRequest(request)
+  if (outcome.errorResponse) return outcome.errorResponse
+
+  try {
     const body = await request.json()
     const { packId, quantity, paymentMethod } = body as {
       packId?: string
@@ -22,19 +29,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (!packId) {
-      throw new Error('Missing packId')
+      return errorResponse('Missing packId', 400)
     }
 
-    // Clamp quantity: minimum 1, maximum 10
     const qty =
       typeof quantity === 'number' && Number.isFinite(quantity) && quantity >= 1
         ? Math.min(Math.floor(quantity), 10)
         : 1
 
+    const playerId = outcome.player._id.toString()
     const result = await buyAndOpenPacks(playerId, packId, qty, paymentMethod ?? 'coins')
     const updatedState = await buildPlayerStateById(playerId)
 
-    return {
+    return successResponse({
       ...result,
       message: qty > 1 ? `${qty} packs opened!` : 'Pack opened!',
       delta: {
@@ -43,6 +50,9 @@ export async function POST(request: NextRequest) {
         stats: updatedState.stats,
         achievements: updatedState.achievements,
       },
-    }
-  })
+    })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Operation failed'
+    return errorResponse(msg)
+  }
 }

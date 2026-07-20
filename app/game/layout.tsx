@@ -6,7 +6,6 @@ import { useAudio, useAuth } from '@/context';
 import GameHeader from '@/components/GameHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActiveMissionBar from '@/components/ActiveMissionBar';
-import RegistrationModal from '@/components/modals/Registration';
 import BannedModal from '@/components/modals/Banned';
 import GAME_UI_IMAGES from '@/features/images/GameImages';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
@@ -106,15 +105,6 @@ export default function GameLayout({ children }: GameLayoutProps) {
         </main>
         <BottomNavigation />
       </div>
-
-      {/* Registration Modal - shown for unregistered users */}
-      <RegistrationModal
-        open={showRegistrationModal}
-        username={user?.username || ''}
-        referredBy={user?.referredBy}
-        onRegistrationComplete={handleRegistrationComplete}
-        onLogout={handleLogout}
-      />
 
       {/* Banned Modal - shown for banned accounts; blocks all gameplay */}
       <BannedModal
