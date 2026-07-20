@@ -2,8 +2,7 @@
  * lib/modules/missions/repository.server.ts
  *
  * Single server-side entry point for all mission DB operations and business logic.
- * Merges: mission.repository.ts + mission.service.ts (base layer — game-heavy
- * logic remains in mission.service.ts which imports from here).
+ * Merges former mission.repository.ts + mission.service.ts into one canonical file.
  *
  * SERVER-ONLY — never import this from client components.
  */

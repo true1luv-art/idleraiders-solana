@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { connectDB } from '@/lib/config/database'
 import { getPlayerFromRequest } from '@/lib/api/get-player.server'
 import { successResponse, errorResponse } from '@/lib/api/error-response.server'
-import { getHistory } from '@/lib/modules/histories/history.service'
+import { getHistory } from '@/lib/modules/histories/repository.server'
 
 export async function GET(request: NextRequest) {
   await connectDB()

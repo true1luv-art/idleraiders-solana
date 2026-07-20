@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { connectDB } from '@/lib/config/database'
 import { getPlayerFromRequest } from '@/lib/api/get-player.server'
 import { successResponse, errorResponse } from '@/lib/api/error-response.server'
-import { usePotion } from '@/lib/modules/items/item.service'
+import { usePotion } from '@/lib/modules/items/repository.server'
 import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
 
 /**
