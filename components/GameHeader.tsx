@@ -1,6 +1,6 @@
 'use client'
 
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
 import { useState } from 'react'
 import EnergyBar from './popover/EnergyBar'
 import MenuPopover from './popover/Menu'
@@ -11,7 +11,7 @@ import ReferralsModal from './modals/Referrals'
 import TutorialModal from './modals/Tutorial'
 
 const GameHeader = () => {
-  const { playerState } = useGame()
+  const playerState = useGameStore((s) => s.playerState)
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showReferrals, setShowReferrals] = useState(false)

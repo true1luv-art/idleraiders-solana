@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAudio, useAuth } from '@/context';
+import { useAudio } from '@/context';
+import { useAuth } from '@/hooks/useAuth';
 import GameHeader from '@/components/GameHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActiveMissionBar from '@/components/ActiveMissionBar';

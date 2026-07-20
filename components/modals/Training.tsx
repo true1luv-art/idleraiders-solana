@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Dumbbell, Sword, Sparkles, Truck, Zap, Clock, Loader2, Info } from 'lucide-react'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
 import { useMissionActions } from '@/features/actions'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
 import {
@@ -84,7 +84,7 @@ interface TrainingModalProps {
 
 const TrainingModal = ({ open, onClose }: TrainingModalProps) => {
 	const isMobile = useIsMobile()
-	const { playerState } = useGame()
+	const playerState = useGameStore((s) => s.playerState)
 	const { startTraining } = useMissionActions()
 	const [startingTraining, setStartingTraining] = useState<TrainingType | null>(null)
 	const [infoOpen, setInfoOpen] = useState(false)

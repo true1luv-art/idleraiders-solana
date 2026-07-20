@@ -11,13 +11,13 @@ import {
 	DrawerDescription,
 } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
 import { usePlayerActions } from '@/features/actions/playerActions'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { toast } from 'sonner'
 
 const ReferralsModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
-	const { playerState } = useGame()
+	const playerState = useGameStore((s) => s.playerState)
 	const { getReferrals } = usePlayerActions()
 	const isMobile = useIsMobile()
 	const [referrals, setReferrals] = useState<Record<string, any>[]>([])

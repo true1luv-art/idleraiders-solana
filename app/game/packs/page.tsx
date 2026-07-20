@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
+import GAME_DATA from '@/public/data/index'
 import { usePackActions } from '@/features/actions'
 import { playCardFlipStatic } from '@/context/AudioContext'
 import { getCardImage, GAME_UI_IMAGES } from '@/features/images'
@@ -36,7 +37,9 @@ import {
 
 // ─── Component ─────────────────────────────────────────────
 const PacksPage = () => {
-	const { playerState, gameData } = useGame()
+	const playerState = useGameStore((s) => s.playerState)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const gameData: Record<string, any> = GAME_DATA
 	const router = useRouter()
 	const {
 		standardCardSupply,

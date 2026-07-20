@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
 import { useItemActions } from '@/features/actions'
 import { useTimer } from '@/hooks/useTimer'
 import { Zap, FlaskConical, Package, Sparkles, Info, Clock, Loader2 } from 'lucide-react'
@@ -45,7 +45,8 @@ const InfoTip = ({ children }: InfoTipProps) => (
 )
 
 const EnergyBar = () => {
-	const { playerState, apiRequest } = useGame()
+	const playerState = useGameStore((s) => s.playerState)
+	const apiRequest = useGameStore((s) => s.apiRequest)
 	const { usePotion } = useItemActions()
 	const [justClaimed, setJustClaimed] = useState(false)
 	const [isUpgrading, setIsUpgrading] = useState(false)

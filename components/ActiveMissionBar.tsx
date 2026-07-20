@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
 import { useMissionActions } from '@/features/actions'
 import MissionTimer from './MissionTimer'
 import { toast } from 'sonner'
@@ -17,7 +17,9 @@ const missionTypeIcons = {
 }
 
 const ActiveMissionBar = () => {
-	const { playerState, apiRequest, fetchPlayerState } = useGame()
+	const playerState = useGameStore((s) => s.playerState)
+	const apiRequest = useGameStore((s) => s.apiRequest)
+	const fetchPlayerState = useGameStore((s) => s.fetchPlayerState)
 	const { completeMission } = useMissionActions()
 	const activeMission = playerState?.activeMission as
 		| {
