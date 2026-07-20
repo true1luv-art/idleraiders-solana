@@ -1,284 +1,328 @@
 # Data Layer Refactor Plan
 
 > **Status:** Draft — pending review  
-> **Scope:** `public/data/**` (all 18 files)  
-> **Goal:** Eliminate duplication, split monolithic files, flatten unnecessary nesting, and establish a consistent barrel pattern.
+> **Scope:** `public/data/**` (18 files, 3,347 lines total)  
+> **Goal:** Remove dead code you've already removed from the game, eliminate duplication, split the monolith, and establish a consistent barrel pattern.
 
 ---
 
-## 1. Current State — Problems
+## 1. Dead Code Audit — What to Remove Now
 
-### 1.1 `progression/progression.ts` — 1,527-line monolith
+These are constants that are confirmed dead: either their feature was removed from the game, they are exact duplicates, or they are redundant aliases.
 
-This is the most critical problem. A single file currently owns **four completely unrelated game systems**:
-
-| Block | Lines (approx) | Should live in |
-|---|---|---|
-| `ACHIEVEMENTS` | ~160 | `progression/achievements.ts` |
-| `CRAFTING` | ~1,076 | `progression/crafting.ts` |
-| `GUILD_LEVELS`, `DONATION_RATES`, `GUILDS` | ~100 | `guilds/config.ts` |
-| `GUILD_PERK_BRANCHES` | ~200 | `guilds/perks.ts` |
-| `GUILD_WAR_CONFIG`, `WAR_ECONOMY_CONFIG` | ~110 | `guilds/war.ts` |
-
-**Impact:** Any edit to a guild war config requires scrolling past 900 lines of crafting recipes. The file has no logical cohesion.
-
----
-
-### 1.2 `progression/achievements.ts` — Duplicate of progression.ts
-
-`achievements.ts` exists as a standalone file but the **exact same `ACHIEVEMENTS` array is also defined inside `progression.ts`** under the same export name. One of them is stale and the two will drift.
-
-**Evidence:**
-```
-public/data/progression/achievements.ts   → exports ACHIEVEMENTS
-public/data/progression/progression.ts    → also exports ACHIEVEMENTS (line ~7)
-```
-
-One must be deleted and the other made the single source of truth.
-
----
-
-### 1.3 `items/items.ts` — Dead exports and redundant aliases
+### 1.1 `items/items.ts` — Materials were removed
 
 ```ts
-export const MATERIALS: never[] = []          // ← Dead. Comment says "Materials have been removed".
-export const ITEMS_DATA_ARRAY = [...POTIONS, ...PACKS]  // ← Alias of the line below
-export const ITEMS_DATA = ITEMS_DATA_ARRAY    // ← Same data, two names
+// ← DEAD. Comment in the file says "Materials have been removed from the game."
+export const MATERIALS: never[] = []
 ```
 
-`bosses.ts` still imports `MATERIALS` from this file and calls `.filter()` on it — this silently produces empty arrays every time.
+**Problem:** `world/bosses.ts` still imports `MATERIALS` and runs `.filter()` on it to build two constants that are silently always empty:
+
+```ts
+// world/bosses.ts
+import { MATERIALS } from "../items/items"
+
+export const DEFAULT_COMPONENT_POOL = MATERIALS.filter((m) => m.type === "component").map((m) => m.id)
+// → always []
+
+export const DEFAULT_CATALYST_POOL = MATERIALS.filter((m) => m.type === "catalyst").map((m) => m.id)
+// → always []
+```
+
+**Action:** Delete `MATERIALS` from `items/items.ts`. Remove the `import { MATERIALS }` from `bosses.ts` and replace `DEFAULT_COMPONENT_POOL` / `DEFAULT_CATALYST_POOL` with `[]` literals (or remove the constants entirely — they are never referenced outside `bosses.ts`).
 
 ---
 
-### 1.4 `system/` and `economy/` — Unnecessary folder wrappers
+### 1.2 `items/items.ts` — Redundant alias `ITEMS_DATA_ARRAY`
 
-Both are single-file domains with very few constants. The folder adds a path segment with no benefit:
+```ts
+export const ITEMS_DATA_ARRAY = [...POTIONS, ...PACKS]  // ← alias of the line below
+export const ITEMS_DATA = ITEMS_DATA_ARRAY              // ← actual default export
+```
 
-| Current path | Size | Problem |
+`ITEMS_DATA_ARRAY` is never imported anywhere in the codebase (confirmed by global search). It exists only as an intermediate variable that is then assigned to `ITEMS_DATA`.
+
+**Action:** Inline the spread directly into `ITEMS_DATA`. Remove `ITEMS_DATA_ARRAY`.
+
+---
+
+### 1.3 `economy/economy.ts` — `MATERIAL_CONVERSION` is dead
+
+```ts
+export const MATERIAL_CONVERSION = {
+  ratio: 5,
+  coinCostPerZone: 25,
+  coinCost: 25,   // "Legacy field retained for backwards compatibility"
+}
+```
+
+`MATERIAL_CONVERSION` is exported inside `ECONOMY_DATA` but is **never imported anywhere in the application** (confirmed by global search). The conversion feature relied on materials, which were removed. The comment inside the file itself says the live logic is in `lib/modules/items/item.service.ts:convertMaterials` — which should be checked and removed too.
+
+**Action:** Remove `MATERIAL_CONVERSION` from `economy.ts` and from the `ECONOMY_DATA` export object.
+
+---
+
+### 1.4 `progression/progression.ts` — Duplicate `ACHIEVEMENTS`
+
+`achievements.ts` defines and exports `ACHIEVEMENTS`. `progression.ts` **also defines and exports `ACHIEVEMENTS`** (lines 7–159), with the **same IDs but different `rewards` fields** — the one in `progression.ts` has coin/shard rewards, the one in `achievements.ts` does not.
+
+This is an active divergence, not just a copy. The two files are already inconsistent:
+
+| ID | `progression.ts` reward | `achievements.ts` reward |
 |---|---|---|
-| `system/system.ts` | 3 constants | `system/system.ts` reads as redundant |
-| `economy/economy.ts` | 3 constants | Same redundancy |
+| `first_blood` | `{ coins: 100 }` | none |
+| `veteran` | `{ coins: 500 }` | none |
+| `guild_member` | present (social category) | **missing** |
+
+**Action:** Decide which is canonical. The `progression.ts` version has rewards — if achievements reward coins, that file wins. Delete the `achievements.ts` file and keep only the version in `progression.ts` (to be later split out to its own file). Update the doc to reflect this.
 
 ---
 
-### 1.5 `cards/` — 5 rarity files for 20 heroes total
+### 1.5 `progression/progression.ts` — `CRAFTING` references removed card types
 
-The cards domain splits heroes across five files by rarity. Each file is a simple array export. Current totals:
+`CRAFTING` calls `getCardStats({ type: 'equipment', ... })` and `getCardStats({ type: 'transport', ... })` extensively. Looking at `cardConfig.ts`:
 
-| File | Hero count |
+```ts
+export const CARD_BASE_STATS: Record<string, CardStats> = {
+  hero: { raidPower: 60, mastery: 30, luck: 0, gm: 1 },
+  // equipment, transport, mount, relic, artifact are NOT defined
+}
+```
+
+`CARD_BASE_STATS` only contains `hero`. For any other type, `generateCardStats` hits this branch:
+
+```ts
+if (!base) {
+  return { raidPower: 0, mastery: 0, luck: 0, gm: 0 }
+}
+```
+
+So every crafting recipe produces `stats: { raidPower: 0, mastery: 0, luck: 0, gm: 0 }`. The entire `CRAFTING` array produces zero-stat items — because the underlying card types (`equipment`, `transport`) were removed from the game along with materials.
+
+**This is the largest dead block:** ~916 lines (lines 165–1,076 of `progression.ts`).
+
+**Action:** Confirm crafting has been removed from the game. If yes, delete the entire `CRAFTING` const and the `import getCardStats` at the top of `progression.ts`. Remove `CRAFTING` from the `PROGRESSION_DATA` export object.
+
+---
+
+### 1.6 `lib/types/index.ts` — `GameData.ITEMS` type is stale
+
+```ts
+export interface GameData {
+  ITEMS: {
+    MATERIALS: Array<{ id: string; name: string; rarity: Rarity }>  // ← Materials removed
+    CONSUMABLES: Array<{ id: string; name: string; effect: string }> // ← No CONSUMABLES in items.ts
+  }
+  ...
+  PROGRESSION: Record<string, unknown>  // ← Very loose, should be tightened
+}
+```
+
+The actual `ITEMS_DATA` from `items/items.ts` is `[...POTIONS, ...PACKS]`. There are no `MATERIALS` and no `CONSUMABLES` — the `GameData` type is lying about the shape.
+
+**Action:** Update `GameData.ITEMS` to match reality: `Array<{ id: string; name: string; ... }>` (flat array), or type it as `{ POTIONS: ...; PACKS: ... }` if splitting items by category.
+
+---
+
+## 2. Structural Problems (Separate from Dead Code)
+
+These are not dead code but are worth addressing in the same refactor pass.
+
+### 2.1 `progression/progression.ts` — 1,527-line monolith
+
+Even after removing `ACHIEVEMENTS` (duplicate) and `CRAFTING` (dead), the file still contains guild config, guild perks, and guild war economy — three separate concerns in one file.
+
+| Block | Lines | Should live in |
+|---|---|---|
+| `ACHIEVEMENTS` | ~160 | `progression/achievements.ts` (after choosing canonical version) |
+| `CRAFTING` | ~916 | **Delete** (dead — all stats are zero) |
+| `GUILD_LEVELS`, `DONATION_RATES` | ~90 | `guilds/config.ts` |
+| `GUILD_PERK_BRANCHES` (+ types) | ~200 | `guilds/perks.ts` |
+| `GUILD_WAR_CONFIG`, `WAR_ECONOMY_CONFIG` | ~100 | `guilds/war.ts` |
+
+---
+
+### 2.2 `cards/` — 5 rarity files for 20 heroes total
+
+| File | Count |
 |---|---|
-| `legendary.ts` | 1 |
-| `epic.ts` | 2 |
-| `rare.ts` | 3 |
-| `uncommon.ts` | 6 |
-| `common.ts` | 8 |
-| **Total** | **20** |
+| `legendary.ts` | 1 hero |
+| `epic.ts` | 2 heroes |
+| `rare.ts` | 3 heroes |
+| `uncommon.ts` | 6 heroes |
+| `common.ts` | 8 heroes |
+| **Total** | **20 heroes** |
 
-20 hero definitions do not need 5 files. This is premature file splitting. The split only makes sense once each tier contains enough heroes that reading a single file becomes impractical (e.g. 20+ per rarity).
-
-The rarity-per-file approach also forces `cards/index.ts` to maintain 5 separate imports and a spread merge, creating boilerplate that grows with every new rarity tier added.
+20 definitions across 5 files is premature splitting. A single `heroes.ts` is easier to scan, and `cards/index.ts` can drop its 5 separate imports.
 
 ---
 
-### 1.6 `world/` — Inconsistent barrel pattern
+### 2.3 `world/bosses.ts` — Bosses reference removed card types via drop rates
 
-`world/index.ts` is a proper barrel that re-exports `bosses`, `dungeons`, and `territories`. The `cards/` directory also has an `index.ts` barrel. But `system/`, `economy/`, `items/`, and `progression/` all export directly from their single `.ts` file without a barrel — meaning `public/data/index.ts` must import from `./items/items`, `./progression/progression`, etc. (the filename repeated). The pattern should be uniform.
+`bosses.ts` has `dropRate: { component: 75, catalyst: 25 }` on every boss. Materials (components and catalysts) were removed. These fields are dead data. Whether to remove them or leave them for future use is a product decision — flagged here for review.
 
 ---
 
-## 2. Proposed New Structure
+## 3. Proposed New Structure
 
 ```
 public/data/
-├── index.ts                     ← Root aggregator (unchanged shape, updated imports)
+├── index.ts                     ← Root aggregator (GAME_DATA shape updated)
 │
 ├── cards/
-│   ├── heroes.ts                ← All 20 hero definitions (replaces 5 rarity files)
+│   ├── heroes.ts                ← All 20 heroes (replaces 5 rarity files)
 │   ├── stories.ts               ← Unchanged
-│   ├── config.ts                ← Renamed from cardConfig.ts (interfaces + stat functions)
-│   └── index.ts                 ← Barrel (unchanged logic)
+│   ├── cardConfig.ts            ← Unchanged (hero-only stat system)
+│   └── index.ts                 ← Barrel (updated to import from heroes.ts)
 │
 ├── world/
-│   ├── bosses.ts                ← Unchanged (remove MATERIALS import — it's always [])
+│   ├── bosses.ts                ← Remove MATERIALS import + dead pool consts
 │   ├── dungeons.ts              ← Unchanged
 │   ├── territories.ts           ← Unchanged
 │   └── index.ts                 ← Unchanged
 │
 ├── items/
-│   ├── potions.ts               ← POTIONS array only
-│   ├── packs.ts                 ← PACKS array only
-│   └── index.ts                 ← Barrel: combines + exports ITEMS_DATA
+│   ├── items.ts                 ← Remove MATERIALS and ITEMS_DATA_ARRAY; keep POTIONS + PACKS
+│   └── (index.ts optional)
 │
 ├── economy/
-│   ├── marketplace.ts           ← MARKETPLACE + MATERIAL_CONVERSION constants
-│   ├── rewards.ts               ← MISSION_REWARDS constant
-│   └── index.ts                 ← Barrel: exports ECONOMY_DATA
+│   ├── economy.ts               ← Remove MATERIAL_CONVERSION
+│   └── (index.ts optional)
 │
 ├── system/
-│   ├── player.ts                ← PLAYER constant
-│   ├── energy.ts                ← ENERGY constant
-│   └── index.ts                 ← Barrel: exports SYSTEM_DATA
+│   └── system.ts                ← Unchanged
 │
 ├── progression/
-│   ├── achievements.ts          ← Single source of truth for ACHIEVEMENTS (delete from progression.ts)
-│   ├── crafting.ts              ← ~1,076 lines of CRAFTING recipes extracted from progression.ts
-│   └── index.ts                 ← Barrel: exports PROGRESSION_DATA
+│   ├── achievements.ts          ← Single source (canonical version from progression.ts)
+│   └── index.ts                 ← Barrel exporting PROGRESSION_DATA (GUILDS only after split)
 │
-└── guilds/
+└── guilds/                      ← New directory, extracted from progression.ts
     ├── config.ts                ← GUILD_LEVELS, DONATION_RATES, GUILDS base config
-    ├── perks.ts                 ← GUILD_PERK_BRANCHES (types + data)
-    ├── war.ts                   ← GUILD_WAR_CONFIG + WAR_ECONOMY_CONFIG
-    └── index.ts                 ← Barrel: exports GUILDS_DATA
+    ├── perks.ts                 ← GuildPerkEffectType, IGuildPerkTier, GUILD_PERK_BRANCHES
+    ├── war.ts                   ← GUILD_WAR_CONFIG, WAR_ECONOMY_CONFIG
+    └── index.ts                 ← Barrel exporting GUILDS_DATA
 ```
 
-> **Note on `GAME_DATA`:** The root `index.ts` export shape stays identical. Consumers (`lib/registries/`, `context/GameContext.tsx`, etc.) do not need to change.
-
 ---
 
-## 3. File-by-File Changes
+## 4. Dead Code Removal — Exact Changes
 
-### 3.1 Delete
+### Priority 1: `items/items.ts`
 
-| File | Reason |
-|---|---|
-| `cards/legendary.ts` | Merged into `cards/heroes.ts` |
-| `cards/epic.ts` | Merged into `cards/heroes.ts` |
-| `cards/rare.ts` | Merged into `cards/heroes.ts` |
-| `cards/uncommon.ts` | Merged into `cards/heroes.ts` |
-| `cards/common.ts` | Merged into `cards/heroes.ts` |
-| `progression/achievements.ts` | Duplicate — canonical version kept in `progression/achievements.ts` after progression.ts is split |
-
-> `progression/progression.ts` itself is effectively deleted and replaced by the three new `progression/` files plus the new `guilds/` directory.
-
----
-
-### 3.2 Rename
-
-| Old | New | Reason |
-|---|---|---|
-| `cards/cardConfig.ts` | `cards/config.ts` | Shorter, consistent with other `config.ts` files |
-
----
-
-### 3.3 Create
-
-| New file | Source content |
-|---|---|
-| `cards/heroes.ts` | Merge of all 5 rarity arrays |
-| `items/potions.ts` | `POTIONS` from `items/items.ts` |
-| `items/packs.ts` | `PACKS` from `items/items.ts` |
-| `items/index.ts` | New barrel |
-| `economy/marketplace.ts` | `MARKETPLACE` + `MATERIAL_CONVERSION` |
-| `economy/rewards.ts` | `MISSION_REWARDS` |
-| `economy/index.ts` | New barrel |
-| `system/player.ts` | `PLAYER` constant |
-| `system/energy.ts` | `ENERGY` constant |
-| `system/index.ts` | New barrel |
-| `progression/crafting.ts` | `CRAFTING` array extracted from `progression.ts` |
-| `progression/index.ts` | New barrel |
-| `guilds/config.ts` | `GUILD_LEVELS`, `DONATION_RATES`, `GUILDS` |
-| `guilds/perks.ts` | `GuildPerkEffectType`, `IGuildPerkTier`, `IGuildPerkBranch`, `GUILD_PERK_BRANCHES` |
-| `guilds/war.ts` | `GUILD_WAR_CONFIG`, `WAR_ECONOMY_CONFIG` |
-| `guilds/index.ts` | New barrel exporting `GUILDS_DATA` |
-
----
-
-### 3.4 Update
-
-| File | Change |
-|---|---|
-| `cards/index.ts` | Replace 5 rarity imports with single `import { HERO_CARDS } from './heroes'` |
-| `world/bosses.ts` | Remove `import { MATERIALS }` — replace `DEFAULT_COMPONENT_POOL` and `DEFAULT_CATALYST_POOL` with `[]` or remove entirely since materials were removed |
-| `public/data/index.ts` | Update imports to use barrel `index.ts` for each domain; add `GUILDS` to `GAME_DATA` |
-
----
-
-## 4. Dead Code to Remove
-
-| Location | Dead code | Action |
-|---|---|---|
-| `items/items.ts` | `export const MATERIALS: never[] = []` | Delete — nothing should reference it |
-| `items/items.ts` | `export const ITEMS_DATA_ARRAY` | Delete — rename final export to just `ITEMS_DATA` |
-| `world/bosses.ts` | `import { MATERIALS } from "../items/items"` | Delete — `DEFAULT_COMPONENT_POOL` and `DEFAULT_CATALYST_POOL` both resolve to `[]` |
-| `world/bosses.ts` | `DEFAULT_COMPONENT_POOL` / `DEFAULT_CATALYST_POOL` | Evaluate whether callers in `lib/` still use these; remove if not |
-| `progression/progression.ts` | Entire `ACHIEVEMENTS` block (~160 lines) | Removed; `achievements.ts` becomes the single source |
-
----
-
-## 5. `GAME_DATA` Root Shape — Before vs After
-
-### Before
+**Remove:**
 ```ts
-const GAME_DATA = {
-  CARDS: CARDS_DATA,
-  ITEMS: ITEMS_DATA,
-  WORLD: WORLD_DATA,
-  PROGRESSION: PROGRESSION_DATA,   // contains ACHIEVEMENTS + CRAFTING + GUILDS
-  SYSTEM: SYSTEM_DATA,
-  ECONOMY: ECONOMY_DATA,
+// DELETE this line
+export const MATERIALS: never[] = []
+
+// DELETE this alias
+export const ITEMS_DATA_ARRAY = [...POTIONS, ...PACKS]
+
+// CHANGE to inline
+export const ITEMS_DATA = [...POTIONS, ...PACKS]
+```
+
+### Priority 2: `world/bosses.ts`
+
+**Remove:**
+```ts
+// DELETE import
+import { MATERIALS } from "../items/items"
+
+// DELETE these two consts (they resolve to [] — never used outside this file)
+export const DEFAULT_COMPONENT_POOL = MATERIALS
+  .filter((m) => m.type === "component")
+  .map((m) => m.id)
+
+export const DEFAULT_CATALYST_POOL = MATERIALS
+  .filter((m) => m.type === "catalyst")
+  .map((m) => m.id)
+```
+
+### Priority 3: `economy/economy.ts`
+
+**Remove:**
+```ts
+// DELETE the entire MATERIAL_CONVERSION block
+export const MATERIAL_CONVERSION = { ... }
+
+// REMOVE from ECONOMY_DATA object
+export const ECONOMY_DATA = {
+  MISSION_REWARDS,
+  MARKETPLACE,
+  // MATERIAL_CONVERSION,  ← delete this line
 }
 ```
 
-### After
+### Priority 4: `progression/progression.ts` — Remove CRAFTING (~916 lines)
+
+**Remove:**
 ```ts
-const GAME_DATA = {
-  CARDS: CARDS_DATA,
-  ITEMS: ITEMS_DATA,
-  WORLD: WORLD_DATA,
-  ACHIEVEMENTS: ACHIEVEMENTS_DATA,  // split out
-  CRAFTING: CRAFTING_DATA,          // split out
-  GUILDS: GUILDS_DATA,              // promoted from PROGRESSION.GUILDS
-  SYSTEM: SYSTEM_DATA,
-  ECONOMY: ECONOMY_DATA,
+// DELETE line 1
+import getCardStats from '../cards/cardConfig'
+
+// DELETE lines 165–1,076
+export const CRAFTING = [ ... ]  // entire array
+
+// REMOVE from PROGRESSION_DATA
+export const PROGRESSION_DATA = {
+  ACHIEVEMENTS,
+  // CRAFTING,  ← delete this line
+  GUILDS,
 }
 ```
 
-> **Breaking change for consumers.** Callers that currently access `GAME_DATA.PROGRESSION.ACHIEVEMENTS`, `GAME_DATA.PROGRESSION.CRAFTING`, or `GAME_DATA.PROGRESSION.GUILDS` will need to be updated to `GAME_DATA.ACHIEVEMENTS`, `GAME_DATA.CRAFTING`, and `GAME_DATA.GUILDS` respectively.  
-> Run a codebase-wide search for `PROGRESSION_DATA` and `GAME_DATA.PROGRESSION` before executing this change.
+### Priority 5: `progression/achievements.ts` — Resolve the duplicate
 
-If the breaking change is undesirable in the short term, `PROGRESSION_DATA` can keep its current shape and simply import from the new split files — preserving the existing consumer API while still splitting the 1,527-line file.
+**Decision required:** The `progression.ts` version has `rewards` fields; `achievements.ts` does not. Choose one, delete the other, make it the single source.
+
+Recommendation: Keep `progression.ts` version (it has more data), extract it to `progression/achievements.ts`, and delete the current `achievements.ts`.
+
+### Priority 6: `lib/types/index.ts` — Fix `GameData.ITEMS`
+
+**Change:**
+```ts
+// BEFORE
+ITEMS: {
+  MATERIALS: Array<{ id: string; name: string; rarity: Rarity }>
+  CONSUMABLES: Array<{ id: string; name: string; effect: string }>
+}
+
+// AFTER (matches actual shape: flat array of potions + packs)
+ITEMS: Array<{ id: string; name: string; [key: string]: unknown }>
+```
 
 ---
 
-## 6. File Count Comparison
+## 5. File Count Impact
 
-| | Before | After |
+| Metric | Before | After (dead-code-only pass) |
 |---|---|---|
-| Total files | 18 | 27 |
-| Files > 500 lines | 2 (`progression.ts` 1,527 · `territories.ts` ~500) | 1 (`territories.ts`) |
+| Dead exports | 6 | 0 |
 | Duplicate definitions | 1 (`ACHIEVEMENTS` x2) | 0 |
-| Dead exports | 3 (`MATERIALS`, `ITEMS_DATA_ARRAY`, unused pools) | 0 |
-| Monolith files (>1,000 lines) | 1 | 0 |
+| `progression.ts` lines | 1,527 | ~450 (after CRAFTING removed) |
+| Files with always-[] imports | 1 (`bosses.ts`) | 0 |
 
 ---
 
-## 7. Implementation Order
+## 6. Implementation Order
 
-1. **Split `progression/progression.ts`** — highest priority, biggest win. Extract in this order:
-   - Move `CRAFTING` → `progression/crafting.ts`
-   - Move guild types + `GUILD_LEVELS` + `DONATION_RATES` → `guilds/config.ts`
-   - Move `GUILD_PERK_BRANCHES` (and its types) → `guilds/perks.ts`
-   - Move `GUILD_WAR_CONFIG` + `WAR_ECONOMY_CONFIG` → `guilds/war.ts`
-   - Create `guilds/index.ts` barrel
-   - Delete the `ACHIEVEMENTS` duplicate from `progression.ts` (keep `achievements.ts`)
-   - Create `progression/index.ts` barrel
-
-2. **Merge hero rarity files** → `cards/heroes.ts`, update `cards/index.ts`
-
-3. **Clean `items/`** — remove dead `MATERIALS`, remove `ITEMS_DATA_ARRAY` alias, create barrel
-
-4. **Clean `world/bosses.ts`** — remove `MATERIALS` import and dead pool constants
-
-5. **Flatten `system/` and `economy/`** into barrels (or keep single-file, just rename to `index.ts`)
-
-6. **Update root `public/data/index.ts`** imports to use barrels throughout
-
-7. **Search and update all consumers** if `GAME_DATA` shape is changed (step 5 above)
+1. **`items/items.ts`** — Remove `MATERIALS`, inline `ITEMS_DATA` (5-minute fix, no ripple effect)
+2. **`world/bosses.ts`** — Remove `import { MATERIALS }` and the two dead pool consts
+3. **`economy/economy.ts`** — Remove `MATERIAL_CONVERSION` and its entry in `ECONOMY_DATA`
+4. **`progression/progression.ts`** — Delete the `CRAFTING` const and `import getCardStats` (removes ~920 lines)
+5. **`progression/achievements.ts`** — Resolve the duplicate (pick canonical, delete the other)
+6. **`lib/types/index.ts`** — Fix `GameData.ITEMS` type
+7. **Structural refactor** (separate PR) — Merge hero rarity files, extract guilds to own directory
 
 ---
 
-## 8. Notes & Decisions Needed
+## 7. Open Questions
 
-- **`GAME_DATA.PROGRESSION` shape change** — confirm whether to keep backward-compatible wrapper or do a clean break. See Section 5.
-- **`DEFAULT_COMPONENT_POOL` / `DEFAULT_CATALYST_POOL` in `bosses.ts`** — these resolve to `[]` since materials were removed. Confirm with `lib/modules/missions/` whether they are still referenced at runtime before deleting.
-- **`crafting.ts` references `getCardStats`** from `cards/cardConfig.ts` — ensure the import path updates correctly when the file is renamed to `cards/config.ts`.
+| # | Question | Impact |
+|---|---|---|
+| 1 | Is `CRAFTING` fully removed from the game or planned for later? | If later: move to `progression/crafting.ts` instead of deleting |
+| 2 | Do `DEFAULT_COMPONENT_POOL` / `DEFAULT_CATALYST_POOL` get referenced in `lib/modules/missions/`? | If yes, replace with `[]` literals there too |
+| 3 | Which `ACHIEVEMENTS` version is canonical — with or without `rewards`? | Determines which file to delete |
+| 4 | Should `bosses.ts` `dropRate: { component, catalyst }` fields be cleaned up too? | Cosmetic — materials are gone |
+| 5 | Should `GAME_DATA.PROGRESSION` be split into `ACHIEVEMENTS` + `GUILDS` at the root? | Breaking change for consumers |
