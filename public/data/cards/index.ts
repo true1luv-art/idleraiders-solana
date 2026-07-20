@@ -1,4 +1,4 @@
-import { HEROES_CARD_DATA } from './heroes'
+import { HEROES_CARD_DATA } from './heroes/index'
 import { STORIES_CARD_DATA } from './stories'
 
 import getCardStats from './cardConfig'
