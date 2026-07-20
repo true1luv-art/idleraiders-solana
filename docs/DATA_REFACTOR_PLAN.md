@@ -1,8 +1,19 @@
 # Data Layer Refactor Plan
 
-> **Status:** Draft — pending review  
-> **Scope:** `public/data/**` (18 files, 3,347 lines total)  
+> **Status:** Phase 1 implemented (dead-code removal complete)
+> **Scope:** `public/data/**` (18 files, 3,347 lines before; ~1,500 lines after dead-code pass)
 > **Goal:** Remove dead code you've already removed from the game, eliminate duplication, split the monolith, and establish a consistent barrel pattern.
+
+### Implemented (Phase 1 — Dead Code Removal)
+
+| # | Change | Result |
+|---|---|---|
+| 1 | `items/items.ts` — removed `MATERIALS: never[]` and `ITEMS_DATA_ARRAY` alias | File clean |
+| 2 | `world/bosses.ts` — removed `import { MATERIALS }` and dead `DEFAULT_COMPONENT_POOL` / `DEFAULT_CATALYST_POOL` consts | No more always-`[]` filter chains |
+| 3 | `economy/economy.ts` — removed `MATERIAL_CONVERSION` const and its entry in `ECONOMY_DATA` | Economy data matches live game |
+| 4 | `progression/progression.ts` — removed `CRAFTING` (~912 lines) and `import getCardStats` | File down from 1,527 → 605 lines |
+| 5 | `progression/achievements.ts` — replaced duplicate definition with a re-export from `progression.ts` | Single source of truth with `rewards` |
+| 6 | `lib/types/index.ts` — `GameData.CARDS` changed from multi-key object to flat array; `GameData.ITEMS` changed from `{ MATERIALS, CONSUMABLES }` to flat array | Type now matches actual runtime shape |
 
 ---
 

@@ -1,5 +1,3 @@
-import { MATERIALS } from "../items/items"
-
 export interface BossDropRate {
   component: number
   catalyst: number
@@ -24,15 +22,6 @@ export interface Boss {
   dropRate: BossDropRate
   catalystDropRate: BossCatalystDropRate
 }
-
-// Global shared pools - exported for use in mission.service when pools not specified
-export const DEFAULT_COMPONENT_POOL = MATERIALS
-  .filter((m) => m.type === "component")
-  .map((m) => m.id)
-
-export const DEFAULT_CATALYST_POOL = MATERIALS
-  .filter((m) => m.type === "catalyst")
-  .map((m) => m.id)
 
 export const BOSSES_DATA: Boss[] = [
   {

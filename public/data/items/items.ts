@@ -1,12 +1,9 @@
-// Materials have been removed from the game.
 // Potions are embedded on the Player document (player.potions).
 // Packs immediately mint cards — no intermediate item storage.
 
 // ─────────────────────────────────────────────
 // Potions
 // ─────────────────────────────────────────────
-
-export const MATERIALS: never[] = []
 
 export const POTIONS = [
   {
@@ -106,10 +103,6 @@ export const PACKS = [
 // Items Data Export
 // ─────────────────────────────────────────────
 
-// Flat items array (used by registry builder)
-export const ITEMS_DATA_ARRAY = [...POTIONS, ...PACKS]
-
-// Full items object (GAME_DATA.ITEMS)
-export const ITEMS_DATA = ITEMS_DATA_ARRAY
+export const ITEMS_DATA = [...POTIONS, ...PACKS]
 
 export default ITEMS_DATA

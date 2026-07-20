@@ -326,19 +326,10 @@ export interface GameEconomyConfig {
 }
 
 export interface GameData {
-	CARDS: {
-		HEROES: GameCardConfig[]
-		EQUIPMENTS: GameCardConfig[]
-		MOUNTS: GameCardConfig[]
-		ARTIFACTS: GameCardConfig[]
-		RELICS: GameCardConfig[]
-		STORIES: GameCardConfig[]
-		[key: string]: GameCardConfig[]
-	}
-	ITEMS: {
-		MATERIALS: Array<{ id: string; name: string; rarity: Rarity }>
-		CONSUMABLES: Array<{ id: string; name: string; effect: string }>
-	}
+	/** Flat array of all card definitions (heroes + stories), enriched with stats. */
+	CARDS: GameCardConfig[]
+	/** Flat array of all item definitions (potions + packs). */
+	ITEMS: Array<{ id: string; name: string; catergory: string; [key: string]: unknown }>
 	WORLD: {
 		TERRITORIES: GameTerritoryConfig[]
 		BOSSES: GameBossConfig[]
