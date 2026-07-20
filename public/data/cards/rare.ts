@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// RARE HEROES (3)
+// RARE CARDS (3)
+// Add new rare heroes here as Season 2+ entries below the existing ones.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const RARE_HEROES = [
+export const RARE_CARDS = [
   {
     id: 'rare_hero_1',
     name: 'Evershade Ranger',
@@ -37,5 +38,3 @@ export const RARE_HEROES = [
     source: { type: 'standard_pack' },
   },
 ]
-
-export default RARE_HEROES

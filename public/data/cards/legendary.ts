@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// LEGENDARY HEROES (1)
+// LEGENDARY CARDS (1)
+// Add new legendary heroes here as Season 2+ entries below the existing ones.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const LEGENDARY_HEROES = [
+export const LEGENDARY_CARDS = [
   {
     id: 'legendary_hero_1',
     name: 'Aurelion the Dragonlord',
@@ -16,5 +17,3 @@ export const LEGENDARY_HEROES = [
     source: { type: 'standard_pack' },
   },
 ]
-
-export default LEGENDARY_HEROES

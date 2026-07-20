@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// EPIC HEROES (2)
+// EPIC CARDS (2)
+// Add new epic heroes here as Season 2+ entries below the existing ones.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const EPIC_HEROES = [
+export const EPIC_CARDS = [
   {
     id: 'epic_hero_1',
     name: 'Nyx Shadowblade',
@@ -26,5 +27,3 @@ export const EPIC_HEROES = [
     source: { type: 'standard_pack' },
   },
 ]
-
-export default EPIC_HEROES

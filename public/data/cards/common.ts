@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// COMMON HEROES (8)
+// COMMON CARDS (8)
+// Add new common heroes here as Season 2+ entries below the existing ones.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const COMMON_HEROES = [
+export const COMMON_CARDS = [
   {
     id: 'common_hero_1',
     name: 'Village Militia',
@@ -92,5 +93,3 @@ export const COMMON_HEROES = [
     source: { type: 'standard_pack' },
   },
 ]
-
-export default COMMON_HEROES

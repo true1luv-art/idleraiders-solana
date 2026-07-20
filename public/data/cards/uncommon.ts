@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// UNCOMMON HEROES (6)
+// UNCOMMON CARDS (6)
+// Add new uncommon heroes here as Season 2+ entries below the existing ones.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const UNCOMMON_HEROES = [
+export const UNCOMMON_CARDS = [
   {
     id: 'uncommon_hero_1',
     name: 'Forest Archer',
@@ -70,5 +71,3 @@ export const UNCOMMON_HEROES = [
     source: { type: 'standard_pack' },
   },
 ]
-
-export default UNCOMMON_HEROES

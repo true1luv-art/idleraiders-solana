@@ -1,12 +1,21 @@
-import { HEROES_CARD_DATA } from './heroes/index'
+import { LEGENDARY_CARDS } from './legendary'
+import { EPIC_CARDS } from './epic'
+import { RARE_CARDS } from './rare'
+import { UNCOMMON_CARDS } from './uncommon'
+import { COMMON_CARDS } from './common'
 import { STORIES_CARD_DATA } from './stories'
 
 import getCardStats from './cardConfig'
 
 // ─── Combine All Card Definitions ────────────────────────
+// Rarity order: legendary → epic → rare → uncommon → common → stories
 
 const RAW_CARDS = [
-  ...HEROES_CARD_DATA,
+  ...LEGENDARY_CARDS,
+  ...EPIC_CARDS,
+  ...RARE_CARDS,
+  ...UNCOMMON_CARDS,
+  ...COMMON_CARDS,
   ...STORIES_CARD_DATA,
 ]
 
