@@ -2,7 +2,8 @@ import { motion } from 'framer-motion'
 import { getCardImage, CARD_BACK_FALLBACK } from '@/features/images/CardImages'
 import { getFrameImage } from '@/features/images/FrameImages'
 import { rarityText, rarityBadgeBg } from '@/lib/rarityStyles'
-import { generateCardStats, RARITY_MULTIPLIERS } from '@/public/data/cards/cardConfig'
+import { generateCardStats } from '@/public/data/cards/stats'
+import { RARITY_MULTIPLIERS } from '@/public/data/cards/config'
 
 // Derive boost display info from a booster card's class and rarity
 function getBoostInfo(item: Record<string, any>): { label: string; percent: number } | null {

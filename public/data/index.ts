@@ -4,11 +4,11 @@
 // ─────────────────────────────────────────────
 
 import CARDS_DATA from './cards'
-import ITEMS_DATA from './items/items'
+import ITEMS_DATA from './items'
 import WORLD_DATA from './world'
-import PROGRESSION_DATA from './progression/progression'
-import SYSTEM_DATA from './system/system'
-import ECONOMY_DATA from './economy/economy'
+import PROGRESSION_DATA from './progression'
+import SYSTEM_DATA from './system'
+import ECONOMY_DATA from './economy'
 
 const GAME_DATA = {
   CARDS: CARDS_DATA,

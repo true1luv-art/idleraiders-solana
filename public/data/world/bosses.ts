@@ -1,4 +1,4 @@
-import { MATERIALS } from "../items/items"
+import { MATERIALS } from "../items"
 
 export interface BossDropRate {
   component: number
