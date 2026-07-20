@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
-import { useGame } from '@/context/GameContext'
 import { useWalletActions, usePlayerActions } from '@/features/actions'
 import { usePlayer } from '@/hooks/usePlayer'
 import { useHiveBlockchain } from '@/hooks/useBlockchain'
@@ -85,7 +84,6 @@ const WalletPage = () => {
 const WalletPageInner = () => {
 	const router = useRouter()
 	const { username } = useAuth()
-	const { hiveUsdPrice, requestHivePrice } = useGame()
 	const { wallet } = usePlayer()
 	const {
 		deposit: depositAction,
@@ -98,8 +96,24 @@ const WalletPageInner = () => {
 	const { hiveBalance, realmcBalance, sshrdBalance, refetch: refetchBalances } = useHiveBlockchain(username)
 	const { depositToken, creditPurchasePayment } = useHiveKeychain()
 
-	// Use hivePriceUsd from GameContext (from socket)
-	const hivePriceUsd = hiveUsdPrice
+	// Fetch HIVE/USD price directly from public Hive API
+	const [hivePriceUsd, setHivePriceUsd] = useState<number | null>(null)
+	const fetchHivePrice = useCallback(async () => {
+		try {
+			const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=hive&vs_currencies=usd', {
+				cache: 'no-store',
+			})
+			const data = await res.json()
+			if (typeof data?.hive?.usd === 'number') setHivePriceUsd(data.hive.usd)
+		} catch {
+			// Price is a nice-to-have — fail silently
+		}
+	}, [])
+	useEffect(() => {
+		fetchHivePrice()
+		const interval = setInterval(fetchHivePrice, 5 * 60 * 1000)
+		return () => clearInterval(interval)
+	}, [fetchHivePrice])
 
 	const [txTab, setTxTab] = useState<'deposit' | 'withdraw'>('deposit')
 	const [selectedToken, setSelectedToken] = useState(TOKENS[0])
@@ -111,8 +125,8 @@ const WalletPageInner = () => {
 
 	const refetch = useCallback(() => {
 		refetchBalances()
-		requestHivePrice()
-	}, [refetchBalances, requestHivePrice])
+		fetchHivePrice()
+	}, [refetchBalances, fetchHivePrice])
 
 	const gameBalance = wallet.coins ?? 0
 	const onChainBalance = realmcBalance

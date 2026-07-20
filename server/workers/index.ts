@@ -4,7 +4,6 @@
  */
 
 import { initializeDrainWorker, closeDrainWorker } from '../solana-smart-contract/workers/drain.worker'
-import { getIO } from '../sockets/socket.manager'
 
 /**
  * Start all workers
@@ -12,13 +11,9 @@ import { getIO } from '../sockets/socket.manager'
 export async function startWorkers(): Promise<void> {
   console.log('[idleraiders-logs] Starting workers...')
 
-  const io = getIO()
-  if (io) {
-    // Durable transaction queue worker (deposit / withdrawal / purchase).
-    initializeDrainWorker(io)
-  } else {
-    console.warn('[idleraiders-logs] Socket.IO not initialized, transaction workers skipped')
-  }
+  // Durable transaction queue worker (deposit / withdrawal / purchase).
+  // No socket dependency — client polls /api/transactions for settlement.
+  initializeDrainWorker()
 
   console.log('[idleraiders-logs] All workers initialized')
 }

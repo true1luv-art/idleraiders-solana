@@ -8,7 +8,7 @@
  *   2. Send tokens on-chain via getChain().sendWithdrawal().
  *   3. Record ledger row (insertProcessedTransaction — idempotent).
  *   4. completeJob.
- *   5. Socket notify.
+ *   (Client detects settlement via HTTP polling of /api/transactions — no socket notify needed.)
  *
  * Critical idempotency rule:
  *   If step 2 succeeds but step 3/4 fail, the worker must NOT refund —
@@ -21,7 +21,6 @@
  * SERVER-ONLY.
  */
 
-import type { Server } from 'socket.io'
 import { completeJob, failJob } from '@/lib/modules/transactions-pending/repository.server'
 import type { IPendingTransaction } from '@/lib/modules/transactions-pending/types.server'
 import { insertProcessedTransaction } from '@/lib/modules/transactions-processed/repository.server'
@@ -35,7 +34,6 @@ const NON_RETRYABLE = new Set(['INSUFFICIENT_COINS', 'NOT_FOUND', 'INVALID_AMOUN
 
 export async function drainWithdrawal(
   job: IPendingTransaction,
-  io: Server,
   maxRetries: number,
 ): Promise<void> {
   const id     = String(job._id)
@@ -111,12 +109,7 @@ export async function drainWithdrawal(
   // 4. Complete queue row.
   await completeJob(id)
 
-  // 5. Notify client.
-  const { userSockets } = await import('@/server/sockets/socket.manager')
-  const socketId = userSockets.get((player as { username?: string }).username ?? '')
-  if (socketId) {
-    io.to(socketId).emit('updated_user_state', { coins: (player as { coins?: number }).coins })
-  }
+  // Client detects settlement via HTTP polling of /api/transactions — no socket notify needed.
 
   logger.info('withdrawal settled', { wallet: job.walletAddress, amount, txHash })
 }

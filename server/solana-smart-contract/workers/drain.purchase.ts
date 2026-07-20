@@ -10,12 +10,11 @@
  *   2. Claim the settlement slot (at-most-once via txHash index).
  *   3. Apply the in-game purchase effect (award item).
  *   4. completeJob.
- *   5. Socket notify.
+ *   (Client detects settlement via HTTP polling of /api/transactions — no socket notify needed.)
  *
  * SERVER-ONLY.
  */
 
-import type { Server } from 'socket.io'
 import { completeJob, failJob } from '@/lib/modules/transactions-pending/repository.server'
 import type { IPendingTransaction } from '@/lib/modules/transactions-pending/types.server'
 import { claimProcessedTransaction } from '@/lib/modules/transactions-processed/repository.server'
@@ -24,7 +23,6 @@ import { logger } from '../lib/logger'
 
 export async function drainPurchase(
   job: IPendingTransaction,
-  io: Server,
   maxRetries: number,
 ): Promise<void> {
   const id     = String(job._id)
@@ -70,7 +68,7 @@ export async function drainPurchase(
 
   // 3. Apply in-game purchase effect.
   try {
-    await applyPurchaseEffect(job.walletAddress, itemId, io)
+    await applyPurchaseEffect(job.walletAddress, itemId)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     // Purchase effect failed — the ledger row is already claimed so we won't
@@ -88,10 +86,7 @@ export async function drainPurchase(
   // 4. Complete queue row.
   await completeJob(id)
 
-  // 5. Notify client.
-  const { userSockets } = await import('@/server/sockets/socket.manager')
-  // Purchase notify — itemId-based event, no coins delta
-  io.to(job.walletAddress).emit('transaction_success', { type: 'purchase', itemId })
+  // Client detects settlement via HTTP polling of /api/transactions — no socket notify needed.
 
   logger.info('purchase settled', { wallet: job.walletAddress, amount, itemId, txHash: job.signature })
 }
@@ -103,7 +98,6 @@ export async function drainPurchase(
 async function applyPurchaseEffect(
   walletAddress: string,
   itemId: string,
-  _io: Server,
 ): Promise<void> {
   switch (itemId) {
     case 'card_pack': {

@@ -1,7 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { io, type Socket } from 'socket.io-client'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from './AuthContext'
 import GAME_DATA from '@/public/data/index'
@@ -20,11 +19,6 @@ const logWarn = (message?: unknown) => {
 const logError = (message?: unknown) => {
 	if (isDev) console.error('[idleraiders-logs]', message || '')
 }
-
-const WORKER_SOCKET_URL =
-	process.env.NEXT_PUBLIC_WORKER_SOCKET_URL || process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000'
-
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000'
 
 interface PlayerState {
 	_id?: string
@@ -75,11 +69,8 @@ interface GameData {
 
 interface GameContextValue {
 	isLoading: boolean
-	socketConnected: boolean
-	hiveUsdPrice: number | null
 	playerState: PlayerState | null
 	gameData: GameData
-	requestHivePrice: () => void
 	patchPlayerState: (partialState: Partial<PlayerState>) => void
 	setPlayerState: (state: PlayerState | null) => void
 	fetchPlayerState: () => Promise<void>
@@ -106,13 +97,10 @@ interface GameProviderProps {
 
 export const GameProvider = ({ children }: GameProviderProps) => {
 	const [isLoading, setIsLoading] = useState(false)
-	const [socketConnected, setSocketConnected] = useState(false)
-	const [hiveUsdPrice, setHiveUsdPrice] = useState<number | null>(null)
 	const [playerState, setPlayerStateInternal] = useState<PlayerState | null>(null)
-	const socketRef = useRef<Socket | null>(null)
 	const gameData = useMemo(() => GAME_DATA as GameData, [])
 
-	const { isAuthenticated, username, setRegistered, getAuthToken } = useAuth()
+	const { isAuthenticated, setRegistered, getAuthToken } = useAuth()
 
 	const patchPlayerState = useCallback((partialState: Partial<PlayerState>) => {
 		if (!partialState) return
@@ -162,7 +150,6 @@ export const GameProvider = ({ children }: GameProviderProps) => {
 				// Handle 401 Unauthorized - token expired or invalid
 				if (response.status === 401) {
 					logWarn('401 Unauthorized - redirecting to login')
-					// Redirect to login - AuthContext will handle clearing cookies
 					window.location.href = '/login?session_expired=true'
 					return { success: false, error: 'Session expired. Please login again.' }
 				}
@@ -216,123 +203,6 @@ export const GameProvider = ({ children }: GameProviderProps) => {
 		}
 	}, [getAuthToken, apiRequest, setPlayerState, setRegistered])
 
-	const requestHivePrice = useCallback(async () => {
-		try {
-			const response = await fetch(`${SERVER_URL}/api/price`)
-			const data = await response.json()
-			if (data.success && typeof data.hiveUsd === 'number') {
-				setHiveUsdPrice(data.hiveUsd)
-			}
-		} catch (error) {
-			logError('Failed to fetch HIVE price')
-		}
-	}, [])
-
-	useEffect(() => {
-		if (!isAuthenticated) {
-			socketRef.current?.disconnect()
-			socketRef.current = null
-			setSocketConnected(false)
-			return
-		}
-
-		const initialUsername = username || undefined
-		const token = getAuthToken()
-		const socket = io(WORKER_SOCKET_URL, {
-			autoConnect: true,
-			withCredentials: false,
-			reconnection: true,
-			transports: ['websocket', 'polling'],
-			auth: token ? { token, username: initialUsername } : undefined,
-		})
-
-		socketRef.current = socket
-
-		const handleConnected = () => {
-			log('Socket connected to server')
-		}
-
-		const handleTransactionSuccess = (payload: { message?: string; result?: { delta?: Partial<PlayerState> } }) => {
-			if (payload?.result?.delta && typeof payload.result.delta === 'object') {
-				patchPlayerState(payload.result.delta)
-			}
-
-			toast.success(payload?.message || 'Transaction completed successfully')
-		}
-
-		// Handle real-time balance/state updates from server (deposit/withdraw/registration completion)
-		const handleUpdatedUserState = (payload: { delta?: Partial<PlayerState> }) => {
-			log('Received updated_user_state: ' + JSON.stringify(payload))
-			if (payload?.delta && typeof payload.delta === 'object') {
-				patchPlayerState(payload.delta)
-				
-				// Sync isRegistered with AuthContext for navigation/redirect logic
-				if (payload.delta.isRegistered === true) {
-					setRegistered(true)
-				}
-			}
-		}
-
-		// Handle transaction status updates (completed/failed notifications)
-		const handleTransactionUpdate = (payload: {
-			transactionId: string
-			status: 'completed' | 'failed'
-			type: string
-			message?: string
-			balanceUpdate?: { gold?: number }
-		}) => {
-			log('Received transaction:update: ' + JSON.stringify(payload))
-			
-			if (payload.status === 'completed') {
-				toast.success(payload.message || `${payload.type} completed successfully`)
-			} else if (payload.status === 'failed') {
-				toast.error(payload.message || `${payload.type} failed`)
-			}
-		}
-
-		socket.on('connect', () => {
-			setSocketConnected(true)
-			log('Socket connected')
-
-			if (initialUsername) {
-				socket.emit('register_username', { username: initialUsername })
-			}
-		})
-
-		socket.on('disconnect', () => {
-			setSocketConnected(false)
-			log('Socket disconnected')
-		})
-
-		socket.on('connect_error', (error: Error) => {
-			logWarn(`Worker socket error: ${error.message}`)
-		})
-
-		socket.on('connected', handleConnected)
-		socket.on('transaction_success', handleTransactionSuccess)
-		socket.on('updated_user_state', handleUpdatedUserState)
-		socket.on('transaction:update', handleTransactionUpdate)
-
-		return () => {
-			socket.off('connected', handleConnected)
-			socket.off('transaction_success', handleTransactionSuccess)
-			socket.off('updated_user_state', handleUpdatedUserState)
-			socket.off('transaction:update', handleTransactionUpdate)
-			socket.disconnect()
-			socketRef.current = null
-			setSocketConnected(false)
-		}
-	}, [isAuthenticated, username, patchPlayerState, getAuthToken, setRegistered])
-
-	useEffect(() => {
-		const activeUsername = username || playerState?.username
-		if (!activeUsername || !socketRef.current?.connected) {
-			return
-		}
-
-		socketRef.current.emit('register_username', { username: activeUsername })
-	}, [username, playerState?.username])
-
 	// Fetch player state on authentication
 	useEffect(() => {
 		if (isAuthenticated) {
@@ -342,21 +212,11 @@ export const GameProvider = ({ children }: GameProviderProps) => {
 		}
 	}, [isAuthenticated, fetchPlayerState, setPlayerState])
 
-	// Fetch HIVE price on mount and refresh every 5 minutes
-	useEffect(() => {
-		requestHivePrice()
-		const interval = setInterval(requestHivePrice, 5 * 60 * 1000)
-		return () => clearInterval(interval)
-	}, [requestHivePrice])
-
 	const value = useMemo(
 		() => ({
 			isLoading,
-			socketConnected,
-			hiveUsdPrice,
 			playerState,
 			gameData,
-			requestHivePrice,
 			patchPlayerState,
 			setPlayerState,
 			fetchPlayerState,
@@ -364,11 +224,8 @@ export const GameProvider = ({ children }: GameProviderProps) => {
 		}),
 		[
 			isLoading,
-			socketConnected,
-			hiveUsdPrice,
 			playerState,
 			gameData,
-			requestHivePrice,
 			patchPlayerState,
 			setPlayerState,
 			fetchPlayerState,

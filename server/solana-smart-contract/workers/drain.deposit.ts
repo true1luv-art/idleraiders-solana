@@ -8,12 +8,11 @@
  *   2. Claim the settlement slot (at-most-once credit via txHash index).
  *   3. $inc player coins.
  *   4. completeJob.
- *   5. Socket notify.
+ *   (Client detects settlement via HTTP polling of /api/transactions — no socket notify needed.)
  *
  * SERVER-ONLY.
  */
 
-import type { Server } from 'socket.io'
 import { completeJob, failJob } from '@/lib/modules/transactions-pending/repository.server'
 import type { IPendingTransaction } from '@/lib/modules/transactions-pending/types.server'
 import { claimProcessedTransaction } from '@/lib/modules/transactions-processed/repository.server'
@@ -27,7 +26,6 @@ const VERIFY_MAX_TRIES = 2
 
 export async function drainDeposit(
   job: IPendingTransaction,
-  io: Server,
   maxRetries: number,
 ): Promise<void> {
   const id     = String(job._id)
@@ -91,14 +89,7 @@ export async function drainDeposit(
   // 4. Complete queue row.
   await completeJob(id)
 
-  // 5. Notify client via socket.
-  if (player) {
-    const { userSockets } = await import('@/server/sockets/socket.manager')
-    const socketId = userSockets.get((player as { username?: string }).username ?? '')
-    if (socketId) {
-      io.to(socketId).emit('updated_user_state', { coins: (player as { coins?: number }).coins })
-    }
-  }
+  // Client detects settlement via HTTP polling of /api/transactions — no socket notify needed.
 
   logger.info('deposit settled', { wallet: job.walletAddress, amount, txHash: job.signature })
 }
