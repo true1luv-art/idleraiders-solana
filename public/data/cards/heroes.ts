@@ -1,7 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// HERO ROSTER — 20 starting heroes (Season 1)
+// 5 combat classes: warrior, archer, mage, rogue, paladin
+// Rarity distribution: 1L / 2E / 3R / 6U / 8C
+// spriteKey maps to /assets/heroes/{spriteKey}.png (ARPG pack assets)
+// ═══════════════════════════════════════════════════════════════════════════
+
 export const HEROES_CARD_DATA = [
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LEGENDARY HEROES (1)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ───────────────────────────────────────────────────────────────────────────
+  // LEGENDARY (1)
+  // ───────────────────────────────────────────────────────────────────────────
   {
     id: 'legendary_hero_1',
     name: 'Aurelion the Dragonlord',
@@ -10,13 +17,14 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'warrior',
     rarity: 'legendary',
+    spriteKey: 'hero_warrior_legendary_01',
     supply: { max: 100, minted: 0 },
     source: { type: 'standard_pack' },
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // EPIC HEROES (2)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ───────────────────────────────────────────────────────────────────────────
+  // EPIC (2)
+  // ───────────────────────────────────────────────────────────────────────────
   {
     id: 'epic_hero_1',
     name: 'Nyx Shadowblade',
@@ -24,6 +32,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'rogue',
     rarity: 'epic',
+    spriteKey: 'hero_rogue_epic_01',
     supply: { max: 1000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -34,13 +43,14 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'mage',
     rarity: 'epic',
+    spriteKey: 'hero_mage_epic_01',
     supply: { max: 1000, minted: 0 },
     source: { type: 'standard_pack' },
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RARE HEROES (3)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ───────────────────────────────────────────────────────────────────────────
+  // RARE (3)
+  // ───────────────────────────────────────────────────────────────────────────
   {
     id: 'rare_hero_1',
     name: 'Evershade Ranger',
@@ -48,6 +58,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'archer',
     rarity: 'rare',
+    spriteKey: 'hero_archer_rare_01',
     supply: { max: 10000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -58,6 +69,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'mage',
     rarity: 'rare',
+    spriteKey: 'hero_mage_rare_01',
     supply: { max: 10000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -68,13 +80,14 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'paladin',
     rarity: 'rare',
+    spriteKey: 'hero_paladin_rare_01',
     supply: { max: 10000, minted: 0 },
     source: { type: 'standard_pack' },
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // UNCOMMON HEROES (6)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ───────────────────────────────────────────────────────────────────────────
+  // UNCOMMON (6)
+  // ───────────────────────────────────────────────────────────────────────────
   {
     id: 'uncommon_hero_1',
     name: 'Forest Archer',
@@ -82,6 +95,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'archer',
     rarity: 'uncommon',
+    spriteKey: 'hero_archer_uncommon_01',
     supply: { max: 50000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -92,6 +106,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'warrior',
     rarity: 'uncommon',
+    spriteKey: 'hero_warrior_uncommon_01',
     supply: { max: 50000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -102,6 +117,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'mage',
     rarity: 'uncommon',
+    spriteKey: 'hero_mage_uncommon_01',
     supply: { max: 50000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -112,6 +128,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'archer',
     rarity: 'uncommon',
+    spriteKey: 'hero_archer_uncommon_02',
     supply: { max: 50000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -122,6 +139,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'rogue',
     rarity: 'uncommon',
+    spriteKey: 'hero_rogue_uncommon_01',
     supply: { max: 50000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -132,13 +150,14 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'warrior',
     rarity: 'uncommon',
+    spriteKey: 'hero_warrior_uncommon_02',
     supply: { max: 50000, minted: 0 },
     source: { type: 'standard_pack' },
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // COMMON HEROES (8)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // ───────────────────────────────────────────────────────────────────────────
+  // COMMON (8)
+  // ───────────────────────────────────────────────────────────────────────────
   {
     id: 'common_hero_1',
     name: 'Village Militia',
@@ -146,6 +165,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'warrior',
     rarity: 'common',
+    spriteKey: 'hero_warrior_common_01',
     supply: { max: 100000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -156,6 +176,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'archer',
     rarity: 'common',
+    spriteKey: 'hero_archer_common_01',
     supply: { max: 100000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -166,6 +187,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'mage',
     rarity: 'common',
+    spriteKey: 'hero_mage_common_01',
     supply: { max: 100000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -176,6 +198,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'warrior',
     rarity: 'common',
+    spriteKey: 'hero_warrior_common_02',
     supply: { max: 100000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -186,16 +209,19 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'archer',
     rarity: 'common',
+    spriteKey: 'hero_archer_common_02',
     supply: { max: 100000, minted: 0 },
     source: { type: 'standard_pack' },
   },
   {
+    // Replaces former "Lava Pit Miner" (blacksmith class — removed)
     id: 'common_hero_6',
-    name: 'Lava Pit Miner',
-    description: "Workers hardened by Ember City's volcanic mines.",
+    name: 'Dawnlight Squire',
+    description: 'Young knights-in-training sworn to the Sunspire order of paladins.',
     type: 'hero',
-    class: 'blacksmith',
+    class: 'paladin',
     rarity: 'common',
+    spriteKey: 'hero_paladin_common_01',
     supply: { max: 100000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -206,6 +232,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'warrior',
     rarity: 'common',
+    spriteKey: 'hero_warrior_common_03',
     supply: { max: 100000, minted: 0 },
     source: { type: 'standard_pack' },
   },
@@ -216,6 +243,7 @@ export const HEROES_CARD_DATA = [
     type: 'hero',
     class: 'rogue',
     rarity: 'common',
+    spriteKey: 'hero_rogue_common_01',
     supply: { max: 100000, minted: 0 },
     source: { type: 'standard_pack' },
   },

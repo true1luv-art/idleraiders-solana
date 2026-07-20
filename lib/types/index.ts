@@ -270,6 +270,7 @@ export interface GameCard {
   type?: string
   rarity?: string
   class?: string
+  spriteKey?: string
   stats?: Record<string, number>
   abilities?: string[]
   description?: string

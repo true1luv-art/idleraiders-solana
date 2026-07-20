@@ -75,13 +75,14 @@ export function validateMountClass(mountClass: string): boolean {
 // CLASS-BASED STAT MODIFIERS
 // ═══════════════════════════════════════════════════════════════════════════
 
+// 5 combat classes only — blacksmith removed.
+// Identity: warrior=frontline damage, mage=mastery, rogue=luck, archer=balanced luck, paladin=balanced raid+mastery
 export const HERO_CLASS_MODIFIERS: Record<string, Record<string, number>> = {
-  warrior: { raidPower: 1.2, mastery: 0.8, luck: 0.9 },
-  archer: { raidPower: 1.0, mastery: 0.9, luck: 1.3 },
-  mage: { raidPower: 0.8, mastery: 1.4, luck: 0.9 },
-  rogue: { raidPower: 0.95, mastery: 0.8, luck: 1.4 },
-  paladin: { raidPower: 1.1, mastery: 1.1, luck: 0.8 },
-  blacksmith: { raidPower: 0.7, mastery: 1.5, luck: 0.8 },
+  warrior: { raidPower: 1.30, mastery: 0.80, luck: 0.70 },
+  archer:  { raidPower: 1.05, mastery: 0.90, luck: 1.20 },
+  mage:    { raidPower: 0.80, mastery: 1.50, luck: 0.80 },
+  rogue:   { raidPower: 0.95, mastery: 0.75, luck: 1.60 },
+  paladin: { raidPower: 1.15, mastery: 1.15, luck: 0.75 },
 }
 
 export const EQUIPMENT_CLASS_MODIFIERS: Record<string, Record<string, number>> = {
