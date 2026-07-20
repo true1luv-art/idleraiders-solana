@@ -1,19 +1,19 @@
 import type { Types } from 'mongoose'
-import type { IMissionDocument, TrainingType } from './mission.model'
-import type { IPlayerDocument } from '../players/player.model'
-import * as missionRepo from './mission.repository'
-import * as playerRepo from '../players/player.repository'
+import type { IMissionDocument, TrainingType } from './model.server'
+import type { IPlayerDocument } from '../players/model.server'
+import * as missionRepo from './repository.server'
+import * as playerRepo from '../players/repository.server'
 import {
 	calculateDungeonReward,
 	getDungeonUnlockGate,
 	isMissionUnlocked,
 	isMissionCompletionUnlocked,
 } from './mission.logic'
-import { getRawCardBoostsById, applyBoostCap } from '../players/player.builder'
+import { getRawCardBoostsById, applyBoostCap } from '../players/repository.server'
 import { getManilaDateString } from '@/lib/utils/time'
-import * as playerService from '../players/player.service'
-import { addCard, addCardWithDetails, getPlayerCardsByTerritory, CARDS_BY_ID } from '../cards/card.service'
-import Card from '../cards/card.model'
+import * as playerService from '../players/repository.server'
+import { addCard, addCardWithDetails, getPlayerCardsByTerritory, CARDS_BY_ID } from '../cards/repository.server'
+import Card from '../cards/model.server'
 import * as historyService from '../histories/history.service'
 import GAME_DATA from '@/public/data'
 

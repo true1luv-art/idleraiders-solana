@@ -5,7 +5,6 @@ import cors from 'cors'
 import { connectDB } from '../lib/config/database'
 import { CORS_ORIGIN, PORT } from '../lib/config/config'
 import { startWorkers, stopWorkers } from './workers/index'
-import { initializeSocketServer } from './sockets/socket.manager'
 
 const app = express()
 const server = http.createServer(app)
@@ -22,9 +21,6 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
   })
 })
-
-// Start
-let io: ReturnType<typeof initializeSocketServer> | null = null
 
 // Startup banner
 function printBanner() {
@@ -47,14 +43,7 @@ async function start() {
   await connectDB()
   console.log('[idleraiders-logs] Database connected')
 
-
-  // Initialize Socket.IO server first (before workers)
-  console.log('[idleraiders-logs] Starting Socket.IO...')
-  io = initializeSocketServer(server)
-  console.log('[idleraiders-logs] Socket.IO initialized')
-
-  // Start workers (uses getIO() internally for socket notifications)
-  // This also recovers any pending transactions from DB and re-queues them
+  // Start drain workers — no socket dependency, client polls /api/transactions
   console.log('[idleraiders-logs] Starting workers...')
   await startWorkers()
   console.log('[idleraiders-logs] Workers started')
@@ -78,17 +67,9 @@ async function shutdown(signal: string) {
   console.log(`[idleraiders-logs] Received ${signal}, shutting down gracefully...`)
 
   try {
-    // Stop workers first (BullMQ + cron)
     console.log('[idleraiders-logs] Stopping workers...')
     await stopWorkers()
 
-    // Close Socket.IO
-    if (io) {
-      console.log('[idleraiders-logs] Closing Socket.IO...')
-      io.close()
-    }
-
-    // Close HTTP server
     console.log('[idleraiders-logs] Closing HTTP server...')
     server.close(() => {
       console.log('[idleraiders-logs] Shutdown complete')

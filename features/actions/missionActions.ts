@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
-import type { TrainingType } from '@/lib/modules/missions/mission.model'
+import type { TrainingType } from '@/lib/modules/missions/model.server'
 import { useApiActions } from './apiClient'
 
 export const useMissionActions = () => {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/config/database'
 import { logger } from '@/lib/utils/logger'
-import * as cardRepo from '@/lib/modules/cards/card.repository'
+import * as cardRepo from '@/lib/modules/cards/repository.server'
 import GAME_DATA from '@/public/data'
 
 interface GameCard {

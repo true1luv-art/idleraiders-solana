@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
-import { buildPlayerStateById } from '@/lib/modules/players/player.builder'
+import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
 
 export async function GET(request: NextRequest) {
   return withAuth(request, async (playerId) => {

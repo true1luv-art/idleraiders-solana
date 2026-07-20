@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import * as playerService from './player.service'
+import * as playerService from './repository.server'
 
 interface LoginRequest {
   username: string

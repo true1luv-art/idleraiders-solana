@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
-import { getEnergy } from '@/lib/modules/players/player.service'
+import { getEnergy } from '@/lib/modules/players/repository.server'
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (playerId) => {

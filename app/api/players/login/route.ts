@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SignJWT } from 'jose'
 import { connectDB } from '@/lib/config/database'
 import { logger } from '@/lib/utils/logger'
-import { loginPlayer } from '@/lib/modules/players/player.service'
+import { loginPlayer } from '@/lib/modules/players/repository.server'
 import { JWT_SECRET_ENCODED, JWT_EXPIRY_SECONDS } from '@/lib/config/config'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {

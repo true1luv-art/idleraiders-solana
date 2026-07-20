@@ -13,7 +13,6 @@
  * SERVER-ONLY.
  */
 
-import type { Server } from 'socket.io'
 import {
   listPendingOldestFirst,
   countJobsByStatus,
@@ -26,7 +25,6 @@ import { drainWithdrawal } from './drain.withdrawal'
 import { drainPurchase } from './drain.purchase'
 
 let pollInterval: ReturnType<typeof setInterval> | null = null
-let workerIo: Server | null = null
 let draining = false
 let stopped  = false
 
@@ -38,7 +36,7 @@ const MAX_RETRIES = config.withdrawal.maxRetries
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function tick(): Promise<void> {
-  if (draining || stopped || !workerIo) return
+  if (draining || stopped) return
   draining = true
   try {
     const jobs = await listPendingOldestFirst(10)
@@ -48,7 +46,7 @@ async function tick(): Promise<void> {
 
     for (const job of jobs) {
       if (stopped) break
-      await processJob(job, workerIo)
+      await processJob(job)
     }
   } catch (err) {
     logger.error('drain cycle error', { error: err instanceof Error ? err.message : String(err) })
@@ -57,17 +55,17 @@ async function tick(): Promise<void> {
   }
 }
 
-async function processJob(job: IPendingTransaction, io: Server): Promise<void> {
+async function processJob(job: IPendingTransaction): Promise<void> {
   try {
     switch (job.type) {
       case 'deposit':
-        await drainDeposit(job, io, MAX_RETRIES)
+        await drainDeposit(job, MAX_RETRIES)
         break
       case 'withdrawal':
-        await drainWithdrawal(job, io, MAX_RETRIES)
+        await drainWithdrawal(job, MAX_RETRIES)
         break
       case 'purchase':
-        await drainPurchase(job, io, MAX_RETRIES)
+        await drainPurchase(job, MAX_RETRIES)
         break
       default:
         logger.warn('unknown job type', { type: (job as IPendingTransaction).type, id: String(job._id) })
@@ -94,10 +92,9 @@ async function logQueueDepth(): Promise<void> {
 // Lifecycle
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function initializeDrainWorker(io: Server): void {
+export function initializeDrainWorker(): void {
   if (pollInterval) return
-  workerIo = io
-  stopped  = false
+  stopped = false
 
   void logQueueDepth()
   void tick()                                           // immediate first drain
@@ -114,7 +111,6 @@ export async function closeDrainWorker(): Promise<void> {
     clearInterval(pollInterval)
     pollInterval = null
   }
-  workerIo = null
   console.log('[idleraiders-logs] Drain worker closed')
 }
 
