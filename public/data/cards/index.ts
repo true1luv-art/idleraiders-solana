@@ -5,7 +5,7 @@ import { UNCOMMON_CARDS } from './uncommon'
 import { COMMON_CARDS } from './common'
 import { STORIES_CARD_DATA } from './stories'
 
-import getCardStats from './stats'
+import getCardStats from './cardConfig'
 
 // ─── Combine All Card Definitions ────────────────────────
 // Rarity order: legendary → epic → rare → uncommon → common → stories
