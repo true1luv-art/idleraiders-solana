@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { connectDB } from '@/lib/config/database'
 import { JWT_SECRET_ENCODED } from '@/lib/config/config'
-import Player from '@/lib/modules/players/player.model'
+import Player from '@/lib/modules/players/model.server'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   await connectDB()

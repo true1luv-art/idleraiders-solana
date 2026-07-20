@@ -17,7 +17,7 @@ import { completeJob, failJob } from '@/lib/modules/transactions-pending/reposit
 import type { IPendingTransaction } from '@/lib/modules/transactions-pending/types.server'
 import { claimProcessedTransaction } from '@/lib/modules/transactions-processed/repository.server'
 import { getChain } from '../chain'
-import Player from '@/lib/modules/players/player.model'
+import Player from '@/lib/modules/players/model.server'
 import { connectDB } from '@/lib/config/database'
 import { logger } from '../lib/logger'
 

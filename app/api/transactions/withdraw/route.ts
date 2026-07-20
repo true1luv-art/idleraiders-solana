@@ -15,7 +15,7 @@ import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
 import { enqueueWithdrawal } from '@/lib/modules/transactions-pending/repository.server'
 import { connectDB } from '@/lib/config/database'
-import Player from '@/lib/modules/players/player.model'
+import Player from '@/lib/modules/players/model.server'
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (_playerId, username) => {

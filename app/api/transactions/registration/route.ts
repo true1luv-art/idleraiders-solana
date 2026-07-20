@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
-import Player from '@/lib/modules/players/player.model'
+import Player from '@/lib/modules/players/model.server'
 import { connectDB } from '@/lib/config/database'
 
 /**

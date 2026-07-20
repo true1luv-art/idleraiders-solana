@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
 import { startMission, startTraining } from '@/lib/modules/missions/mission.service'
-import { buildPlayerStateById } from '@/lib/modules/players/player.builder'
-import type { TrainingType } from '@/lib/modules/missions/mission.model'
+import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
+import type { TrainingType } from '@/lib/modules/missions/model.server'
 
 const TRAINING_TYPES: readonly TrainingType[] = ['weapons', 'mount', 'merchant']
 

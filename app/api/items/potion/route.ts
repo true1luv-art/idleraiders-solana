@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
 import { usePotion } from '@/lib/modules/items/item.service'
-import { buildPlayerStateById } from '@/lib/modules/players/player.builder'
+import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
 
 /**
  * POST /api/items/potion

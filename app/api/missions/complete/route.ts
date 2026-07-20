@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
 import { completeMission } from '@/lib/modules/missions/mission.service'
-import { buildPlayerStateById } from '@/lib/modules/players/player.builder'
+import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (playerId) => {

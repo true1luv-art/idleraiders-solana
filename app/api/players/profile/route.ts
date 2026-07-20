@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/config/database'
-import * as playerRepo from '@/lib/modules/players/player.repository'
-import * as cardRepo from '@/lib/modules/cards/card.repository'
+import * as playerRepo from '@/lib/modules/players/repository.server'
+import * as cardRepo from '@/lib/modules/cards/repository.server'
 import { xpToNextLevel } from '@/lib/modules/players/player.logic'
-import { applyBoostCap } from '@/lib/modules/players/player.builder'
+import { applyBoostCap } from '@/lib/modules/players/repository.server'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'
 import { RARITY_MULTIPLIERS } from '@/public/data/cards/cardConfig'
 
