@@ -14,11 +14,12 @@ export interface Card {
   id: string
   name: string
   description: string
-  type: 'hero' | 'equipment' | 'mount' | 'transport' | 'artifact'
+  type: 'hero'
   class: string
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'special'
   supply?: number
   source?: 'heroes_pack' | 'event'
+  spriteKey?: string
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -27,10 +28,6 @@ export interface Card {
 
 export const CARD_BASE_STATS: Record<string, CardStats> = {
   hero: { raidPower: 60, mastery: 30, luck: 0, gm: 1 },
-  equipment: { raidPower: 35, mastery: 0, luck: 5, gm: 1 },
-  mount: { raidPower: 25, mastery: 0, luck: 15, gm: 1 },
-  transport: { raidPower: 0, mastery: 0, luck: 30, gm: 1 },
-  artifact: { raidPower: 25, mastery: 25, luck: 0, gm: 1 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -62,16 +59,6 @@ export const GM_MULTIPLIER: Record<string, number> = {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MOUNT CLASS VALIDATION
-// ═══════════════════════════════════════════════════════════════════════════
-
-export const VALID_MOUNT_CLASSES = ['swift', 'heavy', 'flying']
-
-export function validateMountClass(mountClass: string): boolean {
-  return VALID_MOUNT_CLASSES.includes(mountClass)
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // CLASS-BASED STAT MODIFIERS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -83,26 +70,6 @@ export const HERO_CLASS_MODIFIERS: Record<string, Record<string, number>> = {
   mage:    { raidPower: 0.80, mastery: 1.50, luck: 0.80 },
   rogue:   { raidPower: 0.95, mastery: 0.75, luck: 1.60 },
   paladin: { raidPower: 1.15, mastery: 1.15, luck: 0.75 },
-}
-
-export const EQUIPMENT_CLASS_MODIFIERS: Record<string, Record<string, number>> = {
-  melee: { raidPower: 1.15, mastery: 0.9, luck: 0.8 },
-  range: { raidPower: 1.0, mastery: 0.85, luck: 1.2 },
-  magic: { raidPower: 0.8, mastery: 1.3, luck: 0.9 },
-  defense: { raidPower: 1.1, mastery: 0.95, luck: 0.7 },
-}
-
-export const TRANSPORT_CLASS_MODIFIERS: Record<string, Record<string, number>> = {
-  merchant: { raidPower: 0, mastery: 0, luck: 1.4 },
-  military: { raidPower: 1.3, mastery: 0, luck: 0.8 },
-  luxury: { raidPower: 0.5, mastery: 0.5, luck: 1.5 },
-  prestige: { raidPower: 0.8, mastery: 0.8, luck: 1.4 },
-}
-
-export const ARTIFACT_CLASS_MODIFIERS: Record<string, Record<string, number>> = {
-  ceremonial: { raidPower: 1.0, mastery: 1.0, luck: 1.0 },
-  magical: { raidPower: 0.8, mastery: 1.3, luck: 0.9 },
-  historical: { raidPower: 1.2, mastery: 0.9, luck: 0.9 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -129,30 +96,9 @@ export function generateCardStats(type: string, rarity: string, cardClass?: stri
   let mastery = Math.round(base.mastery * rarityMult)
   let luck = Math.round(base.luck * rarityMult)
 
-  // Apply class modifiers
-  if (type === 'hero' && cardClass && HERO_CLASS_MODIFIERS[cardClass]) {
+  // Apply class modifiers (heroes only)
+  if (cardClass && HERO_CLASS_MODIFIERS[cardClass]) {
     const mods = HERO_CLASS_MODIFIERS[cardClass]
-    raidPower = Math.round(raidPower * mods.raidPower)
-    mastery = Math.round(mastery * mods.mastery)
-    luck = Math.round(luck * mods.luck)
-  }
-
-  if (type === 'equipment' && cardClass && EQUIPMENT_CLASS_MODIFIERS[cardClass]) {
-    const mods = EQUIPMENT_CLASS_MODIFIERS[cardClass]
-    raidPower = Math.round(raidPower * mods.raidPower)
-    mastery = Math.round(mastery * mods.mastery)
-    luck = Math.round(luck * mods.luck)
-  }
-
-  if (type === 'transport' && cardClass && TRANSPORT_CLASS_MODIFIERS[cardClass]) {
-    const mods = TRANSPORT_CLASS_MODIFIERS[cardClass]
-    raidPower = Math.round(raidPower * mods.raidPower)
-    mastery = Math.round(mastery * mods.mastery)
-    luck = Math.round(luck * mods.luck)
-  }
-
-  if (type === 'artifact' && cardClass && ARTIFACT_CLASS_MODIFIERS[cardClass]) {
-    const mods = ARTIFACT_CLASS_MODIFIERS[cardClass]
     raidPower = Math.round(raidPower * mods.raidPower)
     mastery = Math.round(mastery * mods.mastery)
     luck = Math.round(luck * mods.luck)
