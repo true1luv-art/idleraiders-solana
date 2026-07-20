@@ -12,13 +12,14 @@ const PAGE_SIZE = 15
 const InventoryPage = () => {
 	const { playerState, gameData } = useGame()
 	const cards = playerState?.cards ?? []
-	const materials = playerState?.materials ?? []
-	// Potions are now embedded on the player doc as { energy, xp } counts
-	const potionCounts = playerState?.potions ?? { energy: 0, xp: 0 }
+	// Potions are embedded on the player doc as { energy: number, xp: number }
+	const rawPotions = playerState?.potions
+	const potionEnergy = rawPotions && !Array.isArray(rawPotions) ? (rawPotions as { energy: number; xp: number }).energy ?? 0 : 0
+	const potionXp = rawPotions && !Array.isArray(rawPotions) ? (rawPotions as { energy: number; xp: number }).xp ?? 0 : 0
 	// Flatten potions into item-shaped objects for the bag display
 	const potions = [
-		{ id: 'energy_potion', itemType: 'potion' as const, quantity: potionCounts.energy },
-		{ id: 'exp_potion', itemType: 'potion' as const, quantity: potionCounts.xp },
+		{ id: 'energy_potion', itemType: 'potion' as const, quantity: potionEnergy },
+		{ id: 'exp_potion', itemType: 'potion' as const, quantity: potionXp },
 	].filter((p) => p.quantity > 0)
 	const [tab, setTab] = useState('cards')
 	const [cardsFilters, setCardsFilters] = useState({ search: '', rarity: 'all', type: 'all' })
@@ -48,8 +49,8 @@ const InventoryPage = () => {
 		[cards, cardsFilters, CARDS_DATA],
 	)
 
-	// Combine all inventory items (packs no longer stored — purchase immediately mints cards)
-	const allItems = useMemo(() => [...materials, ...potions], [materials, potions])
+	// Bag contains only potions — packs immediately mint cards, materials have been removed
+	const allItems = useMemo(() => [...potions], [potions])
 
 	// Get item metadata (name, icon, etc) from gameData
 	const getItemMetadata = (itemId: string) => {

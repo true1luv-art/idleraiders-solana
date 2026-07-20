@@ -154,9 +154,8 @@ export function StoryTab({
 									</>
 								) : (
 									<>
-										<p className="text-emerald-400 font-semibold">Repeat Completion:</p>
-										<p>• {territory.dropRate.material}% Materials</p>
-										<p>• {territory.dropRate.card}% Card Drop</p>
+									<p className="text-emerald-400 font-semibold">Repeat Completion:</p>
+									<p>• {territory.dropRate.card}% Card Drop</p>
 										<p className="text-[9px] text-muted-foreground/80 mt-1">
 											One reward per completion
 										</p>

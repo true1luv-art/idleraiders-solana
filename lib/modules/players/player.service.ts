@@ -1,7 +1,6 @@
 import type { Types } from 'mongoose'
 import Player, { type IPlayerDocument } from './player.model'
 import * as playerRepo from './player.repository'
-import * as itemRepo from '../items/item.repository'
 import * as historyService from '../histories/history.service'
 import { getRawCardBoostsById, applyBoostCap } from './player.builder'
 import { getXPForLevel } from './player.logic'
@@ -21,12 +20,6 @@ interface EnergyResult {
 	maxEnergy: number
 	regeneratedEnergy: number
 	lastCycleUpdate: Date
-}
-
-interface CollectResult {
-	collected: number
-	materialId: string
-	totalMaterials: number
 }
 
 interface ReferralInfo {
@@ -75,21 +68,6 @@ async function logHistorySafe(payload: Parameters<typeof historyService.logEvent
 	} catch (error) {
 		console.warn('[idleraiders-logs] history log skipped:', (error as Error).message)
 	}
-}
-
-/**
- * Roll a random material based on drop rates
- * Uses weighted random selection from the drop rate table
- */
-function rollMaterial(dropRates: Record<string, number>): string {
-	const roll = Math.random()
-	let cumulative = 0
-	for (const [materialId, rate] of Object.entries(dropRates)) {
-		cumulative += rate
-		if (roll <= cumulative) return materialId
-	}
-	// Fallback to first material if rates don't sum to 1
-	return Object.keys(dropRates)[0]
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

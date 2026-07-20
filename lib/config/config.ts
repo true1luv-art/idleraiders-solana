@@ -41,13 +41,11 @@ export const config = {
 
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret',
 
-  // Pack / mint pricing (whole-token amounts; multiply by decimals before sending)
-  // Env vars override; constants/game.ts MINT_COST is the canonical fallback for heroes.
-  // Single heroes pack price — the only pack in the game.
-  // All other card types (equipment, mounts, etc.) drop from this same pack.
+  // Pack / mint pricing (whole-token amounts; multiply by decimals before sending).
+  // PACK_PRICE_HEROES is the canonical env var; 10_000 is the fallback.
+  // Registration is free — no fee required to create an account.
   pack: {
-    heroes:       Number(process.env.PACK_PRICE_HEROES    ?? 500_000),
-    registration: Number(process.env.REGISTRATION_FEE    ?? 1_000),
+    heroes: Number(process.env.PACK_PRICE_HEROES ?? 10_000),
   },
 
   // Worker tuning

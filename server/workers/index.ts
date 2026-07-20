@@ -3,7 +3,6 @@
  * Initialize all background workers
  */
 
-import { initializePriceWorker, stopPriceWorker } from './worker.price'
 import { initializeDrainWorker, closeDrainWorker } from '../solana-smart-contract/workers/drain.worker'
 import { getIO } from '../sockets/socket.manager'
 
@@ -21,9 +20,6 @@ export async function startWorkers(): Promise<void> {
     console.warn('[idleraiders-logs] Socket.IO not initialized, transaction workers skipped')
   }
 
-  // Initialize price worker (cron-based)
-  initializePriceWorker()
-
   console.log('[idleraiders-logs] All workers initialized')
 }
 
@@ -34,7 +30,6 @@ export async function stopWorkers(): Promise<void> {
   console.log('[idleraiders-logs] Stopping workers...')
 
   await closeDrainWorker()
-  stopPriceWorker()
 
   console.log('[idleraiders-logs] All workers stopped')
 }

@@ -6,18 +6,27 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { rarityText as rarityColors, rarityCardBg, rarityBorderGlow, rarityGlowStrong } from '@/lib/rarityStyles'
 import { getCardImage } from '@/features/images'
 import { CARD_BACK_FALLBACK } from '@/features/images/CardImages'
-import { BOOSTER_MULTIPLIERS } from '@/public/data/cards/cardConfig'
+import { RARITY_MULTIPLIERS } from '@/public/data/cards/cardConfig'
 
 function getBoostInfo(card: Record<string, any>): { label: string; emoji: string; percent: number } | null {
 	if (card.type !== 'booster' || !card.class || !card.rarity) return null
-	const percent = BOOSTER_MULTIPLIERS[card.rarity] ?? 0
+	const percent = RARITY_MULTIPLIERS[card.rarity as string] ?? 0
 	if (card.class === 'xpBoost') return { label: 'XP Boost', emoji: '✨', percent }
-	if (card.class === 'materialBoost') return { label: 'Material Boost', emoji: '💎', percent }
 	if (card.class === 'energyBoost') return { label: 'Energy Boost', emoji: '⚡', percent }
 	return null
 }
 
-export function CardDetailModal({ open, onOpenChange, card, footer }) {
+export function CardDetailModal({
+	open,
+	onOpenChange,
+	card,
+	footer,
+}: {
+	open: boolean
+	onOpenChange: (open: boolean) => void
+	card: Record<string, any> | null
+	footer?: React.ReactNode
+}) {
 	const isMobile = useIsMobile()
 
 	if (!card) return null

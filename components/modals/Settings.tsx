@@ -6,7 +6,7 @@ import { useAudio } from '@/context/AudioContext'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 
-const SettingsModal = ({ open, onClose }) => {
+const SettingsModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const {
     musicEnabled,
     musicVolume,

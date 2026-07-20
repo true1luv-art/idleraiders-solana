@@ -43,7 +43,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         level: player.level,
         xp: player.xp,
         coins: player.coins,
-        shards: player.shards,
       },
     })
   } catch (error) {

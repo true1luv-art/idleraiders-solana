@@ -1,16 +1,14 @@
 import { motion } from 'framer-motion'
 import { getCardImage, CARD_BACK_FALLBACK } from '@/features/images/CardImages'
-import { getMaterialImage } from '@/features/images/MaterialImages'
 import { getFrameImage } from '@/features/images/FrameImages'
 import { rarityText, rarityBadgeBg } from '@/lib/rarityStyles'
-import { generateCardStats, BOOSTER_MULTIPLIERS } from '@/public/data/cards/cardConfig'
+import { generateCardStats, RARITY_MULTIPLIERS } from '@/public/data/cards/cardConfig'
 
 // Derive boost display info from a booster card's class and rarity
 function getBoostInfo(item: Record<string, any>): { label: string; percent: number } | null {
 	if (item.type !== 'booster' || !item.class || !item.rarity) return null
-	const percent = BOOSTER_MULTIPLIERS[item.rarity] ?? 0
-	const label =
-		item.class === 'xpBoost' ? 'XP Boost' : item.class === 'materialBoost' ? 'Material Boost' : 'Energy Boost'
+	const percent = RARITY_MULTIPLIERS[item.rarity as string] ?? 0
+	const label = item.class === 'xpBoost' ? 'XP Boost' : 'Energy Boost'
 	return { label, percent }
 }
 
@@ -112,8 +110,6 @@ const GameCard = ({
 	let image = null
 	if (isCard) {
 		image = getCardImage(item.id, item.rarity, item.type)
-	} else if (isMaterial) {
-		image = getMaterialImage(item.id, item.name)
 	} else if (isPack || type === 'potion') {
 		// For packs and potions, use the image property that was set by inventory page
 		image = item.image || null

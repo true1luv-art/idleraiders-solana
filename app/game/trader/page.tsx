@@ -14,7 +14,7 @@ const TraderPage = () => {
 					<h1 className="font-display text-lg md:text-xl font-bold text-foreground leading-tight">
 						Trader
 					</h1>
-					<p className="text-[10px] text-muted-foreground/60">Exchange materials and items</p>
+					<p className="text-[10px] text-muted-foreground/60">Exchange items and trade with other players</p>
 				</div>
 			</div>
 

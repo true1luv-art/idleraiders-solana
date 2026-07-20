@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import {
 	BookOpen,
-	Package,
 	Zap,
 	Clock,
 	Target,
@@ -81,7 +80,6 @@ const ProfilePage = () => {
 	const { playerState, gameData } = useGame()
 	const ownPlayer = playerState ?? {}
 	const cards = playerState?.cards ?? []
-	const materials = playerState?.materials ?? []
 
 	// Ensure all required properties have defaults
 	const playerWithDefaults: Record<string, any> = {
@@ -102,13 +100,7 @@ const ProfilePage = () => {
 	const totalRaidPowerOwn = cards.reduce((a, c) => a + (c.stats?.raidPower ?? 0) * (c.quantity ?? 1), 0)
 	const totalMasteryOwn = cards.reduce((a, c) => a + (c.stats?.mastery ?? 0) * (c.quantity ?? 1), 0)
 	const totalLuckOwn = cards.reduce((a, c) => a + (c.stats?.luck ?? 0) * (c.quantity ?? 1), 0)
-	const totalGMOwn = cards.reduce((a, c) => a + (c.stats?.gm ?? 0) * (c.quantity ?? 1), 0)
 	const totalCardCountOwn = cards.reduce((a, c) => a + (c.quantity ?? 1), 0)
-	// Guild from playerState
-	const inGuild = !!playerState?.guild?.name
-	const guildName: string = (playerState?.guild?.name as string | undefined) ?? ''
-	const guildLevel: number = (playerState?.guild?.level as number | undefined) ?? 0
-	const playerRole: string = (playerState?.guild?.role as string | undefined) ?? 'member'
 
 	const router = useRouter()
 	const searchParams = useSearchParams()
@@ -135,7 +127,7 @@ const ProfilePage = () => {
 		const fetchProfile = async () => {
 			setLoadingProfile(true)
 			try {
-				const response = await authGet(`/api/players/profile?username=${encodeURIComponent(viewingUsername)}`)
+				const response = (await authGet(`/api/players/profile?username=${encodeURIComponent(viewingUsername)}`)) as { success?: boolean; profile?: Record<string, any>; message?: string }
 				if (response.success && response.profile) {
 					setViewedProfile(response.profile)
 				} else {
@@ -175,19 +167,14 @@ const ProfilePage = () => {
 	const totalGM = isViewingOther && viewedProfile ? viewedProfile.gm : totalGMOwn
 	const totalCardCount = isViewingOther && viewedProfile ? viewedProfile.totalCards : totalCardCountOwn
 	const uniqueCards = isViewingOther && viewedProfile ? viewedProfile.uniqueCards : cards.length
-	const totalMaterials =
-		isViewingOther && viewedProfile
-			? viewedProfile.totalMaterials
-			: materials.reduce((a, m) => a + m.quantity, 0)
 
-	const boostCategories: { id: string; label: string; Icon: typeof BookOpen; key: 'expBoost' | 'matBoost' | 'energyBoost' }[] = [
+	const boostCategories: { id: string; label: string; Icon: typeof BookOpen; key: 'expBoost' | 'energyBoost' }[] = [
 		{ id: 'xp', label: 'XP', Icon: BookOpen, key: 'expBoost' },
-		{ id: 'material', label: 'Material', Icon: Package, key: 'matBoost' },
 		{ id: 'energy', label: 'Energy', Icon: Zap, key: 'energyBoost' },
 	]
 
 	// Live boosts from booster cards (already post-cap from the server via applyBoostCap)
-	const playerBoosts = (playerState?.boosts ?? {}) as { expBoost?: number; matBoost?: number; energyBoost?: number }
+	const playerBoosts = (playerState?.boosts ?? {}) as { expBoost?: number; energyBoost?: number }
 
 	// Achievements come pre-evaluated from the server; allAchievements[i].unlocked is a boolean
 	const allAchievements: Record<string, any>[] =
@@ -391,12 +378,7 @@ const ProfilePage = () => {
 						label="Cards (Unique)"
 						delay={0.14}
 					/>
-					<StatCard
-						icon={<span className="text-lg">📦</span>}
-						value={totalMaterials.toLocaleString()}
-						label="Materials"
-						delay={0.16}
-					/>
+
 				</div>
 			</div>
 

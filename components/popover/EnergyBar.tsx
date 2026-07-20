@@ -68,18 +68,12 @@ const EnergyBar = () => {
 	const storageMax = storageSlots
 
 	// Boosts from cards
-	const boosts = playerState?.boosts ?? { expBoost: 0, matBoost: 0, energyBoost: 0 }
+	const boosts = playerState?.boosts ?? { expBoost: 0, energyBoost: 0 }
 	const cardBoostPercent = boosts.energyBoost ?? 0
 
-	// Guild-level energy regen bonus (decimal on playerState, e.g. 0.04 = +4%)
-	const guildBonuses = playerState?.guildBonuses ?? { xpBonus: 0, materialBonus: 0, energyRegen: 0, bossDamage: 0 }
-	const guildBoostPercent = (guildBonuses.energyRegen ?? 0) * 100
-
-	// Combined effective multiplier — matches the backend calculation in
-	// lib/modules/players/player.service.ts getEnergy:
-	//   multiplier = (1 + cardBoost) * (1 + guildBonus)
-	const effectiveMultiplier = (1 + cardBoostPercent / 100) * (1 + guildBoostPercent / 100)
-	const effectiveBoostPercent = (effectiveMultiplier - 1) * 100
+	// Card boosts only — no guild bonuses
+	const effectiveMultiplier = 1 + cardBoostPercent / 100
+	const effectiveBoostPercent = cardBoostPercent
 
 	// Energy regen calculation (base: 5 energy per 15 min cycle = 0.333/min).
 	const baseRegenPerMin = 5 / 15 // ~0.333 energy/min

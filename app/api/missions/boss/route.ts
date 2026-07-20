@@ -20,10 +20,8 @@ export async function POST(request: NextRequest) {
       message: 'Boss attacked!',
       delta: {
         coins: updatedState.coins,
-        shards: updatedState.shards,
         missionStats: updatedState.missionStats,
         milestones: updatedState.milestones,
-        materials: updatedState.materials,
         achievements: updatedState.achievements,
       },
     }

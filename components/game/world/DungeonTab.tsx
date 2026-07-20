@@ -382,14 +382,7 @@ export function DungeonTab({
 														{estTokens.min}-{estTokens.max}
 													</span>
 												</span>
-												<span className="flex flex-col items-center gap-0.5">
-													<span className="text-[8px] uppercase tracking-wider text-muted-foreground/60">
-														Loot
-													</span>
-													<span className="font-semibold text-foreground">
-														{selMission.materialRolls}
-													</span>
-												</span>
+
 											</div>
 
 											{/* Action row: Details + Runs on left, Start on right */}

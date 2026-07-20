@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api/auth'
-import { enqueuePurchase } from '@/lib/modules/transactions-pending/repository.server'
 import Player from '@/lib/modules/players/player.model'
 import { connectDB } from '@/lib/config/database'
 
+/**
+ * POST /api/transactions/registration
+ *
+ * Free registration — no payment required.
+ * Marks the player as registered immediately.
+ */
 export async function POST(request: NextRequest) {
   return withAuth(request, async (_playerId, username) => {
     await connectDB()
-
-    const body = await request.json()
-    const { transactionId } = body
-
-    if (!transactionId) {
-      return NextResponse.json(
-        { success: false, error: 'Missing blockchain transaction ID' },
-        { status: 400 },
-      )
-    }
 
     const player = await Player.findOne({ username })
     if (!player) {
@@ -30,14 +25,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const pending = await enqueuePurchase({
-      txHash: transactionId,
-      username,
-      amount: 0,
-      symbol: 'HIVE',
-      memo: `registration:${username}:ref=${player.referredBy || 'idleraiders'}`,
-    })
+    player.isRegistered = true
+    await player.save()
 
-    return NextResponse.json({ success: true, pendingId: pending._id })
+    return NextResponse.json({ success: true })
   })
 }

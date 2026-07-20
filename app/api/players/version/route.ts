@@ -9,7 +9,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 	try {
 		const body = await request.json()
 		const clientVersion = body.version || null
-		const serverVersion = GAME_DATA.SYSTEM.VERSION
+		const serverVersion = (GAME_DATA.SYSTEM as unknown as { VERSION?: string }).VERSION ?? '1.0.0'
 
 		if (clientVersion === serverVersion) {
 			return NextResponse.json({
