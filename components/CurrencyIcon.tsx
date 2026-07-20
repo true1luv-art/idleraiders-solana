@@ -1,7 +1,7 @@
 const images = {
 	token: '/assets/currencies/raid.png',
+	coins: '/assets/currencies/raid.png',
 	hive: '/assets/currencies/hive.png',
-	shard: '/assets/currencies/shards.png',
 }
 
 const CurrencyIcon = ({ type, size = 16, className = '' }: { type: string; size?: number; className?: string }) => {

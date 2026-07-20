@@ -66,7 +66,6 @@ const WalletDisabled = () => {
 
 const TOKENS = [
 	{ symbol: 'REALMC', label: 'Realm Coins', currencyType: 'token' as const, hiveEngineSymbol: 'REALMC' },
-	{ symbol: 'SSHRD', label: 'Soul Shards', currencyType: 'shard' as const, hiveEngineSymbol: 'SSHRD' },
 ]
 
 const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 3 })
@@ -93,7 +92,7 @@ const WalletPageInner = () => {
 	} = useWalletActions()
 	const { getPlayerState } = usePlayerActions()
 
-	const { hiveBalance, realmcBalance, sshrdBalance, refetch: refetchBalances } = useHiveBlockchain(username)
+	const { hiveBalance, realmcBalance, refetch: refetchBalances } = useHiveBlockchain(username)
 	const { depositToken, creditPurchasePayment } = useHiveKeychain()
 
 	// Fetch HIVE/USD price directly from public Hive API
@@ -303,12 +302,7 @@ const WalletPageInner = () => {
 							{realmcBalance !== null ? fmt(realmcBalance) : '...'}
 						</p>
 					</div>
-					<div className="rounded-xl border border-border/50 bg-secondary/30 p-3">
-						<p className="text-[10px] text-muted-foreground mb-0.5">SSHRD</p>
-						<p className="text-sm font-bold text-accent">
-							{sshrdBalance !== null ? fmt(sshrdBalance) : '...'}
-						</p>
-					</div>
+
 				</div>
 
 				<div className="rounded-xl border border-border bg-card p-4 space-y-3 mt-2">

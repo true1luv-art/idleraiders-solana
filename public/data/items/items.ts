@@ -75,28 +75,6 @@ export const PACKS = [
     },
   },
 
-  {
-    id: 'booster_pack',
-    name: 'Booster Pack',
-    description: 'Contains 1 booster card',
-    catergory: 'pack',
-
-    buy: {
-      shards: 100,
-      dollars: 3, // Sale price for first month; returns to $5 after sale ends
-    },
-
-    data: {
-      cardCount: 1,
-      dropRates: {
-        common: 0.65,
-        uncommon: 0.23,
-        rare: 0.10,
-        epic: 0.019,
-        legendary: 0.001,
-      },
-    },
-  },
 ]
 
 // ─────────────────────────────────────────────

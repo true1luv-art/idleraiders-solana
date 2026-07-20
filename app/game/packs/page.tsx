@@ -10,7 +10,7 @@ import { usePackActions } from '@/features/actions'
 import { playCardFlipStatic } from '@/context/AudioContext'
 import { getCardImage, GAME_UI_IMAGES } from '@/features/images'
 import { toast } from 'sonner'
-import { Package, Sparkles, Zap, ChevronDown, ChevronUp, Loader2, Info, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Package, Sparkles, ChevronDown, ChevronUp, Loader2, Info, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const CATALOG_PAGE_SIZE = 15
 // useAudioStore removed — using playCardFlipStatic from AudioContext
@@ -21,7 +21,6 @@ import BuyPackConfirm from '@/components/modals/BuyPackConfirm'
 
 const cardBackImg = GAME_UI_IMAGES.cardBack
 const packImg = GAME_UI_IMAGES.heroesPack
-const boosterPackImg = GAME_UI_IMAGES.heroesPack
 
 // ─── Constants ─────────────────────────────────────────────
 import {
@@ -43,8 +42,6 @@ const PacksPage = () => {
 	const router = useRouter()
 	const {
 		standardCardSupply,
-		boosterCardSupply,
-		availableBoosterSupply,
 		openedCards,
 		refreshCardSupply,
 		isBuyingPacks,
@@ -64,11 +61,6 @@ const PacksPage = () => {
 		() => CARDS_DATA.filter((c) => c && c.id && c.source?.type === 'standard_pack') || [],
 		[CARDS_DATA],
 	)
-	const boosterCardPool = useMemo(
-		() => CARDS_DATA.filter((c) => c && c.id && c.source?.type === 'booster_pack') || [],
-		[CARDS_DATA],
-	)
-
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const getCardIcon = (card: Record<string, any>) => {
 		return card?.icon || card?.image || '/assets/cards/default.png'
@@ -90,16 +82,6 @@ const PacksPage = () => {
 		})
 		return map
 	}, [packCardPool, standardCardSupply])
-
-	// Build supply map for booster cards
-	const boosterSupplyMap = useMemo(() => {
-		const map = new Map()
-		boosterCardPool.forEach((card) => {
-			const supply = boosterCardSupply[card.id] ?? 0
-			map.set(card.id, supply)
-		})
-		return map
-	}, [boosterCardPool, boosterCardSupply])
 
 	// Packs are no longer stored in inventory — purchasing immediately mints cards.
 	// ownedPacks is kept as an empty map so existing UI references don't break.
@@ -127,10 +109,9 @@ const PacksPage = () => {
 		? selectedPackId
 		: (availablePacks[0]?.id ?? '')
 	const pack = availablePacks.find((candidate) => candidate.id === activePackId) || availablePacks[0] || null
-	const isBoosterPack = pack?.id === 'booster_pack'
 
-	// Reset catalog page when filters, pack type or catalog visibility changes
-	useEffect(() => { setCatalogPage(1) }, [poolFilters, isBoosterPack, showCatalog])
+	// Reset catalog page when filters or catalog visibility changes
+	useEffect(() => { setCatalogPage(1) }, [poolFilters, showCatalog])
 
 	const filteredPool = useMemo(() => {
 		const searchTerm = poolFilters.search.trim().toLowerCase()
@@ -150,15 +131,10 @@ const PacksPage = () => {
 	}, [packCardPool, poolFilters.poolFilter, poolFilters.search])
 
 	// Paginated slices for catalog
-	const filteredBoosterPool = useMemo(
-		() => boosterCardPool.filter((c) => c && c.id),
-		[boosterCardPool],
-	)
-	const activeCatalogPool = isBoosterPack ? filteredBoosterPool : filteredPool
-	const catalogTotalPages = Math.max(1, Math.ceil(activeCatalogPool.length / CATALOG_PAGE_SIZE))
+	const catalogTotalPages = Math.max(1, Math.ceil(filteredPool.length / CATALOG_PAGE_SIZE))
 	const paginatedCatalog = useMemo(
-		() => activeCatalogPool.slice((catalogPage - 1) * CATALOG_PAGE_SIZE, catalogPage * CATALOG_PAGE_SIZE),
-		[activeCatalogPool, catalogPage],
+		() => filteredPool.slice((catalogPage - 1) * CATALOG_PAGE_SIZE, catalogPage * CATALOG_PAGE_SIZE),
+		[filteredPool, catalogPage],
 	)
 
 	const revealedCards = openedCards.map((card) => {
@@ -184,7 +160,7 @@ const PacksPage = () => {
 	})
 
 	// Derived values from pack selection
-	const packImage = isBoosterPack ? boosterPackImg : packImg
+	const packImage = packImg
 	const tokenUnitCost = pack?.buy?.coins ?? 0
 	const tokenPaymentMethod = 'coins'
 
@@ -193,7 +169,7 @@ const PacksPage = () => {
 	const getOwnedCount = (packId: string) => (ownedPacks as Record<string, number>)[packId] || 0
 	const totalOwned = Object.values(ownedPacks).reduce((a, b) => a + b, 0)
 
-	// ─── Purchase + reveal handler ────────────────────────────────
+	// ─── Purchase + reveal handler ─────────────────��──────────────
 	// Buying a pack immediately mints cards (no intermediate inventory).
 	// The BuyPackConfirm modal calls this; on success we hand off directly
 	// to the card-reveal animation.
@@ -257,7 +233,7 @@ const PacksPage = () => {
 		setOpeningPackId(null)
 	}
 
-	const openingPackImage = openingPackId === 'booster_pack' ? boosterPackImg : packImg
+	const openingPackImage = packImg
 
 if (!gameData || availablePacks.length === 0 || !pack) {
 			return null
@@ -305,7 +281,7 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 									transition={{ type: 'spring', stiffness: 500, damping: 30 }}
 								/>
 							)}
-							{p.id === 'booster_pack' ? <Zap size={13} /> : <Package size={13} />}
+							<Package size={13} />
 							{p.name}
 						</button>
 					)
@@ -346,23 +322,7 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 									✦ {pack.data.guaranteedRarity}+ guaranteed
 								</span>
 							)}
-							{isBoosterPack && (
-								<span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 text-[10px] font-semibold text-amber-400">
-									⚡ Special Booster
-								</span>
-							)}
-							{isBoosterPack && (
-								<span
-									className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-										availableBoosterSupply > 0
-											? 'bg-green-500/10 border border-green-500/30 text-green-400'
-											: 'bg-red-500/10 border border-red-500/30 text-red-400'
-									}`}
-								>
-									{availableBoosterSupply > 0 ? '📦 ' : '🔒 '}
-									{availableBoosterSupply.toLocaleString()} available
-								</span>
-							)}
+
 						</div>
 					</div>
 				</div>
@@ -373,7 +333,7 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 							<div className="flex justify-center">
 								<button
 									onClick={() => setBuyModalPayment('token')}
-									disabled={isBuyingPacks || (isBoosterPack && availableBoosterSupply <= 0)}
+									disabled={isBuyingPacks}
 									className="group relative flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-background/60 p-3 transition-all hover:border-primary/60 hover:bg-background disabled:opacity-40 w-full max-w-[200px]"
 								>
 									<span className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -389,11 +349,7 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 									</span>
 								</button>
 							</div>
-						{isBoosterPack && availableBoosterSupply <= 0 && (
-							<p className="text-center text-xs font-semibold text-red-400 flex items-center justify-center gap-1.5">
-								<Zap size={12} /> Sold Out
-							</p>
-						)}
+
 					</div>
 			</motion.div>
 
@@ -405,7 +361,7 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 				</div>
 				{availablePacks.map((p) => {
 					const owned = getOwnedCount(p.id)
-					const img = p.id === 'booster_pack' ? boosterPackImg : packImg
+					const img = packImg
 					return (
 						<motion.div
 							key={p.id}
@@ -473,10 +429,10 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 					<div className="flex items-center gap-2">
 						<Package size={14} className="text-primary" />
 						<span className="font-display text-sm font-bold text-foreground">
-							{isBoosterPack ? 'Booster Card Pool' : 'Card Pool Catalog'}
+							Card Pool Catalog
 						</span>
 						<span className="text-[10px] text-muted-foreground">
-							({isBoosterPack ? boosterCardPool.length : packCardPool.length} cards)
+							({packCardPool.length} cards)
 						</span>
 					</div>
 					{showCatalog ? (
@@ -496,12 +452,11 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 							className="overflow-hidden"
 						>
 							<div className="pt-3 space-y-3">
-								{/* Rarity filter (standard & land only) */}
-								{!isBoosterPack && <PacksPoolFilter filters={poolFilters} onChange={setPoolFilters} />}
+								{/* Rarity filter */}
+								<PacksPoolFilter filters={poolFilters} onChange={setPoolFilters} />
 								<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
 									{paginatedCatalog.map((card, i) => {
-										const supplyMap = isBoosterPack ? boosterSupplyMap : currentSupplyMap
-										const currentSupply = supplyMap.get(card.id) || 0
+									const currentSupply = currentSupplyMap.get(card.id) || 0
 										const maxSupply = card.supply?.max || 1000
 										const supplyPercent = Math.min(100, (currentSupply / maxSupply) * 100)
 										return (

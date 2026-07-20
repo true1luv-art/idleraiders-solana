@@ -114,7 +114,7 @@ export const ACHIEVEMENTS = [
     icon: '🌿',
     category: 'progression',
     check: (s) => s.playerLevel >= 10,
-    rewards: { coins: 300, shards: 3 },
+    rewards: { coins: 300 },
   },
   {
     id: 'lvl_25',
@@ -123,7 +123,7 @@ export const ACHIEVEMENTS = [
     icon: '🌳',
     category: 'progression',
     check: (s) => s.playerLevel >= 25,
-    rewards: { coins: 1000, shards: 12 },
+    rewards: { coins: 1000 },
   },
   {
     id: 'lvl_50',

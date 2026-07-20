@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
 import CurrencyIcon from '@/components/CurrencyIcon'
 
-type Currency = 'coins' | 'token'
+type Currency = 'coins' | 'token' | 'dollar'
 
 type BuyPackConfirmProps = {
 	open: boolean
