@@ -1,6 +1,6 @@
 'use client'
 
-import { useGame } from '@/context/GameContext'
+import { useGameStore } from '@/features/store/gameStore'
 import { useMemo } from 'react'
 
 /**
@@ -23,7 +23,7 @@ function getSubdocValue<T>(subdoc: unknown, key: string, fallback: T): T {
  * @returns {Object} player data including identity, wallet, and milestones
  */
 export function usePlayer() {
-  const { playerState } = useGame()
+  const playerState = useGameStore((s) => s.playerState)
 
   const identity = useMemo(() => {
     return {

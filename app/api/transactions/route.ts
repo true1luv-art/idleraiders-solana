@@ -9,7 +9,9 @@
  */
 
 import { NextRequest } from 'next/server'
-import { withAuth } from '@/lib/api/auth'
+import { connectDB } from '@/lib/config/database'
+import { getPlayerFromRequest } from '@/lib/api/get-player.server'
+import { successResponse, errorResponse } from '@/lib/api/error-response.server'
 import { getTransactionHistory } from '@/lib/modules/transactions-processed/repository.server'
 import type { ProcessedTxType } from '@/lib/modules/transactions-processed/types.server'
 
@@ -18,7 +20,14 @@ const MAX_LIMIT     = 25
 const VALID_TYPES: ProcessedTxType[] = ['deposit', 'withdrawal', 'purchase']
 
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (_playerId, username) => {
+  await connectDB()
+
+  const outcome = await getPlayerFromRequest(request)
+  if (outcome.errorResponse) return outcome.errorResponse
+
+  try {
+    const { username } = outcome
+
     const url = new URL(request.url)
 
     const rawLimit = Number(url.searchParams.get('limit'))
@@ -43,6 +52,9 @@ export async function GET(request: NextRequest) {
       type,
     )
 
-    return { transactions, nextCursor }
-  })
+    return successResponse({ transactions, nextCursor })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Operation failed'
+    return errorResponse(msg)
+  }
 }

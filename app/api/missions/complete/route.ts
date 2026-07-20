@@ -1,33 +1,40 @@
 import { NextRequest } from 'next/server'
-import { withAuth } from '@/lib/api/auth'
-import { completeMission } from '@/lib/modules/missions/mission.service'
+import { connectDB } from '@/lib/config/database'
+import { getPlayerFromRequest } from '@/lib/api/get-player.server'
+import { successResponse, errorResponse } from '@/lib/api/error-response.server'
+import { completeMission } from '@/lib/modules/missions/repository.server'
 import { buildPlayerStateById } from '@/lib/modules/players/repository.server'
 
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (playerId) => {
+  await connectDB()
+
+  const outcome = await getPlayerFromRequest(request)
+  if (outcome.errorResponse) return outcome.errorResponse
+
+  try {
     const body = await request.json()
     const { missionId } = body
 
     if (!missionId) {
-      throw new Error('Missing missionId')
+      return errorResponse('Missing missionId', 400)
     }
 
+    const playerId = outcome.player._id.toString()
     const result = await completeMission(playerId, missionId)
     const updatedState = await buildPlayerStateById(playerId)
 
     // If mission was already completed or not found, return cleared response (no rewards)
     if ('cleared' in result && result.cleared) {
-      return {
-        success: true,
+      return successResponse({
         cleared: true,
         message: 'Mission cleared - no rewards (already completed or not found)',
         delta: {
           activeMission: updatedState.activeMission,
         },
-      }
+      })
     }
 
-    return {
+    return successResponse({
       ...result,
       message: 'Mission completed!',
       delta: {
@@ -45,11 +52,13 @@ export async function POST(request: NextRequest) {
         achievements: updatedState.achievements,
         dailyDungeonStats: updatedState.dailyDungeonStats,
         stats: updatedState.stats,
-        // Include top-level mission stats for profile page
         totalMissions: updatedState.totalMissions,
         totalBossDamage: updatedState.totalBossDamage,
         totalMinutesPlayed: updatedState.totalMinutesPlayed,
       },
-    }
-  })
+    })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Operation failed'
+    return errorResponse(msg)
+  }
 }

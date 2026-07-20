@@ -12,18 +12,24 @@
  */
 
 import { NextRequest } from 'next/server'
-import { withAuth } from '@/lib/api/auth'
-import { enqueueWithdrawal } from '@/lib/modules/transactions-pending/repository.server'
 import { connectDB } from '@/lib/config/database'
-import Player from '@/lib/modules/players/model.server'
+import { getPlayerFromRequest } from '@/lib/api/get-player.server'
+import { successResponse, errorResponse } from '@/lib/api/error-response.server'
+import { enqueueWithdrawal } from '@/lib/modules/transactions-pending/repository.server'
 
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (_playerId, username) => {
+  await connectDB()
+
+  const outcome = await getPlayerFromRequest(request)
+  if (outcome.errorResponse) return outcome.errorResponse
+
+  try {
+    const { player, username } = outcome
     const body = await request.json()
     const { amount, walletAddress } = (body ?? {}) as Record<string, unknown>
 
     if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1) {
-      throw new Error('amount must be an integer >= 1')
+      return errorResponse('amount must be an integer >= 1', 400)
     }
 
     // Recipient is always the authenticated wallet/username — never from body.
@@ -32,21 +38,17 @@ export async function POST(request: NextRequest) {
       : username
 
     // Cheap pre-check — authoritative balance guard runs again in the worker.
-    await connectDB()
-    const player = await Player.findOne({
-      $or: [{ walletAddress: wallet }, { username }],
-    }).lean()
-
-    if (!player) throw new Error('Player not found')
-
-    const coins = (player as { coins?: number }).coins ?? 0
-    if (coins < amount) throw new Error('Insufficient coin balance')
+    const coins = (player as unknown as { coins?: number }).coins ?? 0
+    if (coins < amount) return errorResponse('Insufficient coin balance', 400)
 
     const { jobId } = await enqueueWithdrawal({
       walletAddress: wallet,
       withdrawAmount: amount,
     })
 
-    return { status: 'queued', jobId }
-  })
+    return successResponse({ status: 'queued', jobId })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Operation failed'
+    return errorResponse(msg)
+  }
 }
