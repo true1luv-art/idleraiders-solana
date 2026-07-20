@@ -8,7 +8,9 @@
  */
 
 import Player, { type IPlayer, type IPlayerDocument } from './model.server'
-import type { FilterQuery, UpdateQuery, QueryOptions, Types } from 'mongoose'
+import type { UpdateQuery, QueryOptions, Types } from 'mongoose'
+import mongoose from 'mongoose'
+type FilterQuery<T> = mongoose.FilterQuery<T>
 import { xpToNextLevel, getXPForLevel } from './logic'
 import { getManilaDateString } from '@/lib/utils/time'
 import { CARDS_BY_ID } from '@/lib/registries/card.registry'

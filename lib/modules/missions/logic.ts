@@ -60,7 +60,7 @@ export function rollDamage(raidPower: number): number {
 import { MISSION_LEVEL_OFFSETS, MISSION_TYPES, type MissionTypeId } from '@/public/data/world/dungeons'
 
 export function getMissionRequiredLevel(dungeon: Dungeon, missionId: string): number {
-  return dungeon.requiredLevel + (MISSION_LEVEL_OFFSETS[missionId] ?? 0);
+  return dungeon.requiredLevel + (MISSION_LEVEL_OFFSETS[missionId as MissionTypeId] ?? 0);
 }
 
 interface DungeonWithWarReq extends Dungeon {

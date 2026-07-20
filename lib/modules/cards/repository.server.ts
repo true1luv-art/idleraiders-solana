@@ -13,7 +13,9 @@ import Card, {
   type CardRarity,
   type CardType,
 } from './model.server'
-import type { FilterQuery, UpdateQuery, QueryOptions, Types, PipelineStage } from 'mongoose'
+import type { UpdateQuery, QueryOptions, Types, PipelineStage } from 'mongoose'
+import mongoose from 'mongoose'
+type FilterQuery<T> = mongoose.QueryFilter<T>
 import { CARDS_BY_ID as _CARDS_BY_ID } from '@/lib/registries/card.registry'
 import GAME_DATA from '@/public/data'
 
@@ -71,7 +73,7 @@ interface GameCard {
 // Internal CARDS_BY_ID fallback (from GAME_DATA if registry is empty)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const _gameCardsArray = ((GAME_DATA as { CARDS?: GameCard[] }).CARDS ?? []) as GameCard[]
+const _gameCardsArray = ((GAME_DATA as unknown as { CARDS?: GameCard[] }).CARDS ?? []) as GameCard[]
 const _gameCardsById = Object.fromEntries(_gameCardsArray.map((c) => [c.id, c])) as Record<string, GameCard>
 
 function getCardDef(cardId: string): GameCard | undefined {
@@ -296,13 +298,13 @@ export async function awardCard(
     existing.quantity = (existing.quantity ?? 1) + quantity
     return existing.save()
   }
+  // `source` is caller metadata only — not persisted on the card document
   return Card.create({
     owner: ownerId,
     cardId,
     rarity: def.rarity as CardRarity ?? 'common',
     type: def.type as CardType ?? 'hero',
     quantity,
-    source,
   })
 }
 
@@ -337,6 +339,17 @@ export async function transferCard(
     quantity,
   })
   return { fromCard, toCard }
+}
+
+/**
+ * Aggregates total minted supply per cardId across all players.
+ * Used by the /api/cards/supply route to compute availability.
+ */
+export async function getTotalSupplyAggregation(): Promise<{ _id: string; supply: number }[]> {
+  const results = await Card.aggregate<{ _id: string; supply: number }>([
+    { $group: { _id: '$cardId', supply: { $sum: '$quantity' } } },
+  ])
+  return results
 }
 
 /**

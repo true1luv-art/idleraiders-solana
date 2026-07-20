@@ -56,9 +56,10 @@ export interface BuyAndOpenPacksResult {
 // Constants
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const ENERGY_MAX = ((GAME_DATA as { SYSTEM?: SystemConfig }).SYSTEM?.ENERGY?.MAX ?? 100)
-const ITEMS_ARRAY = ((GAME_DATA as { ITEMS?: GameItem[] }).ITEMS ?? []) as GameItem[]
-const CARDS_ARRAY = ((GAME_DATA as { CARDS?: GameCard[] }).CARDS ?? []) as GameCard[]
+const _gd = GAME_DATA as unknown as { SYSTEM?: SystemConfig; ITEMS?: GameItem[]; CARDS?: GameCard[] }
+const ENERGY_MAX = (_gd.SYSTEM?.ENERGY?.MAX ?? 100)
+const ITEMS_ARRAY = (_gd.ITEMS ?? []) as GameItem[]
+const CARDS_ARRAY = (_gd.CARDS ?? []) as GameCard[]
 
 const PACKS_BY_ID = Object.fromEntries(
   ITEMS_ARRAY.filter((item) => item?.catergory === 'pack' || item?.category === 'pack').map((item) => [item.id, item])
@@ -83,8 +84,9 @@ async function getPlayerOrThrow(playerId: string | Types.ObjectId) {
   return player
 }
 
-async function logHistorySafe(payload: Parameters<typeof historyService.logEvent>[0]): Promise<void> {
+async function logHistorySafe(payload: Parameters<typeof historyService.logEvent>[0] | string): Promise<void> {
   try {
+    if (typeof payload === 'string') return
     await historyService.logEvent(payload)
   } catch (error) {
     console.warn('[ItemService] history log skipped:', (error as Error).message)
@@ -249,7 +251,7 @@ export async function buyAndOpenPacks(
   const cardResults: (AddCardResult & { error?: string })[] = []
   for (const card of allCards) {
     try {
-      const result = await addCardWithDetails(playerId, card, 'pack')
+      const result = await addCardWithDetails(playerId, card as Parameters<typeof addCardWithDetails>[1], 'pack')
       cardResults.push(result)
     } catch (error) {
       console.error(`[ItemService] Failed to add card ${card.id}:`, (error as Error).message)
@@ -266,7 +268,7 @@ export async function buyAndOpenPacks(
   const successfulCards = cardResults.filter((r) => !r.error)
 
   // ── Update milestones ──────────────────────────────────────────────────────
-  const milestones = (player.milestones as Record<string, number>) ?? {}
+  const milestones = (player.milestones as unknown as Record<string, number>) ?? {}
   milestones.totalOpenedPacks = (milestones.totalOpenedPacks ?? 0) + qty
   milestones.totalCardsCollected = (milestones.totalCardsCollected ?? 0) + successfulCards.length
   await playerRepo.updateById(player._id.toString(), { milestones })
@@ -297,11 +299,11 @@ export async function buyAndOpenPacks(
       cardsCount: allCards.length,
       cardsAdded: successfulCards.length,
       cardsFailed: cardResults.filter((r) => r.error).length,
-    },
-    target: {
-      entityType: 'pack',
-      entityId: packId,
-      label: pack.name ?? packId,
+      target: {
+        entityType: 'pack',
+        entityId: packId,
+        label: pack.name ?? packId,
+      },
     },
   })
 

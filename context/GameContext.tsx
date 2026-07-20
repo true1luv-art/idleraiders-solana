@@ -1,240 +1,178 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+/**
+ * context/GameContext.tsx
+ *
+ * Thin bootstrap layer — handles authentication-driven player-state loading
+ * and exposes an apiRequest() helper. All actual state now lives in the
+ * Zustand gameStore (features/store/gameStore.ts), matching the boom-miner
+ * architectural pattern where Context = bootstrap only, Store = runtime state.
+ *
+ * Consumers should prefer:
+ *   import { useGameStore } from '@/features/store/gameStore'
+ *
+ * The useGame() hook and GameProvider are kept for backward compatibility.
+ */
+
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from './AuthContext'
 import GAME_DATA from '@/public/data/index'
+import { useGameStore, type PlayerState } from '@/features/store/gameStore'
 
-// Only log in development
+// ─────────────────────────────────────────────────────────────────────────────
+// Logging helpers (dev-only)
+// ─────────────────────────────────────────────────────────────────────────────
+
 const isDev = typeof window !== 'undefined' && process.env.NODE_ENV === 'development'
+const log = (...args: unknown[]) => { if (isDev) console.log('[idleraiders-logs]', ...args) }
+const logWarn = (...args: unknown[]) => { if (isDev) console.warn('[idleraiders-logs]', ...args) }
+const logError = (...args: unknown[]) => { if (isDev) console.error('[idleraiders-logs]', ...args) }
 
-const log = (message?: unknown) => {
-	if (isDev) console.log('[idleraiders-logs]', message || '')
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
 
-const logWarn = (message?: unknown) => {
-	if (isDev) console.warn('[idleraiders-logs]', message || '')
-}
-
-const logError = (message?: unknown) => {
-	if (isDev) console.error('[idleraiders-logs]', message || '')
-}
-
-interface PlayerState {
-	_id?: string
-	username?: string
-	isRegistered?: boolean
-	level?: number
-	xp?: number
-	energy?: number
-	maxEnergy?: number
-	lastEnergyRegen?: number
-	coins?: number
-	storageSlots?: number
-	raidTokens?: number
-	health?: Record<string, unknown>
-	wallet?: Record<string, unknown>
-	stats?: Record<string, unknown>
-	fatigue?: Record<string, unknown>
-	missionStats?: Record<string, unknown>
-	milestones?: Record<string, unknown>
-	boosts?: Record<string, number>
-	inventory?: unknown[]
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	cards?: Record<string, any>[]
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	potions?: Record<string, any>[]
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	packs?: Record<string, any>[]
-	activeMission?: Record<string, unknown> | null
-	lands?: unknown[]
-	[key: string]: unknown
-}
-
-interface GameData {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	CARDS?: Record<string, any>[]
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	ITEMS?: Record<string, any>[]
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	WORLD?: Record<string, any>
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	PROGRESSION?: Record<string, any>
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	ECONOMY?: Record<string, any>
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	SYSTEM?: Record<string, any>
-	[key: string]: unknown
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GameData = Record<string, any>
 
 interface GameContextValue {
-	isLoading: boolean
-	playerState: PlayerState | null
-	gameData: GameData
-	patchPlayerState: (partialState: Partial<PlayerState>) => void
-	setPlayerState: (state: PlayerState | null) => void
-	fetchPlayerState: () => Promise<void>
-	apiRequest: <T = unknown>(
-		endpoint: string,
-		options?: RequestInit,
-	) => Promise<{ success: boolean; data?: T; delta?: Partial<PlayerState>; error?: string }>
+  isLoading: boolean
+  playerState: PlayerState | null
+  gameData: GameData
+  patchPlayerState: (partialState: Partial<PlayerState>) => void
+  setPlayerState: (state: PlayerState | null) => void
+  fetchPlayerState: () => Promise<void>
+  apiRequest: <T = unknown>(
+    endpoint: string,
+    options?: RequestInit,
+  ) => Promise<{ success: boolean; data?: T; delta?: Partial<PlayerState>; error?: string }>
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Context
+// ─────────────────────────────────────────────────────────────────────────────
 
 const GameContext = createContext<GameContextValue | undefined>(undefined)
 
 export const useGame = (): GameContextValue => {
-	const ctx = useContext(GameContext)
-	if (!ctx) throw new Error('useGame must be used within a GameProvider')
-	return ctx
+  const ctx = useContext(GameContext)
+  if (!ctx) throw new Error('useGame must be used within a GameProvider')
+  return ctx
 }
 
-// Legacy hook for backwards compatibility
+// Legacy alias for backwards compatibility
 export const useSocket = useGame
 
 interface GameProviderProps {
-	children: ReactNode
+  children: ReactNode
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const GameProvider = ({ children }: GameProviderProps) => {
-	const [isLoading, setIsLoading] = useState(false)
-	const [playerState, setPlayerStateInternal] = useState<PlayerState | null>(null)
-	const gameData = useMemo(() => GAME_DATA as GameData, [])
+  // Read/write from the Zustand store — single source of truth.
+  const playerState = useGameStore((s) => s.playerState)
+  const isLoading = useGameStore((s) => s.isLoading)
+  const setPlayerState = useGameStore((s) => s.setPlayerState)
+  const patchPlayerState = useGameStore((s) => s.patchPlayerState)
+  const setLoading = useGameStore((s) => s.setLoading)
 
-	const { isAuthenticated, setRegistered, getAuthToken } = useAuth()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const gameData = useMemo(() => GAME_DATA as GameData, [])
 
-	const patchPlayerState = useCallback((partialState: Partial<PlayerState>) => {
-		if (!partialState) return
-		setPlayerStateInternal((prev) => {
-			const base = prev || {}
-			const merged = { ...base, ...partialState }
-			// Deep merge known nested objects, arrays remain atomic replacements.
-			for (const key of ['health', 'wallet', 'stats', 'fatigue', 'missionStats', 'milestones']) {
-				const partialVal = partialState[key]
-				const baseVal = base[key]
-				if (partialVal && baseVal && typeof partialVal === 'object' && !Array.isArray(partialVal)) {
-					merged[key] = { ...(baseVal as object), ...(partialVal as object) }
-				}
-			}
-			return merged
-		})
-	}, [])
+  const { isAuthenticated, setRegistered, getAuthToken } = useAuth()
 
-	const setPlayerState = useCallback((state: PlayerState | null) => {
-		setPlayerStateInternal(state)
-	}, [])
+  // ── apiRequest ──────────────────────────────────────────────────────────────
+  const apiRequest = useCallback(
+    async <T = unknown,>(
+      endpoint: string,
+      options: RequestInit = {},
+    ): Promise<{ success: boolean; data?: T; delta?: Partial<PlayerState>; error?: string }> => {
+      const token = getAuthToken()
 
-	const apiRequest = useCallback(
-		async <T = unknown,>(
-			endpoint: string,
-			options: RequestInit = {},
-		): Promise<{ success: boolean; data?: T; delta?: Partial<PlayerState>; error?: string }> => {
-			const token = getAuthToken()
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string> | undefined ?? {}),
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
 
-			const headers: HeadersInit = {
-				'Content-Type': 'application/json',
-				...(options.headers || {}),
-			}
+      try {
+        const response = await fetch(endpoint, { ...options, headers })
+        const result = await response.json()
 
-			if (token) {
-				;(headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
-			}
+        if (response.status === 401) {
+          logWarn('401 Unauthorized — redirecting to login')
+          window.location.href = '/login?session_expired=true'
+          return { success: false, error: 'Session expired. Please login again.' }
+        }
 
-			try {
-				const response = await fetch(endpoint, {
-					...options,
-					headers,
-				})
+        if (!response.ok) {
+          return { success: false, error: result.error ?? 'Request failed' }
+        }
 
-				const result = await response.json()
+        // Auto-apply delta updates from the response envelope.
+        if (result.delta) patchPlayerState(result.delta)
+        if (result.playerState) setPlayerState(result.playerState)
 
-				// Handle 401 Unauthorized - token expired or invalid
-				if (response.status === 401) {
-					logWarn('401 Unauthorized - redirecting to login')
-					window.location.href = '/login?session_expired=true'
-					return { success: false, error: 'Session expired. Please login again.' }
-				}
+        return { success: true, data: result as T, delta: result.delta }
+      } catch (error) {
+        logError('API request failed:', (error as Error).message)
+        return { success: false, error: (error as Error).message }
+      }
+    },
+    [getAuthToken, patchPlayerState, setPlayerState],
+  )
 
-				if (!response.ok) {
-					return { success: false, error: result.error || 'Request failed' }
-				}
+  // ── fetchPlayerState ────────────────────────────────────────────────────────
+  const fetchPlayerState = useCallback(async () => {
+    const token = getAuthToken()
+    if (!token) return
 
-				// Auto-apply delta updates to player state
-				if (result.delta) {
-					patchPlayerState(result.delta)
-				}
+    setLoading(true)
+    try {
+      const result = await apiRequest<{ playerState: PlayerState }>('/api/players/state')
+      if (result.success && result.data?.playerState) {
+        setPlayerState(result.data.playerState)
+        if (result.data.playerState.isRegistered) setRegistered(true)
+      }
+    } catch (error) {
+      logError('Failed to fetch player state:', (error instanceof Error ? error.message : String(error)))
+      toast.error('Failed to load player data')
+    } finally {
+      setLoading(false)
+    }
+  }, [getAuthToken, apiRequest, setPlayerState, setRegistered, setLoading])
 
-				// Auto-apply full player state updates
-				if (result.playerState) {
-					setPlayerState(result.playerState)
-				}
+  // ── Bootstrap: fetch on auth change ────────────────────────────────────────
+  useEffect(() => {
+    if (isAuthenticated) {
+      log('authenticated — fetching player state')
+      fetchPlayerState()
+    } else {
+      setPlayerState(null)
+    }
+  }, [isAuthenticated, fetchPlayerState, setPlayerState])
 
-				return { success: true, data: result as T, delta: result.delta }
-			} catch (error) {
-				const err = error as Error
-				logError('API request failed: ' + err.message)
-				return { success: false, error: err.message }
-			}
-		},
-		[getAuthToken, patchPlayerState, setPlayerState],
-	)
+  // ── Context value ───────────────────────────────────────────────────────────
+  const value = useMemo(
+    () => ({
+      isLoading,
+      playerState,
+      gameData,
+      patchPlayerState,
+      setPlayerState,
+      fetchPlayerState,
+      apiRequest,
+    }),
+    [isLoading, playerState, gameData, patchPlayerState, setPlayerState, fetchPlayerState, apiRequest],
+  )
 
-	const fetchPlayerState = useCallback(async () => {
-		const token = getAuthToken()
-		if (!token) return
-
-		setIsLoading(true)
-		try {
-			const result = await apiRequest<{ playerState: PlayerState }>('/api/players/state')
-
-			if (result.success && result.data?.playerState) {
-				setPlayerState(result.data.playerState)
-
-				if (result.data.playerState.isRegistered) {
-					setRegistered(true)
-				}
-			}
-		} catch (error) {
-			logError(
-				'Failed to fetch player state: ' + (error instanceof Error ? error.message : String(error)),
-			)
-			toast.error('Failed to load player data')
-		} finally {
-			setIsLoading(false)
-		}
-	}, [getAuthToken, apiRequest, setPlayerState, setRegistered])
-
-	// Fetch player state on authentication
-	useEffect(() => {
-		if (isAuthenticated) {
-			fetchPlayerState()
-		} else {
-			setPlayerState(null)
-		}
-	}, [isAuthenticated, fetchPlayerState, setPlayerState])
-
-	const value = useMemo(
-		() => ({
-			isLoading,
-			playerState,
-			gameData,
-			patchPlayerState,
-			setPlayerState,
-			fetchPlayerState,
-			apiRequest,
-		}),
-		[
-			isLoading,
-			playerState,
-			gameData,
-			patchPlayerState,
-			setPlayerState,
-			fetchPlayerState,
-			apiRequest,
-		],
-	)
-
-	return <GameContext.Provider value={value}>{children}</GameContext.Provider>
+  return <GameContext.Provider value={value}>{children}</GameContext.Provider>
 }
 
 // Legacy export for backwards compatibility
 export const SocketProvider = GameProvider
+export type { PlayerState }

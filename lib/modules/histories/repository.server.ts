@@ -8,7 +8,9 @@
  */
 
 import History, { type IHistory, type IHistoryDocument } from './model.server'
-import type { FilterQuery, QueryOptions, Types } from 'mongoose'
+import type { QueryOptions, Types } from 'mongoose'
+import mongoose from 'mongoose'
+type FilterQuery<T> = mongoose.QueryFilter<T>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
