@@ -7,7 +7,7 @@
  * SERVER-ONLY — never import this from client components.
  */
 
-import Mission, { type IMission, type IMissionDocument, type MissionType } from './model.server'
+import Mission, { type IMission, type IMissionDocument, type MissionType, type TrainingType } from './model.server'
 import type { UpdateQuery, QueryOptions, Types } from 'mongoose'
 import mongoose from 'mongoose'
 type FilterQuery<T> = mongoose.QueryFilter<T>
@@ -31,11 +31,6 @@ export interface CreateMissionData {
   territoryId?: string
   questNumber?: number
   bossId?: string
-  // War mission fields
-  guildWarId?: Types.ObjectId
-  targetOutpostId?: string
-  targetGuildId?: Types.ObjectId
-  trainingType?: string
   // Generic extra
   playerId?: Types.ObjectId | string
   metadata?: Record<string, unknown>
@@ -182,7 +177,7 @@ export async function isPlayerOnMission(playerId: string | Types.ObjectId): Prom
 // Game Logic — migrated from mission.service.ts
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import type { TrainingType } from './model.server'
+
 import type { IPlayerDocument } from '../players/model.server'
 import * as playerRepo from '../players/repository.server'
 import {
@@ -323,11 +318,9 @@ const BOSS_RAID_XP = 45
 export const TRAINING_DURATION = 60 // minutes
 export const TRAINING_ENERGY_COST = 40
 
-const TRAINING_CARD_TYPE_MAP: Record<TrainingType, string> = {
-  weapons: 'equipment',
-  mount: 'mount',
-  merchant: 'transport',
-}
+// Training now uses hero cards — the only card type in the game.
+// Previously mapped to equipment/mount/transport which no longer exist.
+const TRAINING_CARD_TYPE: string = 'hero'
 
 const TRAINING_LABELS: Record<TrainingType, string> = {
   weapons: 'Weapons Training',
@@ -852,8 +845,7 @@ export async function startTraining(
 
   if (player.energy < TRAINING_ENERGY_COST) throw new Error('Not enough energy')
 
-  const cardType = TRAINING_CARD_TYPE_MAP[trainingType]
-  const dbCards = await Card.find({ owner: player._id, type: cardType }).lean()
+  const dbCards = await Card.find({ owner: player._id, type: TRAINING_CARD_TYPE }).lean()
   let totalLuck = 0
   for (const card of dbCards) {
     const cardDef = CARDS_BY_ID[card.cardId] ?? {}
@@ -907,12 +899,7 @@ export async function completeTraining(
   const elapsed = Date.now() - mission.startTime.getTime()
   if (elapsed < mission.duration * 1000) throw new Error('Training not yet complete')
 
-  let trainingType: TrainingType = 'weapons'
-  if (mission.sourceName?.includes('Mount')) trainingType = 'mount'
-  else if (mission.sourceName?.includes('Merchant')) trainingType = 'merchant'
-
-  const cardType = TRAINING_CARD_TYPE_MAP[trainingType]
-  const dbCards = await Card.find({ owner: player._id, type: cardType }).lean()
+  const dbCards = await Card.find({ owner: player._id, type: TRAINING_CARD_TYPE }).lean()
   let totalLuck = 0
   for (const card of dbCards) {
     const cardDef = CARDS_BY_ID[card.cardId] ?? {}
