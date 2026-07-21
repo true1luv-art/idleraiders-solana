@@ -5,7 +5,7 @@ import mongoose, { Schema, Document, Model, Types } from 'mongoose'
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type CardRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'special'
-export type CardType = 'hero' | 'equipment' | 'relic' | 'mount' | 'artifact' | 'transport'
+export type CardType = 'hero' | 'special'
 
 export interface CardMarketDoc {
   listed: boolean
@@ -55,7 +55,7 @@ const CardSchema = new Schema<ICardDocument>(
     cardId: { type: String, required: true },
     type: {
       type: String,
-      enum: ['hero', 'equipment', 'relic', 'mount', 'artifact', 'transport'],
+      enum: ['hero', 'special'],
       required: true,
     },
     cardClass: {
@@ -72,8 +72,6 @@ const CardSchema = new Schema<ICardDocument>(
   { timestamps: true }
 )
 
-// Index for marketplace queries
-CardSchema.index({ 'market.listed': 1 })
 CardSchema.index({ owner: 1, cardId: 1 }, { unique: true })
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -1,12 +1,9 @@
-// Materials have been removed from the game.
 // Potions are embedded on the Player document (player.potions).
 // Packs immediately mint cards — no intermediate item storage.
 
 // ─────────────────────────────────────────────
 // Potions
 // ─────────────────────────────────────────────
-
-export const MATERIALS: never[] = []
 
 export const POTIONS = [
   {
@@ -78,38 +75,12 @@ export const PACKS = [
     },
   },
 
-  {
-    id: 'booster_pack',
-    name: 'Booster Pack',
-    description: 'Contains 1 booster card',
-    catergory: 'pack',
-
-    buy: {
-      shards: 100,
-      dollars: 3, // Sale price for first month; returns to $5 after sale ends
-    },
-
-    data: {
-      cardCount: 1,
-      dropRates: {
-        common: 0.65,
-        uncommon: 0.23,
-        rare: 0.10,
-        epic: 0.019,
-        legendary: 0.001,
-      },
-    },
-  },
 ]
 
 // ─────────────────────────────────────────────
 // Items Data Export
 // ─────────────────────────────────────────────
 
-// Flat items array (used by registry builder)
-export const ITEMS_DATA_ARRAY = [...POTIONS, ...PACKS]
-
-// Full items object (GAME_DATA.ITEMS)
-export const ITEMS_DATA = ITEMS_DATA_ARRAY
+export const ITEMS_DATA = [...POTIONS, ...PACKS]
 
 export default ITEMS_DATA

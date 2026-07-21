@@ -62,31 +62,26 @@ async function fetchHETokenBalance(username: string, symbol: string): Promise<nu
 interface UseHiveBlockchainReturn {
   hiveBalance: number | null
   realmcBalance: number | null
-  sshrdBalance: number | null
   refetch: () => Promise<void>
 }
 
 export function useHiveBlockchain(username: string | null, enabled: boolean = true): UseHiveBlockchainReturn {
   const [hiveBalance, setHiveBalance] = useState<number | null>(null)
   const [realmcBalance, setRealmcBalance] = useState<number | null>(null)
-  const [sshrdBalance, setSshrdBalance] = useState<number | null>(null)
 
   const fetchBalances = useCallback(async (): Promise<void> => {
     if (!username || !enabled) return
     try {
-      const [hive, realmc, sshrd] = await Promise.all([
+      const [hive, realmc] = await Promise.all([
         fetchHiveBalance(username),
         fetchHETokenBalance(username, 'REALMC'),
-        fetchHETokenBalance(username, 'SSHRD'),
       ])
       setHiveBalance(hive)
       setRealmcBalance(realmc)
-      setSshrdBalance(sshrd)
     } catch (error) {
       console.error('[useHiveBlockchain] Error fetching balances:', error)
       setHiveBalance(0)
       setRealmcBalance(0)
-      setSshrdBalance(0)
     }
   }, [username, enabled])
 
@@ -97,5 +92,5 @@ export function useHiveBlockchain(username: string | null, enabled: boolean = tr
     return () => clearInterval(interval)
   }, [username, enabled, fetchBalances])
 
-  return { hiveBalance, realmcBalance, sshrdBalance, refetch: fetchBalances }
+  return { hiveBalance, realmcBalance, refetch: fetchBalances }
 }

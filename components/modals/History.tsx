@@ -247,8 +247,8 @@ function PacksRow({ entry, index }: { entry: Record<string, any>; index: number 
 				</p>
 				<p className="text-[10px] text-muted-foreground mt-0.5">
 					{d.currencyType === 'dollar'
-						? `${Number(d.totalCost ?? 0).toFixed(2)} Dollars`
-							: `${(d.totalCost ?? 0).toLocaleString()} ${d.currencyType === 'shard' ? 'Soul Shards' : 'Realm Coins'}`}
+							? `${Number(d.totalCost ?? 0).toFixed(2)} Dollars`
+							: `${(d.totalCost ?? 0).toLocaleString()} Realm Coins`}
 				</p>
 				<p className="text-[10px] text-muted-foreground mt-0.5">{timeAgo(ts)}</p>
 			</div>

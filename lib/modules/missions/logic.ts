@@ -127,6 +127,48 @@ export function isMissionUnlocked(dungeon: Dungeon, missionId: string, playerLev
 }
 
 // ─────────────────────────────────────────────
+// Boss Unlock Gate
+// ─────────────────────────────────────────────
+
+interface BossGateConfig {
+  tier: number
+  requiredStoryProgress: number
+}
+
+export interface BossUnlockGate {
+  unlocked: boolean
+  levelMet: boolean
+  storyProgressMet: boolean
+  requiredLevel: number
+  requiredStoryProgress: number
+  currentStoryProgress: number
+}
+
+/**
+ * Returns the full unlock gate state for a boss raid.
+ * Level gate: tier * 15 - 14 (mirrors the existing runtime check in _startBossRaid).
+ * Story gate: player must have completed at least boss.requiredStoryProgress quests.
+ */
+export function getBossUnlockGate(
+  boss: BossGateConfig,
+  playerLevel: number,
+  playerStoryProgress: number,
+): BossUnlockGate {
+  const requiredLevel = boss.tier * 15 - 14
+  const levelMet = playerLevel >= requiredLevel
+  const storyProgressMet = playerStoryProgress >= boss.requiredStoryProgress
+
+  return {
+    unlocked: levelMet && storyProgressMet,
+    levelMet,
+    storyProgressMet,
+    requiredLevel,
+    requiredStoryProgress: boss.requiredStoryProgress,
+    currentStoryProgress: playerStoryProgress,
+  }
+}
+
+// ─────────────────────────────────────────────
 // Mission Completion Gate
 // ─────────────────────────────────────────────
 // Level controls whether the mission tier *appears*; completion controls whether it can be *played*.
