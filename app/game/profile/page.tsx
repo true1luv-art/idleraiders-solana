@@ -103,7 +103,14 @@ const ProfilePage = () => {
 	const totalRaidPowerOwn = cards.reduce((a, c) => a + (c.stats?.raidPower ?? 0) * (c.quantity ?? 1), 0)
 	const totalMasteryOwn = cards.reduce((a, c) => a + (c.stats?.mastery ?? 0) * (c.quantity ?? 1), 0)
 	const totalLuckOwn = cards.reduce((a, c) => a + (c.stats?.luck ?? 0) * (c.quantity ?? 1), 0)
+	const totalGMOwn = cards.reduce((a, c) => a + (c.stats?.gm ?? 0) * (c.quantity ?? 1), 0)
 	const totalCardCountOwn = cards.reduce((a, c) => a + (c.quantity ?? 1), 0)
+
+	// Guild is not implemented yet — always false
+	const inGuild = false
+	const guildName = ''
+	const guildLevel = 1
+	const playerRole = ''
 
 	const router = useRouter()
 	const searchParams = useSearchParams()

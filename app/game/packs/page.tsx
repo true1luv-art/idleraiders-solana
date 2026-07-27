@@ -83,9 +83,7 @@ const PacksPage = () => {
 		return map
 	}, [packCardPool, standardCardSupply])
 
-	// Packs are no longer stored in inventory — purchasing immediately mints cards.
-	// ownedPacks is kept as an empty map so existing UI references don't break.
-	const ownedPacks = useMemo(() => ({} as Record<string, number>), [])
+
 
 	// Build available packs early
 	const availablePacks = ITEMS_DATA.filter((p) => p?.catergory === 'pack' && p.id !== 'land_pack')
@@ -353,54 +351,7 @@ if (!gameData || availablePacks.length === 0 || !pack) {
 					</div>
 			</motion.div>
 
-			{/* ═══ Owned Packs ═══ */}
-			<div className="mt-5 space-y-2">
-				<div className="flex items-center justify-between px-1">
-					<h3 className="font-display text-sm font-bold text-foreground">Your Packs</h3>
-					<span className="text-[10px] text-muted-foreground">{totalOwned} total</span>
-				</div>
-				{availablePacks.map((p) => {
-					const owned = getOwnedCount(p.id)
-					const img = packImg
-					return (
-						<motion.div
-							key={p.id}
-							className="rounded-xl border border-border bg-card flex items-center gap-3 p-3"
-							whileHover={{ scale: 1.01 }}
-						>
-							<img src={img} alt={p.name} className="w-12 h-16 object-contain" />
-							<div className="flex-1 min-w-0">
-								<p className="font-display text-sm font-bold text-foreground truncate">{p.name}</p>
-								<p className="text-[10px] text-muted-foreground">
-									{owned === 0
-										? 'No packs available'
-										: `${owned} pack${owned > 1 ? 's' : ''} ready to open`}
-								</p>
-							</div>
-							<div className="flex items-center gap-2 shrink-0">
-								<span className="font-mono text-xl font-bold text-primary min-w-[2rem] text-right">
-									{owned}
-								</span>
-								<button
-									onClick={() => setConfirmPackId(p.id)}
-									disabled={owned <= 0 || isOpening || isOpeningPack}
-									className="fantasy-btn px-4 py-2 text-xs disabled:opacity-30 flex items-center gap-1"
-								>
-									{(isOpening || isOpeningPack) && openingPackId === p.id ? (
-										<>
-											<Loader2 size={13} className="animate-spin" /> Opening...
-										</>
-									) : (
-										<>
-											<Sparkles size={13} /> Open
-										</>
-									)}
-								</button>
-							</div>
-						</motion.div>
-					)
-				})}
-			</div>
+
 
 			{/* ═══ Drop Rates ═══ */}
 			<div className="mt-5 rounded-xl border border-border bg-card p-4">

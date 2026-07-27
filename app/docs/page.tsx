@@ -65,7 +65,6 @@ const DocsPage = () => {
     { id: "training", label: "Training System" },
     { id: "rarities", label: "Card Rarities" },
     { id: "leveling", label: "XP & Leveling" },
-    { id: "marketplace", label: "Marketplace" },
     { id: "packs", label: "Card Packs" },
     { id: "faq", label: "FAQ & Tips" },
   ];
@@ -230,8 +229,8 @@ Max Energy: 100 (fixed)`}
               <table className="w-full">
                 <tbody>
                   <TableRow cells={["Potion", "Effect", "Obtained"]} header />
-                  <TableRow cells={["Energy Potion", "Refill energy to 100", "Mission drop"]} />
-                  <TableRow cells={["EXP Potion", "2× XP for next mission", "Mission drop"]} />
+                  <TableRow cells={["Energy Potion", "Refill energy to 100", "Story quest drop"]} />
+                  <TableRow cells={["EXP Potion", "2× XP for next mission", "Story quest drop"]} />
                 </tbody>
               </table>
             </div>
@@ -246,12 +245,10 @@ DropChance = min(0.25, 0.10 × (1 + LuckBonus))
 
 On drop: 60% EXP Potion, 40% Energy Potion`}
               notes={[
-                "Base drop chance is 10% per mission completion",
+                "Base drop chance is 10% per story quest completion",
                 "Luck increases drop rate linearly up to +150% bonus (caps at 6000 Luck)",
                 "Hard cap at 25% drop chance regardless of luck",
-                "Mission duration has a per-potion multiplier (scout 1.0× → war 2.0×)",
                 "Distribution when a drop occurs: 60% EXP Potion, 40% Energy Potion",
-                "Players start with 3 potion storage slots",
               ]}
             />
           </motion.section>
@@ -389,68 +386,6 @@ FinalXP = round(BaseXP × (1 + EffectiveXpBoost / 100) × expPotionMultiplier)`}
                 "Story quests give a fixed 90 XP (STORY_QUEST_XP constant)",
                 "Training sessions give 2 XP per minute (120 XP per hour)",
                 "EXP Potion doubles the XP earned on its active mission (×2 multiplier)",
-              ]}
-            />
-          </motion.section>
-
-          {/* ═══ CRAFTING ═══ */}
-          <motion.section {...fadeUp}>
-            <SectionTitle id="crafting" sub="Combine materials, components, and catalysts to craft powerful cards.">
-              Crafting System
-            </SectionTitle>
-
-            <FormulaBlock
-              label="Card Crafting Requirements"
-              formula={`Each recipe consumes exactly 3 stacks:
-  1. catalyst   → 1× catalyst of matching rarity (Common ... Legendary)
-  2. material   → 1× zone-specific material stack
-  3. component  → 1× class-specific component stack
-
-Output: 1× crafted card added to your collection
-
-No Soul Shards or Realm Coins are spent on crafting —
-catalysts are the rarity gate.`}
-              notes={[
-                "All required stacks are consumed immediately on craft",
-                "Materials drop from dungeon missions (2 unique materials per dungeon zone)",
-                "Components drop from boss raids (75% per drop, class-specific)",
-                "Catalysts drop from boss raids (25% per drop) — rarity scales with boss tier",
-                "The catalyst's rarity determines the rarity of the crafted card",
-              ]}
-            />
-
-            <div className="rounded-xl border border-border overflow-hidden mb-3" style={{ background: "linear-gradient(145deg, hsl(230 12% 14%), hsl(230 12% 9%))" }}>
-              <table className="w-full">
-                <tbody>
-                  <TableRow cells={["Rarity", "Material", "Component", "Catalyst"]} header />
-                  <TableRow cells={["Common", "4", "2", "1× Common"]} />
-                  <TableRow cells={["Uncommon", "6", "3", "1× Uncommon"]} />
-                  <TableRow cells={["Rare", "8", "4", "1× Rare"]} />
-                  <TableRow cells={["Epic", "12", "6", "1× Epic"]} />
-                  <TableRow cells={["Legendary", "20", "10", "1× Legendary"]} />
-                </tbody>
-              </table>
-            </div>
-
-            <FormulaBlock
-              label="Material Conversion (Trader)"
-              formula={`RATIO     = 5  (5× source → 1× target)
-DIRECTION = Next zone up only (D1→D2 ... D9→D10)
-COIN_COST = TargetZoneIndex × 25 Realm Coins
-
-Coin cost by destination zone:
-  D2  =  25      D6  = 125      D10 = 225
-  D3  =  50      D7  = 150
-  D4  =  75      D8  = 175
-  D5  = 100      D9  = 200
-
-Input:  5× Source Material + (zone-scaled coin fee)
-Output: 1× Target Material from the next zone`}
-              notes={[
-                "Trades only flow up to the next zone — D10 cannot be a source",
-                "Coin cost scales with destination zone (dynamic, not flat)",
-                "Cannot convert a material into itself or skip zones",
-                "Useful for filling gaps in crafting recipes when you've out-leveled a dungeon",
               ]}
             />
           </motion.section>
@@ -605,32 +540,6 @@ calculateLevel(totalXp):
             />
           </motion.section>
 
-          {/* ═══ MARKETPLACE ═══ */}
-          <motion.section {...fadeUp}>
-            <SectionTitle id="marketplace" sub="Peer-to-peer trading hub for cards.">
-              Marketplace
-            </SectionTitle>
-
-            <FormulaBlock
-              label="Marketplace Configuration"
-              formula={`LISTING_DURATION_HOURS = 168 (7 days)
-LISTING_CREATION_FEE   = 100 Realm Coins
-MARKET_FEE_PERCENT     = 5%
-MIN_PRICE              = 1
-MAX_PRICE              = 100,000
-
-On Sale:
-  SellerProceeds = Price − floor(Price × 0.05)`}
-              notes={[
-                "Listing fee of 100 Realm Coins to create a listing",
-                "5% marketplace fee deducted from sale price",
-                "Listings expire after 7 days if not sold",
-                "Cancelled listings return the card to the seller (listing fee is not refunded)",
-                "Prices are clamped between 1 and 100,000 Realm Coins",
-              ]}
-            />
-          </motion.section>
-
           {/* ═══ CARD PACKS ═══ */}
           <motion.section {...fadeUp}>
             <SectionTitle id="packs" sub="Purchase card packs to expand your collection.">
@@ -640,21 +549,16 @@ On Sale:
             <FormulaBlock
               label="Pack Contents and Pricing"
               formula={`Standard Pack (3 cards):
-  Price: 2,500 Realm Coins OR 2 Dollars
+  Price: 2,500 Realm Coins
   All 3 cards roll independently from the standard drop table
 
-Booster Pack (1 card):
-  Price: 250 Soul Shards OR 5 Dollars
-  Contains: 1 booster card (xpBoost / materialBoost / energyBoost)
-
-DROP RATES (both packs):
+DROP RATES:
   Common 65% | Uncommon 23% | Rare 10% | Epic 1.9% | Legendary 0.1%`}
               notes={[
-                "Every card in a Standard Pack is rolled fully randomly — no guaranteed rarity",
-                "Booster Pack always contains a single booster with same rarity distribution",
+                "Every card in a pack is rolled fully randomly — no guaranteed rarity",
                 "Supply limits are enforced by card definitions (some legendaries have caps)",
                 "Duplicate cards stack (quantity increases for same cardId)",
-                "Packs are added to inventory on purchase and opened separately",
+                "Cards are minted directly to your inventory on purchase — no intermediate pack to open",
               ]}
             />
           </motion.section>
@@ -668,13 +572,12 @@ DROP RATES (both packs):
             <div className="space-y-4">
               <FormulaBlock
                 label="Dungeon and Mission Tips"
-                formula="Unlock territories → Farm materials → Craft cards → Repeat"
+                formula="Unlock territories → Run missions → Grow your collection → Repeat"
                 notes={[
-                  "Each dungeon drops only 2 unique materials — farm the ones you need",
                   "Higher-tier dungeons give much better base tokens (up to 3.0× factor)",
-                  "Longer missions (Siege, War) give more tokens per run, but more fatigue",
+                  "Longer missions (Siege, War) give more tokens per run, but add more fatigue",
                   "Vary your mission types daily to avoid the repeat penalty",
-                  "Boss raids drop components and catalysts needed for crafting",
+                  "Boss raids earn XP and deal damage — great for leveling up quickly",
                 ]}
               />
 
@@ -698,10 +601,10 @@ DROP RATES (both packs):
                 <div className="space-y-3">
                   {[
                     { q: "What should I spend Realm Coins on first?", a: "Buy Standard Packs to grow your card collection. Each card rolls independently — Common 65%, Uncommon 23%, Rare 10%, Epic 1.9%, Legendary 0.1%." },
-                    { q: "Is it better to sell or keep duplicate cards?", a: "Keep duplicates early — they stack and multiply stat contributions. Sell only when you need tokens for specific purchases." },
+                    { q: "Is it better to keep duplicate cards?", a: "Yes — duplicates stack and multiply stat contributions. More copies of a card means higher stats across the board." },
                     { q: "How does the daily repeat penalty work?", a: "Running the same dungeon+mission combo multiple times per day reduces the bonus reward by 15% per repeat (min 10% remaining). Resets at midnight Manila time." },
-                    { q: "How do I craft cards?", a: "Open the Crafting page, pick a recipe, and make sure you have the matching-rarity catalyst plus the required material and component stacks. No Soul Shards or Realm Coins are spent — all 3 stacks are consumed on craft." },
                     { q: "Why didn't my story quest progress?", a: "First-time completion has a 15% card drop gate. If you don't get the card, you must retry the same quest until it drops." },
+                    { q: "What does Training do?", a: "Training earns Mastery which counters fatigue. Without Mastery, high fatigue reduces your bonus rewards to zero." },
                   ].map((faq, i) => (
                     <div key={i}>
                       <p className="text-xs font-semibold text-primary">{faq.q}</p>

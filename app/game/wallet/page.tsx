@@ -325,7 +325,7 @@ const WalletPageInner = () => {
 						<Input
 							type="number"
 							min="1"
-							max={playerDollars}
+							max={99999}
 							step="1"
 							placeholder="Dollars to buy"
 							value={dollarPurchaseAmount}
